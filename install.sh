@@ -204,34 +204,6 @@ EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
 EOF
 
-# --- 2. Nginx конфиг (Базовый HTTP) ---
-# Этот конфиг будет использоваться внутри контейнера
-cat > client/nginx-client.conf <<EOF
-server {
-    listen 80;
-    server_name localhost;
-    root /usr/share/nginx/html;
-    index index.html;
-
-    # Frontend Routing (SPA)
-    location / {
-        try_files \$uri \$uri/ /index.html;
-    }
-
-    # Proxy API requests to Backend Container
-    location /api/ {
-        proxy_pass http://backend:3000/api/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    }
-}
-EOF
-
 # --- 3. Dockerfile для Server ---
 cat > server/Dockerfile <<EOF
 FROM node:24-alpine AS builder
@@ -251,14 +223,38 @@ EXPOSE 3000
 CMD ["node", "dist/main"]
 EOF
 
-# --- 4. docker-compose.yml ---
-log "Генерация docker-compose.yml..."
+if [[ "$USE_SSL" == "true" ]]; then
+    # === ВАРИАНТ С SSL ===
+    
+    # 1. Nginx Config
+cat > client/nginx-client.conf <<EOF
+server {
+    listen $FRONTEND_PORT ssl;
+    server_name $UI_HOST;
+    root /usr/share/nginx/html;
+    index index.html;
+    client_max_body_size 50M;
 
+    ssl_certificate /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+    location /api/ {
+        proxy_pass http://backend:3000/api/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    }
+}
+EOF
+
+    # 2. Docker Compose
 cat > docker-compose.yml <<EOF
 services:
-  # --- Database ---
   postgres:
-    image: postgres:18-alpine
+    image: postgres:16-alpine
     container_name: 3dp-postgres
     restart: always
     environment:
@@ -275,7 +271,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # --- Backend (NestJS) ---
   backend:
     build: ./server
     container_name: 3dp-backend
@@ -294,7 +289,6 @@ services:
     ports:
       - "3000:3000"
 
-  # --- Frontend (Nginx + React) ---
   frontend:
     build: ./client
     container_name: 3dp-frontend
@@ -302,46 +296,95 @@ services:
     depends_on:
       - backend
     ports:
-      - "${FINAL_PORT}:${FINAL_PORT}"
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+    volumes:
+      - ${CERT_PATH}:/etc/nginx/certs/fullchain.pem:ro
+      - ${KEY_PATH}:/etc/nginx/certs/privkey.pem:ro
+
+volumes:
+  pg_data:
 EOF
 
-# Добавляем SSL конфигурацию (ЕСЛИ ВКЛЮЧЕНО)
-if [[ "$USE_SSL" == "true" ]]; then
-    # 1. Перезаписываем nginx конфиг для SSL
+else
+    # === ВАРИАНТ БЕЗ SSL (HTTP) ===
+    
+    # 1. Nginx Config
 cat > client/nginx-client.conf <<EOF
 server {
-    listen $FINAL_PORT ssl;
-    server_name $UI_HOST;
+    listen 80;
+    server_name localhost;
     root /usr/share/nginx/html;
     index index.html;
-
-    ssl_certificate /etc/nginx/certs/fullchain.pem;
-    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+    client_max_body_size 50M;
 
     location / {
         try_files \$uri \$uri/ /index.html;
     }
-
     location /api/ {
         proxy_pass http://backend:3000/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
         proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     }
 }
 EOF
 
-    # 2. Добавляем volumes с сертификатами в docker-compose
-    # Используем sed для вставки volumes после ports frontend-сервиса
-    sed -i "/services:/a \ \ \ \ volumes:\n      - $CERT_PATH:/etc/nginx/certs/fullchain.pem:ro\n      - $KEY_PATH:/etc/nginx/certs/privkey.pem:ro" docker-compose.yml
-fi
+    # 2. Docker Compose
+cat > docker-compose.yml <<EOF
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: 3dp-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: 3dp_manager
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d 3dp_manager"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-# Добавляем volume для БД в конец файла
-cat >> docker-compose.yml <<EOF
+  backend:
+    build: ./server
+    container_name: 3dp-backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: admin
+      DATABASE_PASSWORD: ${DB_PASS}
+      DATABASE_NAME: 3dp_manager
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 3000
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build: ./client
+    container_name: 3dp-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
 
 volumes:
   pg_data:
 EOF
+fi
 
 #################################
 # ЗАПУСК
