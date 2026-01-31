@@ -157,6 +157,7 @@ get_random_port() {
   done
 }
 FINAL_PORT=$(get_random_port)
+DB_EXTERNAL_PORT=5432
 
 # --- 4. Генерация паролей ---
 DB_PASS=$(openssl rand -base64 12)
