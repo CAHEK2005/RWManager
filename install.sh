@@ -253,6 +253,8 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: ${DB_PASS}
       POSTGRES_DB: 3dp_manager
+    ports:
+      - "127.0.0.1:${DB_EXTERNAL_PORT}:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
@@ -277,6 +279,8 @@ services:
       DATABASE_NAME: 3dp_manager
       JWT_SECRET: ${JWT_SECRET}
       PORT: 3000
+    ports:
+      - "3000:3000"
 
   # --- Frontend (Nginx + React) ---
   frontend:
