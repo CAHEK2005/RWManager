@@ -2,46 +2,20 @@
 set -euo pipefail
 
 #################################
-# DEBUG TRAP
+# КОНФИГУРАЦИЯ И ПЕРЕМЕННЫЕ
 #################################
-trap 'echo -e "\033[1;31m[ERROR]\033[0m Ошибка в строке $LINENO"; exit 1' ERR
+REPO_URL="https://github.com/denpiligrim/3dp-manager/archive/refs/heads/main.tar.gz"
+PROJECT_DIR="/opt/3dp-manager"
 
-#################################
-# HELPER FUNCTIONS
-#################################
-log()  { echo -e "\033[1;32m[INFO]\033[0m $1"; }
-die()  { echo -e "\033[1;31m[ERROR]\033[0m $1"; exit 1; }
+# Цвета для вывода
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
-need_root() {
-  [[ $EUID -eq 0 ]] || die "Запускать только от root"
-}
-
-validate_url() {
-  [[ "$1" =~ ^https?://[^/:]+:[0-9]+(/[^/]+)*$ ]]
-}
-
-#################################
-# CHECKS
-#################################
-need_root
-
-# Check OS and set release variable
-. /etc/os-release
-if [[ "$ID" != "ubuntu" && "$ID" != "debian" ]]; then
-    die "Этот скрипт поддерживает только Ubuntu или Debian: $ID"
-fi
-
-REMOTE_PANEL=${REMOTE_PANEL:-false}
-
-if [[ "$REMOTE_PANEL" != "true" ]]; then
-    if ! x-ui status >/dev/null 2>&1; then
-        echo "❌ Панель 3x-ui не найдена или не работает."
-        echo "   Чтобы установить, выполните:"
-        echo "   bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)"
-        exit 1
-    fi
-    echo "✔ Панель 3x-ui найдена и работает"
-fi
+log() { echo -e "${GREEN}[INFO]${NC} $1"; }
+warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
 #################################
 # ASCII-баннер
@@ -59,148 +33,37 @@ echo "==================================================="
 echo ""
 
 #################################
-# INPUT / USER DATA
+# ПРОВЕРКИ И УСТАНОВКА ЗАВИСИМОСТЕЙ
 #################################
-# Function to get panel URL from 3x-ui
-get_xui_url() {
-  if [[ "$REMOTE_PANEL" == "true" ]]; then
-        echo ""
-        return
-  fi
-
-    local output=$(x-ui settings 2>/dev/null || true)
-
-    echo "$output" | sed 's/\x1b\[[0-9;]*m//g' | grep "Access URL:" | grep -oE 'https?://[^[:space:]]+' | head -n1 || true
-}
-
-echo "Определяем URL панели 3x-ui..."
-
-UI_URL=$(get_xui_url)
-
-if [[ -z "$UI_URL" ]]; then
-    echo "Не удалось автоматически получить URL"
-    read -rp "Введите URL панели 3x-ui вручную: " UI_URL
+if [[ $EUID -ne 0 ]]; then
+   error "Этот скрипт должен быть запущен от имени root"
 fi
 
-UI_URL=$(echo "$UI_URL" | sed -E 's/[[:space:]]*$//; s|/*$||')
-# Validate URL correctness
-validate_url "$UI_URL" || die "Некорректный URL панели 3x-ui: $UI_URL"
-
-echo "URL панели 3x-ui: $UI_URL"
-
-read -rp "Логин 3x-ui: " UI_LOGIN
-read -rsp "Пароль 3x-ui: " UI_PASSWORD
-echo
-
-UI_LOGIN=$(echo "$UI_LOGIN" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-UI_PASSWORD=$(echo "$UI_PASSWORD" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-[[ -z "$UI_LOGIN" || -z "$UI_PASSWORD" ]] && die "Логин/пароль обязательны"
-
-# Check login
-if ! command -v curl >/dev/null 2>&1; then
-  echo "❌ curl не установлен. Установите curl и повторите попытку"
-  echo "   apt install -y curl"
-  exit 1
+. /etc/os-release
+if [[ "$ID" != "ubuntu" && "$ID" != "debian" ]]; then
+    die "Этот скрипт поддерживает только Ubuntu или Debian: $ID"
 fi
 
-LOGIN_RESPONSE=$(curl -s -k --connect-timeout 10 -X POST "$UI_URL/login" -H "Content-Type: application/json" -d "{\"username\":\"$UI_LOGIN\",\"password\":\"$UI_PASSWORD\"}" || true)
-
-if ! echo "$LOGIN_RESPONSE" | grep -q '"success":true'; then
-  echo "Не удалось залогиниться в 3x-ui. Проверьте URL, логин и пароль."
-  exit 1
+if [ $(free -m | grep Mem: | awk '{print $2}') -lt 2000 ]; then
+    if [ $(free -m | grep Swap: | awk '{print $2}') -eq 0 ]; then
+        log "Мало RAM и нет Swap. Создаем swap-файл 2GB..."
+        fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
+        chmod 600 /swapfile
+        mkswap /swapfile
+        swapon /swapfile
+        echo '/swapfile none swap sw 0 0' >> /etc/fstab
+        log "Swap создан."
+    fi
 fi
 
-echo "✔ Успешный логин в 3x-ui"
+log "Проверка зависимостей..."
+if ! command -v curl &> /dev/null; then apt-get update && apt-get install -y curl; fi
+if ! command -v jq &> /dev/null; then apt-get install -y jq; fi
+if ! command -v openssl &> /dev/null; then apt-get install -y openssl; fi
+if ! command -v tar &> /dev/null; then apt-get install -y tar; fi
+if ! command -v hostname &> /dev/null; then apt-get install -y net-tools || apt-get install -y hostname; fi
 
-# Parse UI_URL
-UI_HOST=$(echo "$UI_URL" | awk -F[/:] '{print $4}')   # domain or IP
-UI_PROTO=$(echo "$UI_URL" | awk -F: '{print $1}')     # http or https
-
-if [[ "$UI_PROTO" == "https" ]]; then
-  log "HTTPS панель обнаружена, проверяем SSL сертификаты"
-
-  DEFAULT_CERT="/etc/letsencrypt/live/$UI_HOST/fullchain.pem"
-  DEFAULT_KEY="/etc/letsencrypt/live/$UI_HOST/privkey.pem"
-
-  if [[ -f "$DEFAULT_CERT" && -f "$DEFAULT_KEY" ]]; then
-    CERT_PATH="$DEFAULT_CERT"
-    KEY_PATH="$DEFAULT_KEY"
-    log "Найдены сертификаты Let's Encrypt для $UI_HOST"
-  else
-    log "⚠ Сертификаты Let's Encrypt для $UI_HOST не найдены"
-    read -rp "Введите полный путь к сертификату (публичный ключ): " CERT_PATH
-    read -rp "Введите полный путь к ключу (приватный ключ): " KEY_PATH
-
-    [[ -f "$CERT_PATH" ]] || die "Файл сертификата не найден: $CERT_PATH"
-    [[ -f "$KEY_PATH" ]]  || die "Файл ключа не найден: $KEY_PATH"
-  fi
-fi
-
-
-# Input rotation interval
-read -rp "Интервал генерации инбаундов в минутах (от 10, по умолчанию 30): " ROTATE_INTERVAL
-ROTATE_INTERVAL="${ROTATE_INTERVAL:-30}"
-
-# Check that it's a number and ≥10
-if ! [[ "$ROTATE_INTERVAL" =~ ^[0-9]+$ ]] || [ "$ROTATE_INTERVAL" -lt 10 ]; then
-  echo "Неверное значение. Используется значение по умолчанию 30 минут."
-  ROTATE_INTERVAL=30
-fi
-
-echo "Интервал ротации установлен: $ROTATE_INTERVAL минут"
-
-PROJECT_DIR="/opt/3dp-manager"
-log "Используется директория проекта: $PROJECT_DIR"
-
-mkdir -p "$PROJECT_DIR"
-cd "$PROJECT_DIR"
-
-#################################
-# Get country flag
-#################################
-REPO_BASE="https://raw.githubusercontent.com/denpiligrim/3dp-manager/main"
-COUNTRY_FLAG=""
-
-# Get countryCode
-IP_JSON=$(curl -s --fail http://ip-api.com/json/ || true)
-[ -z "$IP_JSON" ] && exit 0
-
-if ! command -v jq >/dev/null 2>&1; then
-    echo "❌ Не найден jq. Для работы скрипта необходимо установить jq."
-    echo "   apt install -y jq"
-    exit 1
-fi
-
-COUNTRY_CODE=$(echo "$IP_JSON" | jq -r '.countryCode // empty' 2>/dev/null || true)
-[ -z "$COUNTRY_CODE" ] && exit 0
-
-# Flags JSON URL
-FLAGS_JSON_URL="$REPO_BASE/app/assets/flags.json"
-
-FLAGS_JSON=$(curl -s "$FLAGS_JSON_URL" || true)
-[ -z "$FLAGS_JSON" ] && exit 0
-
-# emoji
-COUNTRY_FLAG=$(echo "$FLAGS_JSON" | jq -r --arg code "$COUNTRY_CODE" '.[] | select(.code == $code) | .emoji // empty' 2>/dev/null | head -n1)
-
-#################################
-# Whitelist
-#################################
-if curl -fsSL "$REPO_BASE/whitelist.txt" -o whitelist.txt; then
-    log "whitelist.txt скопирован"
-else
-    log "⚠ Не удалось скачать whitelist.txt"
-fi
-
-#################################
-# TOKEN GENERATION
-#################################
-SUB_TOKEN=$(date +%s%N | sha256sum | cut -c1-16)
-log "Сгенерирован токен подписки"
-
-#################################
-# DOCKER
-#################################
+# Установка Docker
 log "Проверка Docker"
 
 if command -v docker >/dev/null 2>&1; then
@@ -236,192 +99,361 @@ EOF
 fi
 
 #################################
-# STRUCTURE
+# ЗАГРУЗКА ПРОЕКТА
 #################################
-mkdir -p app app/builders subscriptions
+log "Подготовка директории $PROJECT_DIR..."
+mkdir -p "$PROJECT_DIR"
 
-# Generate a random free port for subscription/Nginx
+log "Скачивание последней версии проекта..."
+curl -L "$REPO_URL" | tar xz -C "$PROJECT_DIR" --strip-components=1
+
+cd "$PROJECT_DIR"
+
+#################################
+# СБОР ДАННЫХ
+#################################
+read -rp "Введите домен сервера (если пропустить, будет использоваться IP без HTTPS): " INPUT_HOST
+
+USE_SSL=false
+CERT_PATH=""
+KEY_PATH=""
+SKIP_SSL_SETUP=false
+
+if [ -z "$INPUT_HOST" ]; then
+    UI_HOST=$(hostname -I | awk '{print $1}')
+    log "Домен не указан. Используется локальный IP: $UI_HOST"
+    log "Режим HTTPS принудительно отключен для IP-адреса."
+    
+    USE_SSL=false
+    SKIP_SSL_SETUP=true
+else
+    UI_HOST=$INPUT_HOST
+    SKIP_SSL_SETUP=false
+fi
+
+# --- 2. Настройка SSL (Только если введен домен) ---
+if [[ "$SKIP_SSL_SETUP" == "false" ]]; then
+    # Пытаемся автоматически найти сертификаты Let's Encrypt
+    LE_CERT="/etc/letsencrypt/live/$UI_HOST/fullchain.pem"
+    LE_KEY="/etc/letsencrypt/live/$UI_HOST/privkey.pem"
+
+    if [[ -f "$LE_CERT" && -f "$LE_KEY" ]]; then
+        log "Найдены сертификаты Let's Encrypt."
+        USE_SSL=true
+        CERT_PATH="$LE_CERT"
+        KEY_PATH="$LE_KEY"
+    else
+        # Спрашиваем пользователя, если авто-поиск не дал результата
+        read -rp "Использовать SSL (свои сертификаты)? (y/n): " ssl_ans
+        if [[ "$ssl_ans" =~ ^[Yy]$ ]]; then
+            read -rp "Путь к fullchain.pem: " user_cert
+            read -rp "Путь к privkey.pem: " user_key
+            if [[ -f "$user_cert" && -f "$user_key" ]]; then
+                USE_SSL=true
+                CERT_PATH="$user_cert"
+                KEY_PATH="$user_key"
+            else
+                warn "Файлы сертификатов не найдены. Будет использоваться HTTP."
+            fi
+        fi
+    fi
+fi
+
 get_random_port() {
   while :; do
-    PORT=$((RANDOM % 50000 + 10000))  # range 10000-60000
+    PORT=$((RANDOM % 4000 + 3000))
     if ! ss -ltn | awk '{print $4}' | grep -q ":$PORT\$"; then
       echo "$PORT"
       return
     fi
   done
 }
-NGINX_PORT=$(get_random_port)
+FINAL_PORT=$(get_random_port)
 
-# Generate subscription URL
-SUB_URL="$UI_PROTO://$UI_HOST:$NGINX_PORT/bus/$SUB_TOKEN"
+# --- 4. Генерация паролей ---
+DB_PASS=$(openssl rand -base64 12)
+JWT_SECRET=$(openssl rand -base64 32)
+log "Сгенерированы секретные ключи для БД и JWT."
 
 #################################
-# ENV
+# ГЕНЕРАЦИЯ ФАЙЛОВ DOCKER
 #################################
-cat > .env <<EOF
-SUB_TOKEN=$SUB_TOKEN
-UI_URL=$UI_URL
-UI_LOGIN=$UI_LOGIN
-UI_PASSWORD=$UI_PASSWORD
-COUNTRY_FLAG=$COUNTRY_FLAG
-NGINX_PORT=$NGINX_PORT
-UI_HOST=$UI_HOST
-UI_PROTO=$UI_PROTO
-ROTATE_INTERVAL=$ROTATE_INTERVAL
-SUB_URL=$SUB_URL
+
+# --- 1. Dockerfile для Client ---
+cat > client/Dockerfile <<EOF
+FROM node:24-alpine AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+
+ENV VITE_API_URL=/api
+RUN npm run build
+
+FROM nginx:alpine
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+COPY nginx-client.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
 EOF
 
-#################################
-# Dockerfile
-#################################
-curl -fsSL "$REPO_BASE/app/Dockerfile" -o app/Dockerfile
-
-#################################
-# package.json
-#################################
-curl -fsSL "$REPO_BASE/app/package.json" -o app/package.json
-
-#################################
-# JS Files
-#################################
-curl -fsSL "$REPO_BASE/app/index.js" -o app/index.js
-curl -fsSL "$REPO_BASE/app/rotate.js" -o app/rotate.js
-curl -fsSL "$REPO_BASE/app/builders/buildVlessRealityTcp.js" -o app/builders/buildVlessRealityTcp.js
-curl -fsSL "$REPO_BASE/app/builders/buildVlessRealityXhttp.js" -o app/builders/buildVlessRealityXhttp.js
-curl -fsSL "$REPO_BASE/app/builders/buildTrojanRealityTcp.js" -o app/builders/buildTrojanRealityTcp.js
-curl -fsSL "$REPO_BASE/app/builders/buildShadowsocksTcp.js" -o app/builders/buildShadowsocksTcp.js
-curl -fsSL "$REPO_BASE/app/builders/buildVmessTcp.js" -o app/builders/buildVmessTcp.js
-curl -fsSL "$REPO_BASE/app/builders/buildVlessRealityGrpc.js" -o app/builders/buildVlessRealityGrpc.js
-curl -fsSL "$REPO_BASE/app/builders/buildVlessWs.js" -o app/builders/buildVlessWs.js
-curl -fsSL "$REPO_BASE/app/builders/buildInboundLink.js" -o app/builders/buildInboundLink.js
-
-#################################
-# NGINX & DOCKER COMPOSE
-#################################
-# Generate nginx.conf
-if [[ "$UI_PROTO" == "https" ]]; then
-  cat > docker-compose.yml <<EOF
-services:
-  node:
-    build: ./app
-    env_file: .env
-    container_name: node
-    volumes:
-      - ./subscriptions:/subscriptions
-      - ./whitelist.txt:/app/whitelist.txt
-    restart: unless-stopped
-
-  nginx:
-    image: nginx:alpine
-    restart: unless-stopped
-    depends_on: [node]
-    ports:
-      - "$NGINX_PORT:$NGINX_PORT"
-    container_name: nginx
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./subscriptions:/subscriptions
-      - $CERT_PATH:$CERT_PATH:ro
-      - $KEY_PATH:$KEY_PATH:ro
+# --- 3. Dockerfile для Server ---
+cat > server/Dockerfile <<EOF
+FROM node:24-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+FROM node:24-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY --from=builder /app/dist ./dist
+ENV NODE_ENV=production
+ENV PORT=3000
+EXPOSE 3000
+CMD ["node", "dist/main"]
 EOF
 
-  cat > nginx.conf <<EOF
-events {}
-http {
-  server {
-    listen $NGINX_PORT ssl;
+cat > server/.env <<EOF
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=admin
+DB_PASSWORD=${DB_PASS}
+DB_NAME=3dp_manager
+EOF
+
+if [[ "$USE_SSL" == "true" ]]; then
+    # === ВАРИАНТ С SSL ===
+    
+    # 1. Nginx Config
+cat > client/nginx-client.conf <<EOF
+server {
+    listen $FINAL_PORT ssl;
     server_name $UI_HOST;
+    root /usr/share/nginx/html;
+    index index.html;
+    client_max_body_size 50M;
 
-    ssl_certificate $CERT_PATH;
-    ssl_certificate_key $KEY_PATH;
-
-    location = /bus/$SUB_TOKEN {
-      alias /subscriptions/list.txt;
-      default_type text/plain;
-      add_header Subscription-Userinfo "upload=0; download=0; total=109951162777600; expire=0" always;
-      add_header Access-Control-Allow-Origin *;
-    }
+    ssl_certificate /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
 
     location / {
-      return 404;
+        try_files \$uri \$uri/ /index.html;
     }
-  }
+    location /api/ {
+        proxy_pass http://backend:3000/api/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    }
+}
+server {
+    listen 3000 ssl;
+    server_name $UI_HOST;
+    client_max_body_size 50M;
+
+    ssl_certificate /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+
+    location / {
+        proxy_pass http://backend:3000/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+    }
 }
 EOF
+
+    # 2. Docker Compose
+cat > docker-compose.yml <<EOF
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: 3dp-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: 3dp_manager
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d 3dp_manager"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  backend:
+    build: ./server
+    container_name: 3dp-backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: admin
+      DB_PASSWORD: ${DB_PASS}
+      DB_NAME: 3dp_manager
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 3000
+    networks:
+      - app-network
+
+  frontend:
+    build: ./client
+    container_name: 3dp-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "${FINAL_PORT}:${FINAL_PORT}"
+      - "3000:3000"
+    volumes:
+      - ${CERT_PATH}:/etc/nginx/certs/fullchain.pem:ro
+      - ${KEY_PATH}:/etc/nginx/certs/privkey.pem:ro
+    networks:
+      - app-network
+
+volumes:
+  pg_data:
+
+networks:
+  app-network:
+    driver: bridge
+EOF
+
 else
-  cat > docker-compose.yml <<EOF
-services:
-  node:
-    build: ./app
-    env_file: .env
-    container_name: node
-    volumes:
-      - ./subscriptions:/subscriptions
-      - ./whitelist.txt:/app/whitelist.txt
-    restart: unless-stopped
-
-  nginx:
-    image: nginx:alpine
-    restart: unless-stopped
-    depends_on: [node]
-    ports:
-      - "$NGINX_PORT:$NGINX_PORT"
-    container_name: nginx
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./subscriptions:/subscriptions
-EOF
-
-  cat > nginx.conf <<EOF
-events {}
-http {
-  server {
-    listen $NGINX_PORT;
-    server_name $UI_HOST;
-
-    location = /bus/$SUB_TOKEN {
-      alias /subscriptions/list.txt;
-      default_type text/plain;
-      add_header Subscription-Userinfo "upload=0; download=0; total=109951162777600; expire=0" always;
-      add_header Access-Control-Allow-Origin *;
-    }
+    # === ВАРИАНТ БЕЗ SSL (HTTP) ===
+    
+    # 1. Nginx Config
+cat > client/nginx-client.conf <<EOF
+server {
+    listen ${FINAL_PORT};
+    server_name localhost;
+    root /usr/share/nginx/html;
+    index index.html;
+    client_max_body_size 50M;
 
     location / {
-      return 404;
+        try_files \$uri \$uri/ /index.html;
     }
-  }
+    location /api/ {
+        proxy_pass http://backend:3000/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    }
 }
+server {
+    listen 3000;
+    server_name localhost;
+    location / {
+        proxy_pass http://backend:3000/;
+        proxy_set_header Host \$host;
+    }
+}
+EOF
+
+    # 2. Docker Compose
+cat > docker-compose.yml <<EOF
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: 3dp-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: 3dp_manager
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d 3dp_manager"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  backend:
+    build: ./server
+    container_name: 3dp-backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: admin
+      DB_PASSWORD: ${DB_PASS}
+      DB_NAME: 3dp_manager
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 3000
+    networks:
+      - app-network
+
+  frontend:
+    build: ./client
+    container_name: 3dp-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "${FINAL_PORT}:${FINAL_PORT}"
+      - "3000:3000"
+    networks:
+      - app-network
+
+volumes:
+  pg_data:
+
+networks:
+  app-network:
+    driver: bridge
 EOF
 fi
 
-# ufw
-if LC_ALL=C ufw status 2>/dev/null | grep -q "Status: active"; then
-    echo "UFW найден и активен. Открываем порты..."
-    ufw allow 443/tcp
-    ufw allow 443/udp
-    ufw allow 8443/tcp
-    ufw allow 8443/udp
-    ufw allow "$NGINX_PORT"/tcp
-    ufw allow 10000:60000/tcp
-    ufw allow 10000:60000/udp
+#################################
+# ЗАПУСК
+#################################
+log "Сборка и запуск контейнеров..."
+# Останавливаем старые, если были
+docker compose down --remove-orphans || true
+
+# Запускаем сборку и старт
+docker compose up --build -d
+
+log "Очистка кэша сборки..."
+docker image prune -f
+
+echo ""
+echo "==================================================="
+if [[ "$USE_SSL" == "true" ]]; then
+    echo -e "${GREEN}✔ Установка завершена! Доступно по адресу: https://${UI_HOST}:${FINAL_PORT}${NC}"
+else
+    echo -e "${GREEN}✔ Установка завершена! Доступно по адресу: http://${UI_HOST}:${FINAL_PORT}${NC}"
 fi
-
-#################################
-# RUN
-#################################
-log "Сборка контейнеров"
-docker compose build
-
-log "Запуск контейнеров"
-docker compose up -d
-
-docker compose ps | grep node >/dev/null || die "Backend не запущен"
-docker compose ps | grep nginx >/dev/null || die "Nginx не запущен"
-
-#################################
-# RESULT
-#################################
-log "✔ Установка завершена"
-echo
-echo "URL подписки:"
-echo "$SUB_URL"
+echo "Логин: admin"
+echo "Пароль: admin"
+echo ""
+echo "Немедленно измените пароль в Настройках утилиты!"
+echo "==================================================="

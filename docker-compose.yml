@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: 3dp-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
+      POSTGRES_DB: ${POSTGRES_DB:-3dp_manager}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  backend:
+    build: ./server
+    container_name: 3dp-backend
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-admin}
+      DB_NAME: ${POSTGRES_DB:-3dp_manager}
+      JWT_SECRET: ${JWT_SECRET:-secretKey}
+    ports:
+    - "3000:3000"
+    networks:
+      - app-network
+
+  frontend:
+    build: ./client
+    container_name: 3dp-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - app-network
+
+volumes:
+  pg_data:
+
+networks:
+  app-network:
+    driver: bridge
