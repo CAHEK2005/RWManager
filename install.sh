@@ -285,8 +285,6 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: ${DB_PASS}
       POSTGRES_DB: 3dp_manager
-    ports:
-      - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
@@ -312,8 +310,6 @@ services:
       DB_NAME: 3dp_manager
       JWT_SECRET: ${JWT_SECRET}
       PORT: 3000
-    ports:
-      - "3000:3000"
     networks:
       - app-network
 
@@ -386,8 +382,6 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: ${DB_PASS}
       POSTGRES_DB: 3dp_manager
-    ports:
-      - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
@@ -413,8 +407,6 @@ services:
       DB_NAME: 3dp_manager
       JWT_SECRET: ${JWT_SECRET}
       PORT: 3000
-    ports:
-      - "3000:3000"
     networks:
       - app-network
 
