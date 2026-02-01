@@ -321,6 +321,7 @@ services:
       - backend
     ports:
       - "${FINAL_PORT}:${FINAL_PORT}"
+      - "3000:3000"
     volumes:
       - ${CERT_PATH}:/etc/nginx/certs/fullchain.pem:ro
       - ${KEY_PATH}:/etc/nginx/certs/privkey.pem:ro
@@ -418,6 +419,7 @@ services:
       - backend
     ports:
       - "${FINAL_PORT}:${FINAL_PORT}"
+      - "3000:3000"
     networks:
       - app-network
 
