@@ -106,6 +106,8 @@ fi
 #################################
 log "Подготовка директории $PROJECT_DIR..."
 mkdir -p "$PROJECT_DIR"
+mkdir -p "$PROJECT_DIR/server"
+mkdir -p "$PROJECT_DIR/client"
 
 cd "$PROJECT_DIR"
 
