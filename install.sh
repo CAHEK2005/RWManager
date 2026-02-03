@@ -6,6 +6,10 @@ set -euo pipefail
 #################################
 REPO_URL="https://github.com/denpiligrim/3dp-manager/archive/refs/heads/dp-gui.tar.gz"
 PROJECT_DIR="/opt/3dp-manager"
+DOCKER_USER="denpiligrim"
+DOCKER_TAG="dp-gui"
+IMAGE_SERVER="ghcr.io/${DOCKER_USER}/3dp-manager-server:${DOCKER_TAG}"
+IMAGE_CLIENT="ghcr.io/${DOCKER_USER}/3dp-manager-client:${DOCKER_TAG}"
 
 # Цвета для вывода
 RED='\033[0;31m'
@@ -178,51 +182,6 @@ log "Сгенерированы секретные ключи для БД и JWT
 #################################
 # ГЕНЕРАЦИЯ ФАЙЛОВ DOCKER
 #################################
-
-# --- 1. Dockerfile для Client ---
-cat > client/Dockerfile <<EOF
-FROM node:24-alpine AS builder
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci
-
-COPY . .
-
-ENV VITE_API_URL=/api
-RUN npm run build
-
-FROM nginx:alpine
-
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-COPY nginx-client.conf /etc/nginx/conf.d/default.conf
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
-EOF
-
-# --- 3. Dockerfile для Server ---
-cat > server/Dockerfile <<EOF
-FROM node:24-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-FROM node:24-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY --from=builder /app/dist ./dist
-ENV NODE_ENV=production
-ENV PORT=3000
-EXPOSE 3000
-CMD ["node", "dist/main"]
-EOF
-
 cat > server/.env <<EOF
 DB_HOST=localhost
 DB_PORT=5432
@@ -237,7 +196,7 @@ if [[ "$USE_SSL" == "true" ]]; then
     # 1. Nginx Config
 cat > client/nginx-client.conf <<EOF
 server {
-    listen $FINAL_PORT ssl;
+    listen 443 ssl;
     server_name $UI_HOST;
     root /usr/share/nginx/html;
     index index.html;
@@ -296,7 +255,7 @@ services:
       - app-network
 
   backend:
-    build: ./server
+    image: ${IMAGE_SERVER}
     container_name: 3dp-backend
     restart: always
     depends_on:
@@ -314,15 +273,16 @@ services:
       - app-network
 
   frontend:
-    build: ./client
+    image: ${IMAGE_CLIENT}
     container_name: 3dp-frontend
     restart: always
     depends_on:
       - backend
     ports:
-      - "${FINAL_PORT}:${FINAL_PORT}"
+      - "${FINAL_PORT}:443"
       - "3000:3000"
     volumes:
+      - ./client/nginx-client.conf:/etc/nginx/conf.d/default.conf:ro
       - ${CERT_PATH}:/etc/nginx/certs/fullchain.pem:ro
       - ${KEY_PATH}:/etc/nginx/certs/privkey.pem:ro
     networks:
@@ -342,7 +302,7 @@ else
     # 1. Nginx Config
 cat > client/nginx-client.conf <<EOF
 server {
-    listen ${FINAL_PORT};
+    listen 80;
     server_name localhost;
     root /usr/share/nginx/html;
     index index.html;
@@ -394,7 +354,7 @@ services:
       - app-network
 
   backend:
-    build: ./server
+    image: ${IMAGE_SERVER}
     container_name: 3dp-backend
     restart: always
     depends_on:
@@ -412,14 +372,16 @@ services:
       - app-network
 
   frontend:
-    build: ./client
+    image: ${IMAGE_CLIENT}
     container_name: 3dp-frontend
     restart: always
     depends_on:
       - backend
     ports:
-      - "${FINAL_PORT}:${FINAL_PORT}"
+      - "${FINAL_PORT}:80"
       - "3000:3000"
+    volumes:
+      - ./client/nginx-client.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - app-network
 
