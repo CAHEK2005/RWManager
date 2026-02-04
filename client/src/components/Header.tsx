@@ -121,7 +121,7 @@ export default function Header() {
           </List>
 
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            Версия: 2.0.0<br />
+            Версия: 2.0.1<br />
             Разработчик: DenPiligrim
           </Typography>
         </DialogContent>
