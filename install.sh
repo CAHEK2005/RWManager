@@ -175,6 +175,8 @@ FINAL_PORT=$(get_random_port)
 # --- 4. Генерация паролей ---
 DB_PASS=$(openssl rand -base64 12)
 JWT_SECRET=$(openssl rand -base64 32)
+ADMIN_USER=$(openssl rand -base64 12)
+ADMIN_PASS=$(openssl rand -base64 12)
 log "Сгенерированы секретные ключи для БД и JWT."
 
 #################################
@@ -186,6 +188,8 @@ DB_PORT=5432
 DB_USERNAME=admin
 DB_PASSWORD=${DB_PASS}
 DB_NAME=3dp_manager
+ADMIN_LOGIN=${ADMIN_USER}
+ADMIN_PASSWORD=${ADMIN_PASS}
 EOF
 
 if [[ "$USE_SSL" == "true" ]]; then
@@ -412,8 +416,8 @@ if [[ "$USE_SSL" == "true" ]]; then
 else
     echo -e "${GREEN}✔ Установка завершена! Доступно по адресу: http://${UI_HOST}:${FINAL_PORT}${NC}"
 fi
-echo "Логин: admin"
-echo "Пароль: admin"
+echo "${GREEN}Логин: $ADMIN_USER"
+echo "${GREEN}Пароль: $ADMIN_PASS"
 echo ""
 echo "Немедленно измените пароль в Настройках утилиты!"
 echo "==================================================="
