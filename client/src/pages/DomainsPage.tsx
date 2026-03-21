@@ -94,14 +94,24 @@ export default function DomainsPage() {
           label="Доменное имя" size="small" fullWidth
           value={newDomain} onChange={(e) => setNewDomain(e.target.value)}
         />
-        <Button
-          variant="outlined"
-          startIcon={<UploadFile />}
-          sx={{ width: '170px' }}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          Из файла
-        </Button>
+        {isMobile ? (
+          <>
+            <IconButton edge="end" onClick={() => fileInputRef.current?.click()}><UploadFile /></IconButton>
+            <IconButton edge="end" onClick={handleAdd}><Add /></IconButton>
+          </>
+        ) : (
+          <>
+            <Button
+              variant="outlined"
+              startIcon={<UploadFile />}
+              sx={{ width: isMobile ? 'auto' : '170px' }}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {isMobile ? '' : 'Из файла'}
+            </Button>
+            <Button variant="contained" sx={{ width: '160px' }} startIcon={<Add />} onClick={handleAdd}>Добавить</Button>
+          </>
+        )}
         <input
           type="file"
           accept=".txt"
@@ -109,7 +119,6 @@ export default function DomainsPage() {
           style={{ display: 'none' }}
           onChange={handleFileUpload}
         />
-        <Button variant="contained" sx={{ width: '160px' }} startIcon={<Add />} onClick={handleAdd}>Добавить</Button>
       </Paper>
 
       {domains.length > 0 && (

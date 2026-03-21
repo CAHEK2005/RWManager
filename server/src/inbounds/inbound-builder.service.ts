@@ -92,7 +92,7 @@ export class InboundBuilderService {
       enable: true,
       port,
       protocol: "vless",
-      remark: "vless-reality-grpc",
+      remark: "vless-grpc-reality",
       settings: JSON.stringify({
         clients: [{
           id: uuid,

@@ -35,7 +35,7 @@ export default function LoginPage() {
         animation: 'fadeIn 1.5s ease-out',
         boxShadow: '0 15px 25px rgba(0,0,0,0.5)'
       }}>
-        <Typography variant="h5" gutterBottom align="center"><span style={{ verticalAlign: 'middle' }}>Вход в 3DP-MANAGER</span> <Chip label="v2.0.1" size="small" sx={{ verticalAlign: 'middle' }} /></Typography>
+        <Typography variant="h5" gutterBottom align="center"><span style={{ verticalAlign: 'middle' }}>Вход в 3DP-MANAGER</span> <Chip label="v2.0.2" size="small" sx={{ verticalAlign: 'middle' }} /></Typography>
 
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}

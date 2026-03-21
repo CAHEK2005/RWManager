@@ -132,7 +132,7 @@ export default function Header({ onMenuClick, isMobile }: HeaderProps) {
           </List>
 
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            Версия: 2.0.1<br />
+            Версия: 2.0.2<br />
             Разработчик: DenPiligrim
           </Typography>
         </DialogContent>

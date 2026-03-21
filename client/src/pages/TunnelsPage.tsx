@@ -78,7 +78,7 @@ export default function TunnelsPage() {
         <Button variant="contained" startIcon={<Add />} onClick={() => setOpen(true)}>Добавить</Button>
       </Box>
 
-      <Paper>
+      <Paper sx={{ overflowX: 'auto' }}>
         <Table>
           <TableHead>
             <TableRow>
@@ -99,23 +99,35 @@ export default function TunnelsPage() {
                   </Box>
                 </TableCell>
                 <TableCell>
-                  {t.isInstalled ?
-                    <Chip icon={<CheckCircle />} label="Активен" color="success" size="small" variant="outlined" /> :
-                    <Chip icon={<Error />} label="Не настроен" color="warning" size="small" variant="outlined" />
-                  }
+                  {!isMobile && (t.isInstalled ?
+                    <Chip icon={<CheckCircle />} label={"Активен"} color="success" size="small" variant="outlined" /> :
+                    <Chip icon={<Error />} label={"Не настроен"} color="warning" size="small" variant="outlined" />
+                  )}
+                  {isMobile && (t.isInstalled ?
+                    <CheckCircle color='success' /> :
+                    <Error color='warning' />
+                  )}
                 </TableCell>
                 <TableCell align="right">
                   {!t.isInstalled && (
-                    <Button
-                      startIcon={loadingId === t.id ? <CircularProgress size={20} /> : <Terminal />}
-                      disabled={loadingId !== null}
-                      onClick={() => handleInstall(t.id)}
-                      sx={{ mr: 1 }}
-                      variant="outlined"
-                      size="small"
-                    >
-                      {loadingId === t.id ? 'Установка...' : 'Установить'}
-                    </Button>
+                    <>
+                      {isMobile ? (
+                        <IconButton disabled={loadingId !== null} color="primary" onClick={() => handleInstall(t.id)}>
+                          {loadingId === t.id ? <CircularProgress size={20} /> : <Terminal />}
+                        </IconButton>
+                      ) : (
+                        <Button
+                          startIcon={loadingId === t.id ? <CircularProgress size={20} /> : <Terminal />}
+                          disabled={loadingId !== null}
+                          onClick={() => handleInstall(t.id)}
+                          sx={{ mr: 1 }}
+                          variant="outlined"
+                          size="small"
+                        >
+                          {isMobile ? '' : (loadingId === t.id ? 'Установка...' : 'Установить')}
+                        </Button>
+                      )}
+                    </>
                   )}
                   <IconButton color="inherit" onClick={() => handleDelete(t.id)}>
                     <Delete />

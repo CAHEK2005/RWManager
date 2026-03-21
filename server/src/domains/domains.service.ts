@@ -60,6 +60,10 @@ export class DomainsService implements OnModuleInit {
     };
   }
 
+  async findAllUnpaginated(): Promise<Domain[]> {
+    return this.repo.find({ order: { name: 'ASC' } });
+  }
+
   findOne(id: number) {
     return this.repo.findOneBy({ id });
   }

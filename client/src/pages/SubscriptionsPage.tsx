@@ -2,16 +2,15 @@ import { useEffect, useState } from 'react';
 import {
   Box, Button, Typography, Paper, Table, TableBody, TableCell,
   TableHead, TableRow, IconButton, Dialog, DialogTitle,
-  DialogContent, TextField, DialogActions,
-  FormControl,
-  Select,
-  InputAdornment,
-  MenuItem,
-  type SelectChangeEvent,
+  DialogContent, TextField, DialogActions, FormControl, Select,
+  InputAdornment, InputLabel, MenuItem,
+  useTheme,
   useMediaQuery,
-  useTheme
+  Menu,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
-import { Delete, Add, Link as LinkIcon, OpenInNew, ContentCopy, Dns, Router } from '@mui/icons-material';
+import { Delete, Add, Link as LinkIcon, OpenInNew, ContentCopy, Dns, Router, Edit, MoreVert, Remove } from '@mui/icons-material';
 import api from '../api';
 
 interface Subscription {
@@ -29,15 +28,33 @@ interface Tunnel {
   isInstalled: boolean;
 }
 
+interface InboundConfigUI {
+  id: string;
+  type: string;
+  port: string;
+  sni: string;
+}
+
+interface Domain { id: number; name: string; }
+
+const CONNECTION_OPTIONS = [
+  'vless-tcp-reality',
+  'vless-xhttp-reality',
+  'vless-grpc-reality',
+  'vless-ws',
+  'hysteria2-udp',
+  'vmess-tcp',
+  'shadowsocks-tcp',
+  'trojan-tcp-reality',
+];
+
 const patchLink = function (link: string, newHost: string): string {
   if (link.startsWith('vmess://')) {
     try {
       const base64Part = link.substring(8);
       const jsonStr = Buffer.from(base64Part, 'base64').toString('utf-8');
       const config = JSON.parse(jsonStr);
-
       config.add = newHost;
-
       const newJsonStr = JSON.stringify(config);
       const newBase64 = Buffer.from(newJsonStr).toString('base64');
       return `vmess://${newBase64}`;
@@ -52,37 +69,184 @@ const patchLink = function (link: string, newHost: string): string {
     }
     return link;
   }
-
   return link;
-}
+};
+
+const generateId = () => Math.random().toString(36).substring(7);
 
 export default function SubscriptionsPage() {
   const [subs, setSubs] = useState<Subscription[]>([]);
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
   const [tunnels, setTunnels] = useState<Tunnel[]>([]);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
   const [selectedServer, setSelectedServer] = useState<string | number>('main');
+  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [activeSub, setActiveSub] = useState<Subscription | null>(null);
+  const [domains, setDomains] = useState<Domain[]>([]);
+  const openActionMenu = Boolean(menuAnchorEl);
 
+  // Состояния модального окна конструктора
+  const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [inbounds, setInbounds] = useState<InboundConfigUI[]>([]);
+  const [portErrors, setPortErrors] = useState<Record<string, string>>({});
+
+  // Состояния ссылок
   const [linksOpen, setLinksOpen] = useState(false);
   const [currentLinks, setCurrentLinks] = useState<string[]>([]);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   useEffect(() => { loadSubs(); }, []);
 
   const loadSubs = async () => {
     const { data } = await api.get('/subscriptions');
     setSubs(data);
+
     const tunnelsRes = await api.get('/tunnels');
     setTunnels(tunnelsRes.data.filter((el: Tunnel) => el.isInstalled));
+
+    const allDomains = await api.get('/domains/all');
+    setDomains(allDomains.data);
   };
 
-  const handleCreate = async () => {
-    await api.post('/subscriptions', { name });
-    setOpen(false);
+  const handleActionMenuClick = (event: React.MouseEvent<HTMLButtonElement>, sub: Subscription) => {
+    setMenuAnchorEl(event.currentTarget);
+    setActiveSub(sub);
+  };
+
+  const handleActionMenuClose = () => {
+    setMenuAnchorEl(null);
+    setActiveSub(null);
+  };
+
+  const handleOpenCreate = () => {
+    setEditingId(null);
     setName('');
-    loadSubs();
+    setInbounds([
+      { id: generateId(), type: 'hysteria2-udp', port: 'random', sni: 'random' },
+      { id: generateId(), type: 'vless-xhttp-reality', port: 'random', sni: 'random' },
+      { id: generateId(), type: 'vless-tcp-reality', port: 'random', sni: 'random' },
+      { id: generateId(), type: 'vless-tcp-reality', port: 'random', sni: 'random' },
+      { id: generateId(), type: 'vless-tcp-reality', port: 'random', sni: 'random' },
+      { id: generateId(), type: 'vless-tcp-reality', port: 'random', sni: 'random' },
+      { id: generateId(), type: 'vless-grpc-reality', port: 'random', sni: 'random' },
+      { id: generateId(), type: 'vless-ws', port: 'random', sni: 'random' },
+      { id: generateId(), type: 'vmess-tcp', port: 'random', sni: 'random' },
+      { id: generateId(), type: 'shadowsocks-tcp', port: 'random', sni: 'random' },
+    ]);
+    setPortErrors({});
+    setOpen(true);
+  };
+
+  const handleOpenEdit = (sub: Subscription) => {
+    setEditingId(sub.id);
+    setName(sub.name);
+
+    // Пытаемся маппить существующие инбаунды, или даем дефолтные
+    if (sub.inbounds && sub.inbounds.length > 0) {
+      setInbounds(sub.inbounds.map(i => ({
+        id: generateId(),
+        type: i.type || 'vless-tcp-reality',
+        port: i.port ? i.port.toString() : 'random',
+        sni: i.sni || 'random'
+      })));
+    } else {
+      setInbounds([{ id: generateId(), type: 'vless-tcp-reality', port: 'random', sni: 'random' }]);
+    }
+    setPortErrors({});
+    setOpen(true);
+  };
+
+  // Проверка порта
+  const handlePortCheck = async (portValue: string, id: string) => {
+    if (portValue === 'random' || portValue.trim() === '') {
+      setPortErrors(prev => { const n = { ...prev }; delete n[id]; return n; });
+      return;
+    }
+    const portNum = parseInt(portValue);
+    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+      setPortErrors(prev => ({ ...prev, [id]: 'Некорректный порт' }));
+      return;
+    }
+    try {
+      const { data } = await api.get(`/tunnels/check-port/${portNum}`);
+      if (!data.isFree) {
+        setPortErrors(prev => ({ ...prev, [id]: 'Порт занят' }));
+      } else {
+        setPortErrors(prev => { const n = { ...prev }; delete n[id]; return n; });
+      }
+    } catch (e) {
+      console.error('Ошибка проверки порта', e);
+    }
+  };
+
+  const handleInboundChange = (id: string, field: keyof InboundConfigUI, value: string) => {
+    setInbounds(prev => prev.map(inb => inb.id === id ? { ...inb, [field]: value } : inb));
+    if (field === 'port') {
+      setPortErrors(prev => { const n = { ...prev }; delete n[id]; return n; });
+    }
+  };
+
+  const addInbound = () => {
+    if (inbounds.length < 20) {
+      setInbounds([...inbounds, { id: generateId(), type: 'vless-tcp-reality', port: 'random', sni: 'random' }]);
+    }
+  };
+
+const removeInbound = (id?: string) => {
+  if (id) {
+    if (inbounds.length > 1) {
+      setInbounds(inbounds.filter(inb => inb.id !== id));
+      setPortErrors(prev => { 
+        const n = { ...prev }; 
+        delete n[id]; 
+        return n; 
+      });
+    }
+  } else {
+    setInbounds([
+      {
+        id: crypto.randomUUID(),
+        type: 'vless-tcp-reality',
+        port: 'random',
+        sni: 'random'
+      }
+    ]);
+    setPortErrors({});
+  }
+};
+
+  const handleSave = async () => {
+    if (Object.keys(portErrors).length > 0) {
+      alert('Пожалуйста, исправьте ошибки с портами');
+      return;
+    }
+    if (!name.trim()) {
+      alert('Введите имя подписки');
+      return;
+    }
+
+    const payload = {
+      name,
+      inboundsConfig: inbounds.map(i => ({
+        type: i.type,
+        port: i.port === 'random' ? 'random' : parseInt(i.port),
+        sni: i.sni
+      }))
+    };
+
+    try {
+      if (editingId) {
+        await api.put(`/subscriptions/${editingId}`, payload);
+      } else {
+        await api.post('/subscriptions', payload);
+      }
+      setOpen(false);
+      loadSubs();
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Произошла ошибка при сохранении');
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -108,10 +272,6 @@ export default function SubscriptionsPage() {
     setLinksOpen(true);
   };
 
-  const handleServerChange = (event: SelectChangeEvent<any>) => {
-    setSelectedServer(event.target.value as string);
-  };
-
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
@@ -119,9 +279,8 @@ export default function SubscriptionsPage() {
         {tunnels.length > 0 && (
           <FormControl variant='standard' size="small" sx={{ minWidth: 220, justifyContent: 'center' }}>
             <Select
-              labelId="server-select-label"
               value={selectedServer}
-              onChange={handleServerChange}
+              onChange={(e) => setSelectedServer(e.target.value)}
               startAdornment={
                 <InputAdornment position="start">
                   {selectedServer === 'main' ? <Dns fontSize="small" /> : <Router fontSize="small" />}
@@ -129,28 +288,22 @@ export default function SubscriptionsPage() {
               }
             >
               <MenuItem value="main">
-                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>Основной сервер</Typography>
-                </Box>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>Основной сервер</Typography>
               </MenuItem>
-
               {tunnels.map((t) => (
                 <MenuItem key={t.id} value={t.id.toString()}>
-                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{t.name}</Typography>
-                  </Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{t.name}</Typography>
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
         )}
         <Box>
-          <Button variant="contained" startIcon={<Add />} onClick={() => setOpen(true)}>Создать</Button>
+          <Button variant="contained" startIcon={<Add />} onClick={handleOpenCreate}>Создать</Button>
         </Box>
       </Box>
 
-
-      <Paper>
+      <Paper sx={{ overflowX: 'auto' }}>
         <Table>
           <TableHead>
             <TableRow>
@@ -167,25 +320,28 @@ export default function SubscriptionsPage() {
                 <TableCell sx={{ fontFamily: 'monospace' }}>{sub.uuid}</TableCell>
                 <TableCell>{sub.inbounds?.length || 0}</TableCell>
                 <TableCell align="right">
-                  <IconButton
-                    color="primary"
-                    onClick={() => navigator.clipboard.writeText(selectedServer === 'main' ? `${location.protocol}//${location.hostname}:3000/bus/${sub.uuid}` : `${location.protocol}//${location.hostname}:3000/bus/${sub.uuid}/${selectedServer}`)}
-                    title="Копировать ссылку"
-                  >
-                    <ContentCopy />
-                  </IconButton>
-                  <IconButton
-                    color="primary"
-                    onClick={() => window.open(selectedServer === 'main' ? `${location.protocol}//${location.hostname}:3000/bus/${sub.uuid}` : `${location.protocol}//${location.hostname}:3000/bus/${sub.uuid}/${selectedServer}`, '_blank')}
-                    title="Открыть подписку"
-                  >
-                    <OpenInNew />
-                  </IconButton>
-                  <IconButton color="primary" onClick={() => showLinks(sub)} title="Показать конфиги">
-                    <LinkIcon />
-                  </IconButton>
-                  <IconButton color="primary" onClick={() => handleDelete(sub.id)} title="Удалить">
-                    <Delete />
+                  {!isMobile && (
+                    <>
+                      <IconButton
+                        color="primary"
+                        onClick={() => navigator.clipboard.writeText(selectedServer === 'main' ? `${location.protocol}//${location.hostname}:3000/bus/${sub.uuid}` : `${location.protocol}//${location.hostname}:3000/bus/${sub.uuid}/${selectedServer}`)}
+                        title="Копировать ссылку"
+                      >
+                        <ContentCopy />
+                      </IconButton>
+                      <IconButton
+                        color="primary"
+                        onClick={() => window.open(selectedServer === 'main' ? `${location.protocol}//${location.hostname}:3000/bus/${sub.uuid}` : `${location.protocol}//${location.hostname}:3000/bus/${sub.uuid}/${selectedServer}`, '_blank')}
+                        title="Открыть подписку"
+                      >
+                        <OpenInNew />
+                      </IconButton>
+                    </>
+                  )}
+
+                  {/* Кнопка "Три точки" для вызова меню действий */}
+                  <IconButton onClick={(e) => handleActionMenuClick(e, sub)}>
+                    <MoreVert />
                   </IconButton>
                 </TableCell>
               </TableRow>
@@ -195,26 +351,141 @@ export default function SubscriptionsPage() {
         {subs.length === 0 && <Typography sx={{ p: 2 }} color='textSecondary' textAlign='center'>Нет подписок</Typography>}
       </Paper>
 
-      <Dialog open={open} onClose={() => setOpen(false)} disableRestoreFocus>
-        <DialogTitle>Новая подписка</DialogTitle>
-        <DialogContent>
+      <Menu
+        anchorEl={menuAnchorEl}
+        open={openActionMenu}
+        onClose={handleActionMenuClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        {isMobile && activeSub && (
+          <MenuItem onClick={() => navigator.clipboard.writeText(selectedServer === 'main' ? `${location.protocol}//${location.hostname}:3000/bus/${activeSub.uuid}` : `${location.protocol}//${location.hostname}:3000/bus/${activeSub.uuid}/${selectedServer}`)}>
+            <ListItemIcon><ContentCopy fontSize="small" color="primary" /></ListItemIcon>
+            <ListItemText>Копировать ссылку</ListItemText>
+          </MenuItem>
+        )}
+        {isMobile && activeSub && (
+          <MenuItem onClick={() => window.open(selectedServer === 'main' ? `${location.protocol}//${location.hostname}:3000/bus/${activeSub.uuid}` : `${location.protocol}//${location.hostname}:3000/bus/${activeSub.uuid}/${selectedServer}`, '_blank')}>
+            <ListItemIcon><OpenInNew fontSize="small" color="primary" /></ListItemIcon>
+            <ListItemText>Открыть подписку</ListItemText>
+          </MenuItem>
+        )}
+
+        {activeSub && (
+          <MenuItem onClick={() => showLinks(activeSub)}>
+            <ListItemIcon><LinkIcon fontSize="small" /></ListItemIcon>
+            <ListItemText>Показать конфиги</ListItemText>
+          </MenuItem>
+        )}
+        {activeSub && (
+          <MenuItem onClick={() => handleOpenEdit(activeSub)}>
+            <ListItemIcon><Edit fontSize="small" /></ListItemIcon>
+            <ListItemText>Редактировать</ListItemText>
+          </MenuItem>
+        )}
+        {activeSub && (
+          <MenuItem onClick={() => handleDelete(activeSub.id)}>
+            <ListItemIcon><Delete fontSize="small" color="error" /></ListItemIcon>
+            <ListItemText sx={{ color: 'error.main' }}>Удалить</ListItemText>
+          </MenuItem>
+        )}
+      </Menu>
+
+      {/* Модальное окно создания / редактирования */}
+      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="md" fullWidth disableRestoreFocus>
+        <DialogTitle variant='h5'>{editingId ? 'Редактировать подписку' : 'Новая подписка'}</DialogTitle>
+        <DialogContent dividers>
           <TextField
-            autoFocus margin="dense" label="Имя пользователя" fullWidth
+            autoFocus margin="dense" label="Имя подписки" fullWidth
             value={name} onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleCreate();
-              }
-            }}
+            sx={{ mb: 4 }}
           />
+
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Инбаунды ({inbounds.length}/20)
+          </Typography>
+
+          {inbounds.map((inb, index) => (
+            <Box key={inb.id} sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2, p: 2 }}>
+              <Typography sx={{ mt: 1, minWidth: 30, fontWeight: 'bold' }}>#{index + 1}</Typography>
+
+              <FormControl size="small" sx={{ minWidth: 185 }}>
+                <InputLabel>Тип</InputLabel>
+                <Select
+                  value={inb.type}
+                  label="Тип"
+                  sx={{ minWidth: '185px' }}
+                  onChange={(e) => handleInboundChange(inb.id, 'type', e.target.value)}
+                >
+                  {CONNECTION_OPTIONS.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
+                </Select>
+              </FormControl>
+
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+              <TextField
+                size="small"
+                label="Порт"
+                placeholder="random или порт"
+                value={inb.port}
+                onChange={(e) => handleInboundChange(inb.id, 'port', e.target.value)}
+                onBlur={(e) => handlePortCheck(e.target.value, inb.id)}
+                error={!!portErrors[inb.id]}
+                helperText={portErrors[inb.id] || ""}
+                sx={{ width: 140 }}
+              />
+              </FormControl>
+
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>SNI</InputLabel>
+                <Select
+                  value={inb.sni}
+                  label="SNI"
+                  onChange={(e) => handleInboundChange(inb.id, 'sni', e.target.value)}
+                >
+                  <MenuItem value="random">random</MenuItem>
+                  {domains.map(opt => <MenuItem key={opt.id} value={opt.name}>{opt.name}</MenuItem>)}
+                </Select>
+              </FormControl>
+
+              <IconButton
+                color="primary"
+                onClick={() => removeInbound(inb.id)}
+                disabled={inbounds.length <= 1}
+                sx={{ mt: 0.5 }}
+              >
+                <Delete />
+              </IconButton>
+            </Box>
+          ))}
+
+          <Button
+            variant="outlined"
+            size='small'
+            startIcon={<Add />}
+            onClick={addInbound}
+            disabled={inbounds.length >= 20}
+          >
+            Добавить инбаунд
+          </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            startIcon={<Remove />}
+            sx={{ ml: 0.5 }}
+            onClick={() => removeInbound()}
+          >
+            Удалить все
+          </Button>
+
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Отмена</Button>
-          <Button onClick={handleCreate}>Создать</Button>
+          <Button onClick={handleSave} variant="contained" color="primary">Сохранить</Button>
         </DialogActions>
       </Dialog>
 
+      {/* Модальное окно ссылок */}
       <Dialog open={linksOpen} onClose={() => setLinksOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>Активные ссылки</DialogTitle>
         <DialogContent>

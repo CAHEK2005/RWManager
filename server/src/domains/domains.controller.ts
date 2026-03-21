@@ -15,6 +15,11 @@ export class DomainsController {
     return this.domainsService.createMany(body.domains);
   }
 
+  @Get('all')
+  findAllWithoutPagination() {
+    return this.domainsService.findAllUnpaginated(); 
+  }
+
   @Get()
   findAll(
     @Query('page') page: number,
