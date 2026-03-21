@@ -180,6 +180,63 @@ ADMIN_PASS=$(openssl rand -base64 12)
 log "Сгенерированы секретные ключи для БД и JWT."
 
 #################################
+# Hysteria 2
+#################################
+
+# Проверка установки Hysteria 2 через наличие systemd сервиса
+if ! systemctl cat hysteria-server.service &> /dev/null; then
+    echo "Сервис Hysteria 2 не найден. Начинаем установку..."
+    
+    # Установка Hysteria 2 согласно документации
+    bash <(curl -fsSL https://get.hy2.sh/)
+    
+    RANDOM_FREE_PORT=$(get_random_port)
+    
+    # Генерация надежных паролей
+    GENERATED_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 16)
+    GENERATED_OBFS_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 16)
+    
+    # Запрос данных у пользователя
+    echo "=== Настройка Hysteria 2 ==="
+    read -p "Введите email для уведомлений Let's Encrypt: " HYSTERIA_EMAIL
+    
+    # Создание конфигурационного файла
+    cat > /etc/hysteria/config.yaml <<EOF
+listen: :$RANDOM_FREE_PORT
+
+acme:
+  domains:
+    - $UI_HOST
+  email: $HYSTERIA_EMAIL
+
+auth:
+  type: password
+  password: $GENERATED_PASSWORD
+
+obfs:
+  type: salamander
+  salamander:
+    password: $GENERATED_OBFS_PASSWORD
+
+masquerade:
+  type: proxy
+  proxy:
+    url: https://ya.ru/
+    rewriteHost: true
+EOF
+
+    # Перезапуск демона и включение сервиса для автозапуска
+    systemctl daemon-reload
+    systemctl enable --now hysteria-server.service
+    systemctl restart hysteria-server.service
+    
+    echo "Hysteria 2 успешно установлена и запущена на порту $RANDOM_FREE_PORT"
+    systemctl status hysteria-server.service --no-pager
+else
+    echo "Hysteria 2 уже установлена, пропускаем установку."
+fi
+
+#################################
 # ГЕНЕРАЦИЯ ФАЙЛОВ DOCKER
 #################################
 cat > server/.env <<EOF
@@ -273,6 +330,8 @@ services:
       ADMIN_LOGIN: ${ADMIN_USER}
       ADMIN_PASSWORD: ${ADMIN_PASS}
       PORT: 3000
+    volumes:
+      - /etc/hysteria/config.yaml:/etc/hysteria/config.yaml:ro
     networks:
       - app-network
 
@@ -374,6 +433,8 @@ services:
       ADMIN_LOGIN: ${ADMIN_USER}
       ADMIN_PASSWORD: ${ADMIN_PASS}
       PORT: 3000
+    volumes:
+      - /etc/hysteria/config.yaml:/etc/hysteria/config.yaml:ro
     networks:
       - app-network
 
@@ -398,63 +459,6 @@ networks:
   app-network:
     driver: bridge
 EOF
-fi
-
-#################################
-# Hysteria 2
-#################################
-
-# Проверка установки Hysteria 2 через наличие systemd сервиса
-if ! systemctl cat hysteria-server.service &> /dev/null; then
-    echo "Сервис Hysteria 2 не найден. Начинаем установку..."
-    
-    # Установка Hysteria 2 согласно документации
-    bash <(curl -fsSL https://get.hy2.sh/)
-    
-    RANDOM_FREE_PORT=$(get_random_port)
-    
-    # Генерация надежных паролей
-    GENERATED_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 16)
-    GENERATED_OBFS_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 16)
-    
-    # Запрос данных у пользователя
-    echo "=== Настройка Hysteria 2 ==="
-    read -p "Введите email для уведомлений Let's Encrypt: " HYSTERIA_EMAIL
-    
-    # Создание конфигурационного файла
-    cat > /etc/hysteria/config.yaml <<EOF
-listen: :$RANDOM_FREE_PORT
-
-acme:
-  domains:
-    - $UI_HOST
-  email: $HYSTERIA_EMAIL
-
-auth:
-  type: password
-  password: $GENERATED_PASSWORD
-
-obfs:
-  type: salamander
-  salamander:
-    password: $GENERATED_OBFS_PASSWORD
-
-masquerade:
-  type: proxy
-  proxy:
-    url: https://ya.ru/
-    rewriteHost: true
-EOF
-
-    # Перезапуск демона и включение сервиса для автозапуска
-    systemctl daemon-reload
-    systemctl enable --now hysteria-server.service
-    systemctl restart hysteria-server.service
-    
-    echo "Hysteria 2 успешно установлена и запущена на порту $RANDOM_FREE_PORT"
-    systemctl status hysteria-server.service --no-pager
-else
-    echo "Hysteria 2 уже установлена, пропускаем установку."
 fi
 
 #################################
