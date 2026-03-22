@@ -162,9 +162,12 @@ if [[ "$SKIP_SSL_SETUP" == "false" ]]; then
 fi
 
 get_random_port() {
+  local MIN=${1:-3000}
+  local MAX=${2:-6999}
+  
   while :; do
-    PORT=$((RANDOM % 4000 + 3000))
-    if ! ss -ltn | awk '{print $4}' | grep -q ":$PORT\$"; then
+    PORT=$(shuf -i "$MIN-$MAX" -n 1)
+    if ! ss -ltun | awk '{print $4}' | grep -q ":$PORT\$"; then
       echo "$PORT"
       return
     fi
@@ -188,17 +191,19 @@ if ! systemctl cat hysteria-server.service &> /dev/null; then
     echo "Сервис Hysteria 2 не найден. Начинаем установку..."
     
     # Установка Hysteria 2 согласно документации
-    bash <(curl -fsSL https://get.hy2.sh/)
+    bash <(curl -fsSL https://get.hy2.sh/) < /dev/null || true
     
-    RANDOM_FREE_PORT=$(get_random_port)
+    RANDOM_FREE_PORT=$(get_random_port 10000 20000)
     
     # Генерация надежных паролей
-    GENERATED_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 16)
-    GENERATED_OBFS_PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 16)
+    GENERATED_PASSWORD=$(openssl rand -base64 16 | tr -dc 'A-Za-z0-9' | cut -c1-16)
+    GENERATED_OBFS_PASSWORD=$(openssl rand -base64 16 | tr -dc 'A-Za-z0-9' | cut -c1-16)
     
     # Запрос данных у пользователя
     echo "=== Настройка Hysteria 2 ==="
-    read -p "Введите email для уведомлений Let's Encrypt: " HYSTERIA_EMAIL
+    read -e -p "Введите email для уведомлений Let's Encrypt: " HYSTERIA_EMAIL
+    
+    HYSTERIA_EMAIL=$(echo "$HYSTERIA_EMAIL" | tr -cd 'a-zA-Z0-9.@_-')
     
     # Создание конфигурационного файла
     cat > /etc/hysteria/config.yaml <<EOF
