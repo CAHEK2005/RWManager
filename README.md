@@ -115,6 +115,16 @@ bash <(curl -fsSL https://raw.githubusercontent.com/denpiligrim/3dp-manager/main
 
 ---
 
+## Посмотреть логин и пароль в терминале
+
+Команда позволяет посмотреть логин и пароль от личного кабинета 3DP-MANAGER.
+
+```bash
+grep -E "ADMIN_LOGIN|ADMIN_PASSWORD" /opt/3dp-manager/docker-compose.yml | sed 's/^[ \t]*//; s/^- //'
+```
+
+---
+
 ## Сбор доменов из мульти-подписок
 
 Утилита извлекает домены из подписок и формирует `whitelist` для генератора.
