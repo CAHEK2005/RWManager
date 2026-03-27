@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
-import * as fs from 'fs';
 
 @Injectable()
 export class InboundBuilderService {
@@ -10,324 +9,216 @@ export class InboundBuilderService {
   buildVlessRealityTcp(params: { port: number; uuid: string; sni: string; privateKey: string; publicKey: string }) {
     const { port, uuid, sni, privateKey, publicKey } = params;
     return {
-      enable: true,
+      tag: `vless-tcp-reality-rw-manager`,
       port,
       protocol: 'vless',
-      remark: `vless-tcp-reality`,
-      settings: JSON.stringify({
-        clients: [{ id: uuid, flow: 'xtls-rprx-vision', email: uuid, enable: true, limitIp: 0, totalGB: 0, expiryTime: 0, tgId: '', subId: '', reset: 0 }],
+      settings: {
+        clients: [{ id: uuid, flow: 'xtls-rprx-vision', email: uuid }],
         decryption: 'none',
-        encryption: 'none',
-        fallbacks: []
-      }),
-      streamSettings: JSON.stringify({
+        fallbacks: [],
+      },
+      streamSettings: {
         network: 'tcp',
         security: 'reality',
-        externalProxy: [],
         realitySettings: {
           show: false,
           xver: 0,
           target: `${sni}:443`,
           dest: `${sni}:443`,
           serverNames: [sni],
-          privateKey: privateKey,
+          privateKey,
           shortIds: [crypto.randomBytes(4).toString('hex'), crypto.randomBytes(4).toString('hex')],
-          settings: { publicKey: publicKey, fingerprint: 'random', serverName: '', spiderX: '/' }
+          settings: { publicKey, fingerprint: 'random', serverName: '', spiderX: '/' },
         },
-        tcpSettings: { acceptProxyProtocol: false, header: { type: 'none' } }
-      }),
-      sniffing: JSON.stringify({ enabled: false, destOverride: ['http', 'tls', 'quic', 'fakedns'], metadataOnly: false, routeOnly: false })
+        tcpSettings: { acceptProxyProtocol: false, header: { type: 'none' } },
+      },
+      sniffing: { enabled: false, destOverride: ['http', 'tls', 'quic', 'fakedns'] },
     };
   }
 
   buildVlessRealityXhttp(params: { port: number; uuid: string; sni: string; privateKey: string; publicKey: string }) {
     const { port, uuid, sni, privateKey, publicKey } = params;
     return {
-      enable: true,
+      tag: `vless-xhttp-reality-rw-manager`,
       port,
       protocol: 'vless',
-      remark: `vless-xhttp-reality`,
-      settings: JSON.stringify({
-        clients: [{ id: uuid, flow: '', email: uuid, enable: true, limitIp: 0, totalGB: 0, expiryTime: 0, tgId: '', subId: '', reset: 0 }],
+      settings: {
+        clients: [{ id: uuid, flow: '', email: uuid }],
         decryption: 'none',
-        encryption: 'none',
-        fallbacks: []
-      }),
-      streamSettings: JSON.stringify({
+        fallbacks: [],
+      },
+      streamSettings: {
         network: 'xhttp',
         security: 'reality',
-        externalProxy: [],
         realitySettings: {
           show: false,
           xver: 0,
           target: `${sni}:443`,
           dest: `${sni}:443`,
           serverNames: [sni],
-          privateKey: privateKey,
+          privateKey,
           shortIds: [crypto.randomBytes(4).toString('hex'), crypto.randomBytes(4).toString('hex')],
-          settings: { publicKey: publicKey, fingerprint: 'random', serverName: '', spiderX: '/' }
+          settings: { publicKey, fingerprint: 'random', serverName: '', spiderX: '/' },
         },
         xhttpSettings: {
           host: sni,
-          path: "/",
-          mode: "auto",
+          path: '/',
+          mode: 'auto',
           noSSEHeader: false,
           scMaxBufferedPosts: 30,
-          scMaxEachPostBytes: "1000000",
-          scStreamUpServerSecs: "20-80",
-          xPaddingBytes: "100-1000"
-        }
-      }),
-      sniffing: JSON.stringify({
-        enabled: false,
-        destOverride: ["http", "tls", "quic", "fakedns"],
-        metadataOnly: false,
-        routeOnly: false
-      })
+          scMaxEachPostBytes: '1000000',
+          scStreamUpServerSecs: '20-80',
+          xPaddingBytes: '100-1000',
+        },
+      },
+      sniffing: { enabled: false, destOverride: ['http', 'tls', 'quic', 'fakedns'] },
     };
   }
 
   buildVlessRealityGrpc(params: { port: number; uuid: string; sni: string; privateKey: string; publicKey: string }) {
     const { port, uuid, sni, privateKey, publicKey } = params;
     return {
-      enable: true,
+      tag: `vless-grpc-reality-rw-manager`,
       port,
-      protocol: "vless",
-      remark: "vless-grpc-reality",
-      settings: JSON.stringify({
-        clients: [{
-          id: uuid,
-          email: uuid,
-          enable: true,
-          flow: "",
-          limitIp: 0,
-          totalGB: 0,
-          expiryTime: 0,
-          tgId: "",
-          subId: "",
-          reset: 0
-        }],
-        decryption: "none",
-        encryption: "none",
-        fallbacks: []
-      }),
-      streamSettings: JSON.stringify({
-        network: "grpc",
-        security: "reality",
-        externalProxy: [],
+      protocol: 'vless',
+      settings: {
+        clients: [{ id: uuid, email: uuid, flow: '' }],
+        decryption: 'none',
+        fallbacks: [],
+      },
+      streamSettings: {
+        network: 'grpc',
+        security: 'reality',
         realitySettings: {
           show: false,
           xver: 0,
           target: `${sni}:443`,
           dest: `${sni}:443`,
           serverNames: [sni],
-          privateKey: privateKey,
+          privateKey,
           shortIds: [crypto.randomBytes(4).toString('hex')],
-          settings: { publicKey: publicKey, fingerprint: 'random', serverName: '', spiderX: '/' }
+          settings: { publicKey, fingerprint: 'random', serverName: '', spiderX: '/' },
         },
         grpcSettings: {
-          serviceName: "myservice",
+          serviceName: 'myservice',
           authority: sni,
           multiMode: false,
-        }
-      }),
-      sniffing: JSON.stringify({
-        enabled: false,
-        destOverride: ["http", "tls", "quic", "fakedns"],
-        metadataOnly: false,
-        routeOnly: false
-      })
+        },
+      },
+      sniffing: { enabled: false, destOverride: ['http', 'tls', 'quic', 'fakedns'] },
     };
   }
 
   buildVlessWs(params: { port: number; uuid: string; sni: string }) {
     const { port, uuid, sni } = params;
     return {
-      enable: true,
+      tag: `vless-ws-rw-manager`,
       port,
       protocol: 'vless',
-      remark: `vless-ws`,
-      settings: JSON.stringify({
-        clients: [{
-          id: uuid,
-          email: uuid,
-          enable: true,
-          flow: "",
-          limitIp: 0,
-          totalGB: 0,
-          expiryTime: 0,
-          tgId: "",
-          subId: "",
-          reset: 0
-        }],
-        decryption: "none",
-        encryption: "none",
-        fallbacks: []
-      }),
-      streamSettings: JSON.stringify({
-        network: "ws",
-        security: "none",
-        externalProxy: [],
+      settings: {
+        clients: [{ id: uuid, email: uuid, flow: '' }],
+        decryption: 'none',
+        fallbacks: [],
+      },
+      streamSettings: {
+        network: 'ws',
+        security: 'none',
         wsSettings: {
           host: sni,
-          path: "/",
+          path: '/',
           acceptProxyProtocol: false,
-          heartbeatPeriod: 0,
-        }
-      }),
-      sniffing: JSON.stringify({
-        enabled: false,
-        destOverride: ["http", "tls", "quic", "fakedns"],
-        metadataOnly: false,
-        routeOnly: false
-      })
+        },
+      },
+      sniffing: { enabled: false, destOverride: ['http', 'tls', 'quic', 'fakedns'] },
     };
   }
 
   buildVmessTcp(params: { port: number; uuid: string }) {
     const { port, uuid } = params;
     return {
-      enable: true,
+      tag: 'vmess-tcp',
       port,
       protocol: 'vmess',
-      remark: 'vmess-tcp',
-      settings: JSON.stringify({
-        clients: [{
-          id: uuid,
-          flow: "",
-          email: uuid,
-          enable: true,
-          limitIp: 0,
-          totalGB: 0,
-          expiryTime: 0,
-          tgId: "",
-          subId: "0",
-          alterId: "0",
-          reset: 0
-        }],
-      }),
-      streamSettings: JSON.stringify({
-        network: "tcp",
-        security: "none",
+      settings: {
+        clients: [{ id: uuid, email: uuid, alterId: 0 }],
+      },
+      streamSettings: {
+        network: 'tcp',
+        security: 'none',
         tcpSettings: {
           acceptProxyProtocol: false,
-          header: { type: "none" }
-        }
-      }),
-      sniffing: JSON.stringify({
-        enabled: false,
-        destOverride: ["http", "tls", "quic", "fakedns"],
-        metadataOnly: false,
-        routeOnly: false
-      })
+          header: { type: 'none' },
+        },
+      },
+      sniffing: { enabled: false, destOverride: ['http', 'tls', 'quic', 'fakedns'] },
     };
   }
 
   buildShadowsocksTcp(params: { port: number; uuid: string }) {
     const { port, uuid } = params;
     return {
-      enable: true,
+      tag: `shadowsocks-tcp-rw-manager`,
       port,
       protocol: 'shadowsocks',
-      remark: 'shadowsocks-tcp',
-      settings: JSON.stringify({
+      settings: {
+        method: 'chacha20-ietf-poly1305',
         clients: [{
-          id: "",
-          flow: "",
           email: uuid,
-          password: crypto.randomBytes(32).toString("base64"),
-          enable: true,
-          limitIp: 0,
-          totalGB: 0,
-          expiryTime: 0,
-          tgId: "",
-          subId: "",
-          reset: 0
+          password: crypto.randomBytes(32).toString('base64'),
+          method: 'chacha20-ietf-poly1305',
         }],
-        ivCheck: false,
-        method: "2022-blake3-aes-256-gcm",
-        network: "tcp",
-        password: crypto.randomBytes(32).toString("base64")
-      }),
-      streamSettings: JSON.stringify({
-        network: "tcp",
-        security: "none",
+        network: 'tcp',
+      },
+      streamSettings: {
+        network: 'tcp',
+        security: 'none',
         tcpSettings: {
           acceptProxyProtocol: false,
-          header: { type: "none" }
-        }
-      }),
-      sniffing: JSON.stringify({
-        enabled: false,
-        destOverride: ["http", "tls", "quic", "fakedns"],
-        metadataOnly: false,
-        routeOnly: false
-      })
+          header: { type: 'none' },
+        },
+      },
+      sniffing: { enabled: false, destOverride: ['http', 'tls', 'quic', 'fakedns'] },
     };
   }
 
   buildTrojanRealityTcp(params: { port: number; uuid: string; sni: string; privateKey: string; publicKey: string }) {
     const { port, uuid, sni, privateKey, publicKey } = params;
     return {
-      enable: true,
+      tag: `trojan-tcp-reality-rw-manager`,
       port,
       protocol: 'trojan',
-      remark: `trojan-tcp-reality`,
-      settings: JSON.stringify({
+      settings: {
         clients: [{
-          id: uuid,
           email: uuid,
-          password: crypto.randomBytes(8).toString("hex"),
-          enable: true,
-          flow: "",
-          limitIp: 0,
-          totalGB: 0,
-          expiryTime: 0,
-          tgId: "",
-          subId: "",
-          reset: 0
+          password: crypto.randomBytes(8).toString('hex'),
+          flow: '',
         }],
-        fallbacks: []
-      }),
-      streamSettings: JSON.stringify({
-        network: "tcp",
-        security: "reality",
-        externalProxy: [],
+        fallbacks: [],
+      },
+      streamSettings: {
+        network: 'tcp',
+        security: 'reality',
         realitySettings: {
           show: false,
           xver: 0,
           target: `${sni}:443`,
           dest: `${sni}:443`,
           serverNames: [sni],
-          privateKey: privateKey,
+          privateKey,
           shortIds: [
-            crypto.randomBytes(4).toString("hex"),
-            crypto.randomBytes(3).toString("hex"),
-            crypto.randomBytes(8).toString("hex"),
-            crypto.randomBytes(2).toString("hex"),
-            crypto.randomBytes(2).toString("hex"),
-            crypto.randomBytes(2).toString("hex"),
-            crypto.randomBytes(2).toString("hex"),
-            crypto.randomBytes(4).toString("hex")
+            crypto.randomBytes(4).toString('hex'),
+            crypto.randomBytes(3).toString('hex'),
+            crypto.randomBytes(8).toString('hex'),
+            crypto.randomBytes(2).toString('hex'),
           ],
-          settings: {
-            publicKey: publicKey,
-            fingerprint: "random",
-            serverName: "",
-            spiderX: "/"
-          }
+          settings: { publicKey, fingerprint: 'random', serverName: '', spiderX: '/' },
         },
         tcpSettings: {
           acceptProxyProtocol: false,
-          header: { type: "none" }
-        }
-      }),
-      sniffing: JSON.stringify({
-        enabled: false,
-        destOverride: ["http", "tls", "quic", "fakedns"],
-        metadataOnly: false,
-        routeOnly: false
-      })
+          header: { type: 'none' },
+        },
+      },
+      sniffing: { enabled: false, destOverride: ['http', 'tls', 'quic', 'fakedns'] },
     };
   }
 
@@ -335,137 +226,117 @@ export class InboundBuilderService {
     return uuidv4();
   }
 
-  buildInboundLink(inbound: any, sni: string, idOrPass: string, flagEmoji: string): string {
+  buildInboundLink(inbound: any, serverAddress: string, idOrPass: string, flagEmoji: string): string {
     this.flag = flagEmoji;
-    let link = "";
+    let link = '';
 
     switch (inbound.protocol) {
-      case "vless":
-        link = this.buildVlessLink(inbound, sni, idOrPass);
+      case 'vless':
+        link = this.buildVlessLink(inbound, serverAddress, idOrPass);
         break;
-      case "vmess":
-        link = this.buildVmessLink(inbound, sni, idOrPass);
+      case 'vmess':
+        link = this.buildVmessLink(inbound, serverAddress, idOrPass);
         break;
-      case "shadowsocks":
-        link = this.buildSsLink(inbound, sni, idOrPass);
+      case 'shadowsocks':
+        link = this.buildSsLink(inbound, serverAddress);
         break;
-      case "trojan":
-        link = this.buildTrojanLink(inbound, sni, idOrPass);
+      case 'trojan':
+        link = this.buildTrojanLink(inbound, serverAddress, idOrPass);
         break;
     }
 
     return link;
   }
 
-  private buildVlessLink(inbound: any, sni: string, uuid: string) {
-    const stream = JSON.parse(inbound.streamSettings);
-    const settings = JSON.parse(inbound.settings);
-
+  private buildVlessLink(inbound: any, serverAddress: string, uuid: string) {
+    const stream = inbound.streamSettings;
+    const settings = inbound.settings;
     const network = stream.network;
-    const security = stream.security || "none";
-
+    const security = stream.security || 'none';
     const params = new URLSearchParams();
 
-    params.set("type", network);
-    params.set("encryption", "none");
-    params.set("security", security);
+    params.set('type', network);
+    params.set('encryption', 'none');
+    params.set('security', security);
 
-    if (security === "reality") {
+    if (security === 'reality') {
       const r = stream.realitySettings;
-      params.set("pbk", r.settings.publicKey);
-      params.set("fp", r.settings.fingerprint || "random");
-      params.set("sni", r.serverNames?.[0] || "");
-      params.set("sid", r.shortIds?.[0] || "");
-      params.set("spx", '/');
+      params.set('pbk', r.settings.publicKey);
+      params.set('fp', r.settings.fingerprint || 'random');
+      params.set('sni', r.serverNames?.[0] || '');
+      params.set('sid', r.shortIds?.[0] || '');
+      params.set('spx', '/');
 
-      if (network === "tcp") {
+      if (network === 'tcp') {
         const client = settings.clients?.[0];
-        if (client?.flow) {
-          params.set("flow", client.flow);
-        }
+        if (client?.flow) params.set('flow', client.flow);
       }
 
-      if (network === "xhttp") {
+      if (network === 'xhttp') {
         const x = stream.xhttpSettings || {};
-        params.set("path", x.path || "/");
-        params.set("host", x.host || r.serverNames?.[0]);
-        params.set("mode", x.mode || "auto");
+        params.set('path', x.path || '/');
+        params.set('host', x.host || r.serverNames?.[0]);
+        params.set('mode', x.mode || 'auto');
       }
 
-      if (network === "grpc") {
+      if (network === 'grpc') {
         const g = stream.grpcSettings || {};
-        params.set("serviceName", g.serviceName || "grpc");
-        params.set("authority", g.authority || r.serverNames?.[0]);
+        params.set('serviceName', g.serviceName || 'grpc');
+        params.set('authority', g.authority || r.serverNames?.[0]);
       }
     }
 
-    if (network === "ws") {
+    if (network === 'ws') {
       const ws = stream.wsSettings || {};
-      params.set("path", ws.path || "/");
-      if (ws.headers?.Host) {
-        params.set("host", ws.headers.Host);
-      }
+      params.set('path', ws.path || '/');
+      if (ws.host) params.set('host', ws.host);
     }
 
     return (
-      `vless://${uuid}@${sni}:${inbound.port}` +
+      `vless://${uuid}@${serverAddress}:${inbound.port}` +
       `?${params.toString()}` +
-      `#${this.flag}%20${encodeURIComponent(inbound.remark)}`
+      `#${this.flag}%20${encodeURIComponent(inbound.tag)}`
     );
   }
 
-  private buildVmessLink(inbound: any, sni: string, uuid: string) {
-    const stream = JSON.parse(inbound.streamSettings);
-
+  private buildVmessLink(inbound: any, serverAddress: string, uuid: string) {
+    const stream = inbound.streamSettings;
     const vmessObj = {
-      add: sni,
+      add: serverAddress,
       aid: '0',
-      alpn: "",
-      fp: "",
-      host: "",
+      alpn: '',
+      fp: '',
+      host: '',
       id: uuid,
-      net: stream.network || "tcp",
-      path: "/",
+      net: stream.network || 'tcp',
+      path: '/',
       port: inbound.port.toString(),
-      ps: decodeURIComponent(this.flag) + ' ' + inbound.remark,
-      scy: "",
-      sni: "",
-      tls: stream.security || "none",
-      type: "none",
-      v: "2"
+      ps: decodeURIComponent(this.flag) + ' ' + inbound.tag,
+      scy: '',
+      sni: '',
+      tls: stream.security || 'none',
+      type: 'none',
+      v: '2',
     };
-
-    const base64 = Buffer
-      .from(JSON.stringify(vmessObj), "utf8")
-      .toString("base64");
-
+    const base64 = Buffer.from(JSON.stringify(vmessObj), 'utf8').toString('base64');
     return `vmess://${base64}`;
   }
 
-  private buildSsLink(inbound: any, sni: string, idOrPass: string) {
-    const settings = JSON.parse(inbound.settings);
-
-    const method = settings.method;
-    const serverPassword = settings.password;
-    const clientPassword = settings.clients[0].password;
-
-    const userInfo = `${method}:${serverPassword}:${clientPassword}`;
-
-    const base64 = Buffer
-      .from(userInfo, "utf8")
-      .toString("base64");
-
-    return `ss://${base64}@${sni}:${inbound.port}?type=tcp#${this.flag}%20${inbound.remark}`;
+  private buildSsLink(inbound: any, serverAddress: string) {
+    const settings = inbound.settings;
+    const method = settings.clients?.[0]?.method || settings.method;
+    const password = settings.clients?.[0]?.password || settings.password;
+    const userInfo = `${method}:${password}`;
+    const base64 = Buffer.from(userInfo, 'utf8').toString('base64');
+    return `ss://${base64}@${serverAddress}:${inbound.port}?type=tcp#${this.flag}%20${inbound.tag}`;
   }
 
-  private buildTrojanLink(inbound: any, sni: string, password: string) {
-    const stream = JSON.parse(inbound.streamSettings);
+  private buildTrojanLink(inbound: any, serverAddress: string, password: string) {
+    const stream = inbound.streamSettings;
     const reality = stream.realitySettings;
-
     const pbk = reality.settings.publicKey;
-    const SNI = reality.serverNames?.[0] || sni;
-    const sid = reality.shortIds?.[0] || "";
-    const spx = '%2F';
+    const SNI = reality.serverNames?.[0] || serverAddress;
+    const sid = reality.shortIds?.[0] || '';
 
     return (
       `trojan://${password}@${SNI}:${inbound.port}` +
@@ -475,47 +346,8 @@ export class InboundBuilderService {
       `&fp=random` +
       `&sni=${SNI}` +
       `&sid=${sid}` +
-      `&spx=${spx}` +
-      `#${this.flag}%20${inbound.remark}`
+      `&spx=%2F` +
+      `#${this.flag}%20${inbound.tag}`
     );
-  }
-
-  buildHysteria2Link(serverAddress: string, sni: string, remark: string): string {
-    let auth = 'YOUR_AUTH';
-    let obfs = 'salamander';
-    let obfsPass = 'YOUR_PASS';
-    let port = 443;
-
-    try {
-      const configPath = '/etc/hysteria/config.yaml';
-
-      if (fs.existsSync(configPath)) {
-        const fileContent = fs.readFileSync(configPath, 'utf8');
-
-        const authMatch = fileContent.match(/password:\s*['"]?([^'"\n]+)['"]?/);
-        if (authMatch) auth = authMatch[1];
-
-        const obfsMatch = fileContent.match(/type:\s*['"]?(salamander)['"]?/);
-        if (obfsMatch) obfs = obfsMatch[1];
-
-        const passMatch = fileContent.match(/salamander:[\s\S]*?password:\s*['"]?([^'"\n]+)['"]?/);
-        if (passMatch) obfsPass = passMatch[1];
-
-        const listenMatch = fileContent.match(/listen:\s*['"]?:(\d+)['"]?/);
-        if (listenMatch) port = parseInt(listenMatch[1], 10);
-      } else {
-        console.warn(`Конфиг Hysteria2 не найден по пути: ${configPath}`);
-      }
-    } catch (e) {
-      console.error('Ошибка чтения конфига Hysteria2', e);
-    }
-
-    const params = new URLSearchParams();
-    params.set('insecure', '0');
-    params.set('sni', serverAddress);
-    params.set('obfs', obfs);
-    params.set('obfs-password', obfsPass);
-
-    return `hy2://${auth}@${serverAddress}:${port}/?${params.toString()}#${remark}`;
   }
 }

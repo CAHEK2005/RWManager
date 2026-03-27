@@ -1,12 +1,8 @@
 {
-  "name": "3dp-manager",
+  "name": "rw-profile-manager",
   "version": "2.0.2",
-  "description": "Inbound generator for 3x-ui",
+  "description": "Inbound generator for Remnawave",
   "private": false,
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/denpiligrim/3dp-manager.git"
-  },
   "author": "DenPiligrim",
   "license": "GPL-3.0"
 }

@@ -59,9 +59,8 @@ export default function Header({ onMenuClick, isMobile }: HeaderProps) {
               <MenuIcon />
             </IconButton>
           )}
-          <img src="/img/logo.png" alt="Logo" width={32} height={32} style={{ marginRight: 14 }} />
           <Typography variant={isMobile ? 'body1' : 'h6'} noWrap component="div" sx={{ flexGrow: 1, fontWeight: 'bold', color: '#1395de' }}>
-            3DP-MANAGER
+            RW Profile Manager
           </Typography>
 
           <Box sx={{ display: 'flex', gap: isMobile ? 0.25 : 1 }}>
@@ -94,10 +93,10 @@ export default function Header({ onMenuClick, isMobile }: HeaderProps) {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Об утилите 3DP-MANAGER</DialogTitle>
+        <DialogTitle>О программе RW Profile Manager</DialogTitle>
         <DialogContent dividers>
           <DialogContentText paragraph>
-            Утилита для автогенерации инбаундов к панели 3x-ui, формирования единой подписки и настройки перенаправления трафика с промежуточного сервера на основной.
+            Инструмент для автоматического обновления config-profile в панели Remnawave случайными инбаундами по расписанию.
           </DialogContentText>
 
           <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'bold' }}>
@@ -107,33 +106,26 @@ export default function Header({ onMenuClick, isMobile }: HeaderProps) {
           <List dense>
             <ListItem>
               <ListItemText
-                primary="Автоматическая генерация"
-                secondary="Система создает новые инбаунды в заданном интервале."
+                primary="Автоматическая ротация"
+                secondary="Обновляет инбаунды в выбранном config-profile Remnawave с заданным интервалом."
               />
             </ListItem>
             <ListItem>
               <ListItemText
-                primary="Управление подписками"
-                secondary="Создание пользователей с уникальными UUID. Одна подписка генерирует множество подключений."
+                primary="Гибкая конфигурация"
+                secondary="Поддержка VLESS Reality, VMess, Shadowsocks, Trojan — любая комбинация типов."
               />
             </ListItem>
             <ListItem>
               <ListItemText
                 primary="Белый список доменов"
-                secondary="Для работы инбаундов необходим список доменов, под которые маскируется трафик."
-              />
-            </ListItem>
-            <ListItem>
-              <ListItemText
-                primary="Перенаправление"
-                secondary="Если вы используете Каскадную схему подключения, то вы сможете добавить свои промежуточные сервера."
+                secondary="SNI-домены для Reality инбаундов выбираются случайно из вашего списка."
               />
             </ListItem>
           </List>
 
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            Версия: 2.0.2<br />
-            Разработчик: DenPiligrim
+            RW Profile Manager
           </Typography>
         </DialogContent>
         <DialogActions>

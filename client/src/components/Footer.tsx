@@ -1,5 +1,5 @@
-import { Box, Container, Grid, IconButton, Link, Stack } from '@mui/material';
-import { GitHub, YouTube, Telegram } from '@mui/icons-material';
+import { Box, Container, Grid, IconButton, Stack } from '@mui/material';
+import { YouTube, Telegram } from '@mui/icons-material';
 
 interface FooterProps {
   isMobile?: boolean;
@@ -22,37 +22,12 @@ export default function Footer({ isMobile }: FooterProps) {
       <Container maxWidth={false}>
         <Grid container spacing={4} justifyContent="space-between" alignItems="center">
 
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <Stack direction="row" alignItems="center" spacing={1} justifyContent={isMobile ? 'center' : 'start'}>
-              <img src="/img/logo.png" alt="Logo" width={32} height={32} style={{ marginRight: isMobile ? 0 : 14 }} />
-            </Stack>
-          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }} />
 
-          <Grid size={{ xs: 12, sm: 4 }} sx={{ textAlign: 'center' }}>
-            <Link
-              href="https://3dp-manager.com/docs/intro"
-              target="_blank"
-              rel="noopener"
-              color="text.primary"
-              underline="hover"
-              sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, fontWeight: 500 }}
-            >
-              Документация
-            </Link>
-          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }} />
 
           <Grid size={{ xs: 12, sm: 4 }} sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
             <Stack direction="row" spacing={1} justifyContent={{ xs: 'center', sm: 'flex-end' }}>
-
-              <IconButton
-                component="a"
-                href="https://github.com/denpiligrim/3dp-manager"
-                target="_blank"
-                aria-label="GitHub"
-                color="inherit"
-              >
-                <GitHub />
-              </IconButton>
 
               <IconButton
                 component="a"

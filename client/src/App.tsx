@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
-import SubscriptionsPage from './pages/SubscriptionsPage';
 import SettingsPage from './pages/SettingsPage';
 import DomainsPage from './pages/DomainsPage';
 import LoginPage from './pages/LoginPage';
@@ -10,28 +9,26 @@ import RequireAuth from './auth/RequireAuth';
 import NotFoundPage from './pages/NotFoundPage';
 import { AxiosInterceptor } from './auth/AxiosInterceptor';
 import PublicRoute from './auth/PublicRoute';
-import TunnelsPage from './pages/TunnelsPage';
 
 function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
         <BrowserRouter>
-        <AxiosInterceptor />
+          <AxiosInterceptor />
           <Routes>
             <Route element={<PublicRoute />}>
               <Route path="/login" element={<LoginPage />} />
             </Route>
-            
+
             <Route path="/" element={
               <RequireAuth>
                 <Layout />
               </RequireAuth>
             }>
-              <Route index element={<SubscriptionsPage />} />
+              <Route index element={<SettingsPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="domains" element={<DomainsPage />} />
-              <Route path="tunnels" element={<TunnelsPage />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />
           </Routes>

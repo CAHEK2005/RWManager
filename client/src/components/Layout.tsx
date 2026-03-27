@@ -1,13 +1,12 @@
-import { 
-  Toolbar, Drawer, List, ListItem, 
-  ListItemButton, ListItemIcon, ListItemText, Box, useMediaQuery, useTheme 
+import {
+  Toolbar, Drawer, List, ListItem,
+  ListItemButton, ListItemIcon, ListItemText, Box, useMediaQuery, useTheme
 } from '@mui/material';
-import { People, Settings, Dns, SwapHoriz } from '@mui/icons-material';
+import { Settings, Dns } from '@mui/icons-material';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useState } from 'react';
 
 import Header from './Header';
-import Footer from './Footer';
 
 const drawerWidth = 240;
 
@@ -23,10 +22,8 @@ export default function Layout() {
   };
 
   const menuItems = [
-    { text: 'Подписки', icon: <People />, path: '/' },
+    { text: 'Настройки', icon: <Settings />, path: '/' },
     { text: 'Домены', icon: <Dns />, path: '/domains' },
-    { text: 'Перенаправление', icon: <SwapHoriz />, path: '/tunnels' },
-    { text: 'Настройки', icon: <Settings />, path: '/settings' },
   ];
 
   const drawerContent = (
@@ -35,7 +32,7 @@ export default function Layout() {
       <List>
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
-            <ListItemButton 
+            <ListItemButton
               selected={location.pathname === item.path}
               onClick={() => {
                 navigate(item.path);
@@ -53,7 +50,6 @@ export default function Layout() {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
-      {/* Передаем функцию открытия в Header */}
       <Header onMenuClick={handleDrawerToggle} isMobile={isMobile} />
 
       <Drawer
@@ -69,10 +65,10 @@ export default function Layout() {
         {drawerContent}
       </Drawer>
 
-      <Box 
-        component="main" 
-        sx={{ 
-          flexGrow: 1, 
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
           display: 'flex',
           flexDirection: 'column',
           minHeight: '100vh',
@@ -84,7 +80,6 @@ export default function Layout() {
         <Box sx={{ flexGrow: 1, p: { xs: 2, md: 3 } }}>
           <Outlet />
         </Box>
-        <Footer isMobile={isMobile} />
       </Box>
     </Box>
   );

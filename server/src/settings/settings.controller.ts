@@ -1,18 +1,20 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Setting } from './entities/setting.entity';
 import * as net from 'net';
 import * as dns from 'dns/promises';
 import { COUNTRIES } from './countries';
-import { XuiService } from 'src/xui/xui.service';
+import { RemnavaveService } from '../remnawave/remnawave.service';
 
 @Controller('settings')
 export class SettingsController {
+  private readonly logger = new Logger(SettingsController.name);
+
   constructor(
     @InjectRepository(Setting)
     private settingsRepo: Repository<Setting>,
-    private xuiService: XuiService
+    private remnavaveService: RemnavaveService,
   ) {}
 
   @Get()
@@ -21,18 +23,51 @@ export class SettingsController {
     return settings.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {});
   }
 
+  @Get('profiles')
+  async getProfiles() {
+    this.logger.log('GET /profiles запрос');
+    try {
+      const profiles = await this.remnavaveService.getConfigProfiles();
+      this.logger.log(`Получено профилей: ${profiles.length}`);
+      return profiles;
+    } catch (e) {
+      this.logger.error(`Ошибка загрузки профилей: ${e.message}`);
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Get('nodes')
+  async getNodes() {
+    try {
+      return await this.remnavaveService.getNodes();
+    } catch (e) {
+      this.logger.error(`Ошибка загрузки нод: ${e.message}`);
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Get('hosts')
+  async getHosts() {
+    try {
+      return await this.remnavaveService.getAllHosts();
+    } catch (e) {
+      this.logger.error(`Ошибка загрузки хостов: ${e.message}`);
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
   @Post('check')
-  async checkConnection(@Body() body: { xui_url: string; xui_login: string; xui_password: string }) {
-    const success = await this.xuiService.checkConnection(body.xui_url, body.xui_login, body.xui_password);
+  async checkConnection(@Body() body: { remnawave_url: string; remnawave_api_key: string }) {
+    const success = await this.remnavaveService.checkConnection(body.remnawave_url, body.remnawave_api_key);
     return { success };
   }
 
   @Post()
-  async update(@Body() settings: Record<string, string>) {    
-    if (settings.xui_url) {
+  async update(@Body() settings: Record<string, string>) {
+    if (settings.remnawave_url) {
       try {
-        const parsed = new URL(settings.xui_url);      
-        settings['xui_host'] = parsed.hostname;
+        const parsed = new URL(settings.remnawave_url);
+        settings['remnawave_host'] = parsed.hostname;
 
         let address = '';
         if (net.isIP(parsed.hostname) === 0) {
@@ -41,44 +76,33 @@ export class SettingsController {
         } else {
           address = parsed.hostname;
         }
-          
-        settings['xui_ip'] = address;
-        console.log(`Extracted host: ${parsed.hostname} from ${settings.xui_url}`);
 
         if (address && address !== '127.0.0.1' && address !== 'localhost') {
           try {
-            console.log(`Определяем страну для IP: ${address}...`);
             const geoRes = await fetch(`http://ip-api.com/json/${address}`);
             const geoData: any = await geoRes.json();
 
             if (geoData.status === 'success') {
               const countryCode = geoData.countryCode;
-              
               const countryInfo = COUNTRIES.find(c => c.code === countryCode);
 
               if (countryInfo) {
-                const flagEmoji = countryInfo.emoji;
-                
-                settings['xui_geo_country'] = countryInfo.name;
-                settings['xui_geo_flag'] = flagEmoji;
-                
-                console.log(`GeoIP Success: ${countryInfo.name} ${flagEmoji}`);
+                settings['remnawave_geo_country'] = countryInfo.name;
+                settings['remnawave_geo_flag'] = countryInfo.emoji;
               } else {
-                console.warn(`Страна с кодом ${countryCode} не найдена в countries.ts`);
-                settings['xui_geo_country'] = geoData.country;
-                settings['xui_geo_flag'] = '';
+                settings['remnawave_geo_country'] = geoData.country;
+                settings['remnawave_geo_flag'] = '';
               }
-            } else {
-              console.warn(`GeoIP Error: ${geoData.message}`);
             }
           } catch (geoError) {
-            console.error(`Ошибка запроса к ip-api.com: ${geoError.message}`);
+            console.error(`GeoIP error: ${geoError.message}`);
           }
         }
       } catch (e) {
-        console.warn(`Не удалось извлечь хост из URL: ${settings.xui_url}`);
+        console.warn(`Could not parse remnawave_url: ${settings.remnawave_url}`);
       }
     }
+
     for (const [key, value] of Object.entries(settings)) {
       await this.settingsRepo.save({ key, value });
     }

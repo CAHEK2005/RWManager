@@ -3,20 +3,18 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 
 import { RotationService } from './rotation.service';
-import { XuiModule } from '../xui/xui.module';
+import { RotationController } from './rotation.controller';
+import { RemnavaveModule } from '../remnawave/remnawave.module';
 import { InboundsModule } from '../inbounds/inbounds.module';
 
-import { Subscription } from '../subscriptions/entities/subscription.entity';
-import { Inbound } from '../inbounds/entities/inbound.entity';
 import { Domain } from '../domains/entities/domain.entity';
 import { Setting } from '../settings/entities/setting.entity';
-import { RotationController } from './rotation.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Subscription, Inbound, Domain, Setting]),
+    TypeOrmModule.forFeature([Domain, Setting]),
     ScheduleModule.forRoot(),
-    XuiModule,
+    RemnavaveModule,
     InboundsModule,
   ],
   providers: [RotationService],

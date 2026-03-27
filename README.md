@@ -1,163 +1,58 @@
-[English](/README_EN.md) | [中文](/README_CN.md) | [فارسی](/README_IR.md) | [Türkmençe](/README_TK.md)
-
-<p><img src="https://denpiligrim.ru/storage/images/3dp-manager.png" alt="3dp-manager preview"></p>
+# RW Profile Manager
 
 ![Version](https://img.shields.io/badge/version-2.0.2-blue.svg) [![License](https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true)](https://www.gnu.org/licenses/gpl-3.0) [![Telegram](https://img.shields.io/badge/Telegram-26A5E4?style=flat&logo=telegram&logoColor=white)](https://t.me/denpiligrim_web) [![YouTube Channel Subscribers](https://img.shields.io/youtube/channel/subscribers/UCOv2tFFYDY4mXOM60PVz8zw)](https://www.youtube.com/@denpiligrim)
 
-# 3DP-MANAGER
-
-Утилита для автогенерации инбаундов к панели [3x-ui](https://github.com/MHSanaei/3x-ui), формирования единой подписки и настройки перенаправления трафика с промежуточного сервера на основной. Утилита, начиная с версии 2.0.0 имеет графический интерфейс и простые пользовательские настройки.
-
-**Поддержать проект**
-
-- Банковским переводом:
-	- :credit_card: Карта МИР: `2204320436318077`
-	- :credit_card: Карта MasterCard: `5395452209474530`
-- На электронный кошелек:
-	- :moneybag: ЮМоney: `4100116897060652`
-	- :moneybag: PayPal: `vasiljevdenisx@gmail.com`
-- Криптовалютой:
-	- :coin: USDT | ETH (ERC20 | BEP20): `0x6fe140040f6Cdc1E1Ff2136cd1d60C0165809463`
-	- :coin: USDT | TRX (TRC20): `TEWxXmJxvkAmhshp7E61XJGHB3VyM9hNAb`
-	- :coin: Bitcoin: `bc1qctntwncsv2yn02x2vgnkrqm00c4h04c0afkgpl`
-	- :coin: TON: `UQCZ3MiwyYHXftPItMMzJRYRiKHugr16jFMq2nfOQOOoemLy`
-	- :coin: Bybit ID: `165292278`
-
-## Описание
-
-Главная цель утилиты — сделать так, чтобы ваш трафик не выглядел одинаковым. Бот генерирует по заданному интервалу 10 подключений с разными параметрами:
-
-- протоколы: `vless`, `vmess`, `shadowsocks`, `hysteria2`, `trojan`;
-- порты: `443`, `8443` (фиксированные) и случайные из диапазона `10000-60000`;
-- транспорт: `tcp`, `websocket`, `grpc`, `xhttp`;
-- SNI берутся из белого списка доменов (whitelist); можно использовать свой список.
-
-Все подключения объединяются в одну подписку со статичным URL. Бот работает с панелью `3x-ui` и не вмешивается в её работу напрямую, используя открытое API панели.
-
-Вторичная цель — стабильность подключения: клиент получает 10 вариантов подключений и может выбрать любое из них.
-
-Дополнительно: бот можно использовать в каскадной схеме. Сервис перенаправления автоматически настроит переадресацию подписки и трафика к основному серверу.
-
-Рекомендации:
-
-- Используйте HTTPS для подписки (домен + SSL сертификат).
-- Интервал генерации задавайте ≥ 10 минут; для стабильности рекомендуется — раз в сутки (1440 минут).
-- В клиенте установите автообновление чаще (например, каждый час), чтобы была синхронизация с сервером.
+Утилита для автоматического обновления config-profile в панели [Remnawave](https://github.com/remnawave) случайными инбаундами по расписанию.
 
 ## Возможности
 
-- Генерация 10 разнообразных подключений
-- Формирование единой подписки со статичным URL
-- Поддержка кастомного `whitelist` доменов
-- Автоматическая настройка перенаправления трафика (опционально)
+- Автоматическая ротация инбаундов в выбранном config-profile Remnawave с заданным интервалом
+- Поддержка VLESS Reality (TCP / XHTTP / gRPC), VLESS WS, Shadowsocks, Trojan
+- Белый список SNI-доменов для Reality инбаундов (выбираются случайно)
+- Синхронизация хостов Remnawave после каждой ротации
+- Веб-интерфейс с настройками, маппингом хостов и выбором ноды
 
 ## Требования
 
-- Ubuntu 20.04 (и выше), Debian 12.11 (и выше)
-- Панель `3x-ui` v2.8.4 (и выше)
-- Домен + SSL сертификат (опционально)
-
----
+- Ubuntu 20.04+ или Debian 12+
+- Docker + Docker Compose v2
+- Панель Remnawave с API-ключом
 
 ## Установка
 
-У вас должна быть установлена панель управления `3x-ui`, которую можно поставить командой: `bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)`
-Установите проект на сервер командой:
-
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/denpiligrim/3dp-manager/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/CAHEK2005/3dp-manager-remna/main/install.sh)
 ```
-
-<sup>Краткое описание: запускает скрипт установки и разворачивает контейнеры и сервисы.</sup>
 
 ## Обновление
 
-Обновление до последней версии:
-
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/denpiligrim/3dp-manager/main/update.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/CAHEK2005/3dp-manager-remna/main/update.sh)
 ```
-
-<sup>Краткое описание: подтягивает последние изменения и перезапускает контейнеры.</sup>
 
 ## Удаление
 
-Полное удаление сервиса:
-
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/denpiligrim/3dp-manager/main/delete.sh)
-```
-
-<sup>Краткое описание: удаляет контейнеры и файлы конфигурации, возвращая систему к состоянию до установки.</sup>
-
----
-
-## Установка сервиса перенаправления (forwarding)
-
-> [!WARNING]  
-> Сервис перенаправления работает на промежуточном сервере
-
-Сервис перенаправления позволяет проксировать входящие порты с промежуточного сервера на основной.
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/denpiligrim/3dp-manager/main/forwarding_install.sh)
-```
-
-<sup>Краткое описание: добавляет правила перенаправления.</sup>
-
-## Удаление перенаправления
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/denpiligrim/3dp-manager/main/forwarding_delete.sh)
-```
-
-<sup>Краткое описание: удаляет правила перенаправления.</sup>
-
----
-
-## Посмотреть логин и пароль в терминале
-
-Команда позволяет посмотреть логин и пароль от личного кабинета 3DP-MANAGER.
-
-```bash
-grep -E "ADMIN_LOGIN|ADMIN_PASSWORD" /opt/3dp-manager/docker-compose.yml | sed 's/^[ \t]*//; s/^- //'
+bash <(curl -fsSL https://raw.githubusercontent.com/CAHEK2005/3dp-manager-remna/main/delete.sh)
 ```
 
 ---
 
-## Сбор доменов из мульти-подписок
-
-Утилита извлекает домены из подписок и формирует `whitelist` для генератора.
+## Посмотреть логин и пароль
 
 ```bash
-node get_domains.js
+grep -E "ADMIN_LOGIN|ADMIN_PASSWORD" /opt/rw-manager/server/.env
 ```
 
-<sup>Краткое описание: добавьте ссылку на мульти-подписку в скрипт и запустите команду — на выходе получите список доменов. Необходим `Node.js` для работы скрипта.</sup>
-
 ---
 
-## Замечания и текущие ограничения
+## Стек
 
-- Общий список доменов работает не у всех провайдеров, поэтому рекомендуется составить и использовать свой whitelist.
-
----
-
-## Внести вклад
-
-Буду рад любому вкладу в разработку проекта! Простой процесс для контрибьюторов:
-
-1. Форкните репозиторий на GitHub.
-2. Создайте ветку с осмысленным именем, например `feature/add-README` или `fix/whitelist-load`.
-3. Внесите изменения и добавьте короткое описание в коммите.
-4. Запустите локально базовые проверки (если есть).
-5. Отправьте ветку в ваш форк и создайте Pull Request в основной репозиторий.
-
-<sup>Советы: описывайте изменения в PR, указывайте цель и тестовые шаги. Если изменения большие — разделяйте на маленькие коммиты.</sup>
+NestJS (backend) + React + Vite (frontend) + PostgreSQL, запускается через Docker Compose.
 
 ---
 
 ## Обсуждение
 
 - Телеграм: [@denpiligrim_web](https://t.me/denpiligrim_web)
-- Раздел Issues в данном репозитории
+- Issues: [github.com/CAHEK2005/3dp-manager-remna/issues](https://github.com/CAHEK2005/3dp-manager-remna/issues)

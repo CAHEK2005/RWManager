@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { XuiService } from './xui.service';
+import { RemnavaveService } from './remnawave.service';
 import { Setting } from '../settings/entities/setting.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Setting])],
-  providers: [XuiService],
-  exports: [XuiService],
+  providers: [RemnavaveService],
+  exports: [RemnavaveService],
 })
-export class XuiModule {}
+export class RemnavaveModule {}

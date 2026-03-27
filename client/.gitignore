@@ -1,3 +1,16 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+dist-ssr
+
+# Vite cache
+.vite/
+
+# TypeScript
+*.tsbuildinfo
+
 # Logs
 logs
 *.log
@@ -7,16 +20,24 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Environment
 *.local
+.env
+.env.*
+!.env.example
 
-# Editor directories and files
+# Tests & coverage
+/coverage
+/test-results
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
