@@ -13,6 +13,7 @@ export interface ManagedProfile {
   uuid: string;
   name: string;
   inboundsConfig: any[];
+  excludedPorts: number[];
   nodeUuid: string;
   nodeAddress: string;
   applyToNode: boolean;
@@ -224,6 +225,7 @@ export class RotationService implements OnModuleInit {
       const domains = await this.domainRepo.find({ where: { isEnabled: true } });
       const generatedInbounds: any[] = [];
       const usedPorts = new Set<number>();
+      const excludedPorts = new Set<number>(profile.excludedPorts || []);
 
       for (const config of profile.inboundsConfig) {
         const type = config.type;
@@ -232,7 +234,7 @@ export class RotationService implements OnModuleInit {
         const uuid = uuidv4();
         let port: number;
         if (!config.port || config.port === 'random') {
-          port = this.getRandomPort(usedPorts);
+          port = this.getRandomPort(usedPorts, excludedPorts);
         } else {
           port = typeof config.port === 'string' ? parseInt(config.port, 10) : config.port;
         }
@@ -355,11 +357,11 @@ export class RotationService implements OnModuleInit {
     return list[Math.floor(Math.random() * list.length)].name;
   }
 
-  private getRandomPort(usedPorts: Set<number>): number {
+  private getRandomPort(usedPorts: Set<number>, excludedPorts: Set<number> = new Set()): number {
     let port: number;
     do {
       port = Math.floor(Math.random() * (60000 - 10000)) + 10000;
-    } while (usedPorts.has(port));
+    } while (usedPorts.has(port) || excludedPorts.has(port));
     return port;
   }
 }

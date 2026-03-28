@@ -74,6 +74,7 @@ export class SettingsController {
       uuid: profileUuid,
       name: body.name,
       inboundsConfig: [],
+      excludedPorts: [],
       nodeUuid: '',
       nodeAddress: '',
       applyToNode: false,

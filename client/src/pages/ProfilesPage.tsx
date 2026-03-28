@@ -30,6 +30,7 @@ interface ManagedProfile {
   uuid: string;
   name: string;
   inboundsConfig: InboundConfigItem[];
+  excludedPorts: number[];
   nodeUuid: string;
   nodeAddress: string;
   applyToNode: boolean;
@@ -169,6 +170,8 @@ export default function ProfilesPage() {
   const [localApplyToNode, setLocalApplyToNode] = useState(false);
   const [localTemplate, setLocalTemplate] = useState('{countryCode} {nodeName} - {inboundType}');
   const [localHostMappings, setLocalHostMappings] = useState<HostMapping[]>([]);
+  const [localExcludedPorts, setLocalExcludedPorts] = useState<number[]>([]);
+  const [excludedPortInput, setExcludedPortInput] = useState('');
   const [localRotationEnabled, setLocalRotationEnabled] = useState(true);
   const [localRotationMode, setLocalRotationMode] = useState<'interval' | 'schedule'>('interval');
   const [localInterval, setLocalInterval] = useState(1440);
@@ -228,6 +231,8 @@ export default function ProfilesPage() {
   useEffect(() => {
     if (!selectedProfile) return;
     setLocalInbounds(selectedProfile.inboundsConfig || []);
+    setLocalExcludedPorts(selectedProfile.excludedPorts || []);
+    setExcludedPortInput('');
     setLocalNodeUuid(selectedProfile.nodeUuid || '');
     setLocalApplyToNode(selectedProfile.applyToNode ?? false);
     setLocalTemplate(selectedProfile.hostTemplate || '{countryCode} {nodeName} - {inboundType}');
@@ -357,12 +362,30 @@ export default function ProfilesPage() {
   const handleSaveInbounds = async () => {
     if (!selectedProfile) return;
     try {
-      await api.patch(`/settings/profiles/managed/${selectedProfile.uuid}`, { inboundsConfig: localInbounds });
-      updateProfileInState(selectedProfile.uuid, { inboundsConfig: localInbounds });
+      await api.patch(`/settings/profiles/managed/${selectedProfile.uuid}`, {
+        inboundsConfig: localInbounds,
+        excludedPorts: localExcludedPorts,
+      });
+      updateProfileInState(selectedProfile.uuid, {
+        inboundsConfig: localInbounds,
+        excludedPorts: localExcludedPorts,
+      });
       showMsg('success', 'Инбаунды сохранены');
     } catch (e: any) {
       showMsg('error', e?.response?.data?.message || 'Ошибка сохранения');
     }
+  };
+
+  const handleAddExcludedPort = () => {
+    const port = parseInt(excludedPortInput, 10);
+    if (isNaN(port) || port < 1 || port > 65535) return;
+    if (localExcludedPorts.includes(port)) { setExcludedPortInput(''); return; }
+    setLocalExcludedPorts(prev => [...prev, port].sort((a, b) => a - b));
+    setExcludedPortInput('');
+  };
+
+  const handleRemoveExcludedPort = (port: number) => {
+    setLocalExcludedPorts(prev => prev.filter(p => p !== port));
   };
 
   // ── Tab 1: Node ───────────────────────────────────────────────────────────
@@ -704,6 +727,40 @@ export default function ProfilesPage() {
                           </Tooltip>
                         </Box>
                       ))}
+                    </Stack>
+
+                    <Divider sx={{ mt: 3, mb: 2 }} />
+
+                    <Typography variant="subtitle2" gutterBottom>
+                      Исключённые порты (рандомайзер пропускает)
+                    </Typography>
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                      <TextField
+                        size="small"
+                        label="Порт"
+                        value={excludedPortInput}
+                        onChange={e => setExcludedPortInput(e.target.value.replace(/\D/g, ''))}
+                        onKeyDown={e => e.key === 'Enter' && handleAddExcludedPort()}
+                        sx={{ width: 110 }}
+                        inputProps={{ inputMode: 'numeric', min: 1, max: 65535 }}
+                        helperText="1–65535"
+                      />
+                      <Button variant="outlined" size="small" onClick={handleAddExcludedPort} sx={{ mt: -1.5 }}>
+                        Добавить
+                      </Button>
+                    </Stack>
+                    <Stack direction="row" spacing={0.5} flexWrap="wrap" sx={{ gap: 0.5 }}>
+                      {localExcludedPorts.map(port => (
+                        <Chip
+                          key={port}
+                          label={port}
+                          size="small"
+                          onDelete={() => handleRemoveExcludedPort(port)}
+                        />
+                      ))}
+                      {localExcludedPorts.length === 0 && (
+                        <Typography variant="caption" color="textSecondary">Нет исключений</Typography>
+                      )}
                     </Stack>
 
                     <Button variant="contained" sx={{ mt: 3 }} onClick={handleSaveInbounds}>

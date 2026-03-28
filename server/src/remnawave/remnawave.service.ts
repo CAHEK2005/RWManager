@@ -142,22 +142,19 @@ export class RemnavaveService {
     const { url, apiKey } = await this.getSettings();
     if (!url || !apiKey) throw new Error('Remnawave credentials not configured');
 
-    const defaultConfig = {
-      inbounds: [],
-      outbounds: [
-        { tag: 'DIRECT', protocol: 'freedom' },
-        { tag: 'BLOCK', protocol: 'blackhole' },
-      ],
-    };
+    const defaultConfig = { inbounds: [] };
+    const body = { name, config: config ?? defaultConfig };
+    this.logger.log(`createConfigProfile request: ${JSON.stringify(body)}`);
 
     const res = await fetch(`${url}/api/config-profiles`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, config: config ?? defaultConfig }),
+      body: JSON.stringify(body),
     });
 
     if (!res.ok) {
       const errText = await res.text();
+      this.logger.error(`createConfigProfile failed ${res.status}: ${errText}`);
       throw new Error(`Failed to create config profile: ${res.status} ${errText}`);
     }
     const data = await res.json();
