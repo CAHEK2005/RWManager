@@ -101,43 +101,10 @@ else
 fi
 
 #################################
-# СБОР ДАННЫХ
+# ОПРЕДЕЛЕНИЕ IP
 #################################
-read -rp "Введите домен сервера (оставьте пустым для использования IP): " INPUT_HOST
-
-USE_SSL=false
-CERT_PATH=""
-KEY_PATH=""
-
-if [ -z "$INPUT_HOST" ]; then
-    UI_HOST=$(hostname -I | awk '{print $1}')
-    log "Домен не указан. Используется IP: $UI_HOST"
-else
-    UI_HOST="$INPUT_HOST"
-
-    LE_CERT="/etc/letsencrypt/live/$UI_HOST/fullchain.pem"
-    LE_KEY="/etc/letsencrypt/live/$UI_HOST/privkey.pem"
-
-    if [[ -f "$LE_CERT" && -f "$LE_KEY" ]]; then
-        log "Найдены сертификаты Let's Encrypt."
-        USE_SSL=true
-        CERT_PATH="$LE_CERT"
-        KEY_PATH="$LE_KEY"
-    else
-        read -rp "Использовать SSL (свои сертификаты)? (y/n): " ssl_ans
-        if [[ "$ssl_ans" =~ ^[Yy]$ ]]; then
-            read -rp "Путь к fullchain.pem: " user_cert
-            read -rp "Путь к privkey.pem: " user_key
-            if [[ -f "$user_cert" && -f "$user_key" ]]; then
-                USE_SSL=true
-                CERT_PATH="$user_cert"
-                KEY_PATH="$user_key"
-            else
-                warn "Файлы сертификатов не найдены. Будет использоваться HTTP."
-            fi
-        fi
-    fi
-fi
+UI_HOST=$(hostname -I | awk '{print $1}')
+log "Используется IP: $UI_HOST"
 
 get_random_port() {
     local MIN=${1:-3000} MAX=${2:-6999}
@@ -174,94 +141,6 @@ EOF
 #################################
 # ГЕНЕРАЦИЯ docker-compose.yml
 #################################
-if [[ "$USE_SSL" == "true" ]]; then
-
-cat > client/nginx-client.conf <<EOF
-server {
-    listen 443 ssl;
-    server_name $UI_HOST;
-    root /usr/share/nginx/html;
-    index index.html;
-    client_max_body_size 50M;
-
-    ssl_certificate /etc/nginx/certs/fullchain.pem;
-    ssl_certificate_key /etc/nginx/certs/privkey.pem;
-
-    location / { try_files \$uri \$uri/ /index.html; }
-    location /api/ {
-        proxy_pass http://backend:3000/api/;
-        proxy_set_header Host \$http_host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    }
-}
-EOF
-
-cat > docker-compose.yml <<EOF
-services:
-  postgres:
-    image: postgres:18-alpine
-    container_name: rwm-postgres
-    restart: always
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: ${DB_PASS}
-      POSTGRES_DB: rw_manager
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d rw_manager"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      - app-network
-
-  backend:
-    build: ./server
-    container_name: rwm-backend
-    restart: always
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USERNAME: admin
-      DB_PASSWORD: ${DB_PASS}
-      DB_NAME: rw_manager
-      JWT_SECRET: ${JWT_SECRET}
-      ADMIN_LOGIN: ${ADMIN_USER}
-      ADMIN_PASSWORD: ${ADMIN_PASS}
-      PORT: 3000
-    networks:
-      - app-network
-
-  frontend:
-    build: ./client
-    container_name: rwm-frontend
-    restart: always
-    depends_on:
-      - backend
-    ports:
-      - "${FINAL_PORT}:443"
-    volumes:
-      - ./client/nginx-client.conf:/etc/nginx/conf.d/default.conf:ro
-      - ${CERT_PATH}:/etc/nginx/certs/fullchain.pem:ro
-      - ${KEY_PATH}:/etc/nginx/certs/privkey.pem:ro
-    networks:
-      - app-network
-
-volumes:
-  pg_data:
-
-networks:
-  app-network:
-    driver: bridge
-EOF
-
-else
-
 cat > client/nginx-client.conf <<EOF
 server {
     listen 80;
@@ -345,8 +224,6 @@ networks:
     driver: bridge
 EOF
 
-fi
-
 #################################
 # ЗАПУСК
 #################################
@@ -370,13 +247,8 @@ fi
 #################################
 echo ""
 echo "==================================================="
-if [[ "$USE_SSL" == "true" ]]; then
-    echo -e "${GREEN}✔ Установка завершена!${NC}"
-    echo -e "${GREEN}   Адрес: https://${UI_HOST}:${FINAL_PORT}${NC}"
-else
-    echo -e "${GREEN}✔ Установка завершена!${NC}"
-    echo -e "${GREEN}   Адрес: http://${UI_HOST}:${FINAL_PORT}${NC}"
-fi
+echo -e "${GREEN}✔ Установка завершена!${NC}"
+echo -e "${GREEN}   Адрес: http://${UI_HOST}:${FINAL_PORT}${NC}"
 echo -e "${GREEN}   Логин:  ${ADMIN_USER}${NC}"
 echo -e "${GREEN}   Пароль: ${ADMIN_PASS}${NC}"
 echo ""

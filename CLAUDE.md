@@ -20,6 +20,8 @@ npm run test          # Jest unit тесты
 npm run test:watch    # Jest в watch-режиме
 npm run test:cov      # Jest с покрытием
 npm run test:e2e      # E2E тесты (supertest)
+# Запуск одного теста:
+npx jest --testPathPattern=rotation.service
 ```
 
 ### Frontend (`client/`)
@@ -95,6 +97,13 @@ interface ManagedProfile {
 
 ### Локальные API endpoints (NestJS, префикс `/api`)
 
+**settings:**
+- `GET /settings` — все настройки key-value объектом
+- `POST /settings` — сохранить настройки; при `remnawave_url` автоматически резолвит IP и запрашивает GeoIP через `ip-api.com`
+- `POST /settings/check` — проверить соединение с Remnawave; body: `{ remnawave_url, remnawave_api_key }`
+- `GET /settings/profiles` — список профилей Remnawave (прокси)
+- `GET /settings/nodes` — список нод Remnawave (прокси)
+- `GET /settings/hosts` — список хостов Remnawave (прокси)
 - `GET /settings/profiles/managed` — список управляемых профилей
 - `POST /settings/profiles/managed` — добавить профиль; body: `{ uuid?, name, createNew? }` (при `createNew: true` создаёт профиль в Remnawave)
 - `PATCH /settings/profiles/managed/:uuid` — обновить поля профиля
@@ -102,6 +111,8 @@ interface ManagedProfile {
 - `DELETE /settings/profiles/managed/:uuid?deleteFromRemnawave=true` — удалить; опциональный query-параметр удаляет из Remnawave
 - `POST /settings/profiles/managed/:uuid/rotate` — немедленная ротация одного профиля
 - `POST /settings/profiles/managed/:uuid/hosts/create` — создать хосты для инбаундов профиля и сохранить `hostMappings`
+
+**rotation:**
 - `POST /rotation/rotate-all` — ротация всех профилей с `rotationEnabled: true`
 
 ### База данных (TypeORM + PostgreSQL)
