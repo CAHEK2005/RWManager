@@ -164,6 +164,7 @@ server {
 EOF
 
 cat > docker-compose.yml <<EOF
+name: rwm-manager
 services:
   postgres:
     image: postgres:18-alpine
