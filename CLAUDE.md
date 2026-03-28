@@ -15,7 +15,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run start:dev     # Запуск в режиме разработки (watch)
 npm run build         # Компиляция TypeScript → dist/
 npm run lint          # ESLint с автофиксом
+npm run format        # Prettier форматирование
 npm run test          # Jest unit тесты
+npm run test:watch    # Jest в watch-режиме
+npm run test:cov      # Jest с покрытием
 npm run test:e2e      # E2E тесты (supertest)
 ```
 
@@ -48,8 +51,8 @@ React (Nginx :80) → NestJS API (:3000) → PostgreSQL (:5432)
 - **remnawave** — HTTP-клиент к Remnawave API (Bearer токен). Все запросы читают `remnawave_url` и `remnawave_api_key` из БД при каждом вызове. Методы: `getConfigProfiles`, `updateConfigProfile`, `createConfigProfile`, `deleteConfigProfile`, `renameConfigProfile`, `getNodes`, `getAllHosts`, `createHost`, `updateHost`, `getX25519Keys`, `applyProfileToNode`, `checkConnection`.
 - **inbounds** — `InboundBuilderService` строит JSON-объекты инбаундов для xray-core (vless-reality-tcp/xhttp/grpc, vless-ws, shadowsocks-tcp, trojan-reality-tcp). Также генерирует share-ссылки (vless://, vmess://, ss://, trojan://).
 - **rotation** — `RotationService` хранит список `ManagedProfile[]` как JSON в `Setting.key = 'managed_profiles'`. Cron каждую минуту проверяет, какие профили пора ротировать. Поддерживает два режима: `interval` (минуты) и `schedule` (HH:MM + timezone). `performRotation`: генерирует инбаунды → обновляет профиль в Remnawave → `syncHosts` → `applyProfileToNode`.
-- **settings** — CRUD key-value настроек в БД + прокси к Remnawave API (profiles, nodes, hosts). При сохранении `remnawave_url` автоматически определяет GeoIP страны через `ip-api.com`.
-- **domains** — CRUD белого списка доменов для SNI (используются при `sni: 'random'` в inboundsConfig).
+- **settings** — CRUD key-value настроек в БД + прокси к Remnawave API (profiles, nodes, hosts). Нет отдельного `SettingsService` — `SettingsController` напрямую инжектирует репозиторий. При сохранении `remnawave_url` автоматически определяет GeoIP страны через `ip-api.com`.
+- **domains** — CRUD белого списка доменов для SNI (используются при `sni: 'random'` в inboundsConfig). Поддерживает пагинацию `?page=&limit=` и bulk-загрузку через `POST /domains/upload`.
 
 ### ManagedProfile (ключевой тип)
 
@@ -58,6 +61,7 @@ interface ManagedProfile {
   uuid: string;              // UUID профиля в Remnawave
   name: string;
   inboundsConfig: any[];     // [{type, port, sni}, ...] — конфигурация генерации
+  excludedPorts: number[];   // порты, исключённые из случайной генерации
   nodeUuid: string;          // UUID ноды Remnawave
   nodeAddress: string;
   applyToNode: boolean;      // применять профиль к ноде после ротации
@@ -76,6 +80,10 @@ interface ManagedProfile {
 
 Теги инбаундов в xray-конфиге имеют суффикс `-rw-manager` (например, `vless-tcp-reality-rw-manager`). `syncHosts` ищет инбаунд по `tag.startsWith(inboundType)`.
 
+Поддерживаемые типы инбаундов (`CONNECTION_TYPES` в `inbounds.constants.ts`): `vless-tcp-reality`, `vless-xhttp-reality`, `vless-grpc-reality`, `vless-ws`, `shadowsocks-tcp`, `trojan-tcp-reality`. Тип `custom` в `inboundsConfig` пропускается при генерации. Случайные порты выбираются из диапазона 10000–60000.
+
+Шаблон `hostTemplate` поддерживает плейсхолдеры: `{countryCode}`, `{nodeName}`, `{nodeAddress}`, `{inboundType}`, `{index}` (remark обрезается до 40 символов).
+
 ### Remnawave API endpoints (используемые)
 
 - `GET /api/config-profiles` — список профилей; ответ: `{ response: { configProfiles: [] } }`
@@ -84,6 +92,17 @@ interface ManagedProfile {
 - `GET /api/nodes`; `POST /api/nodes/bulk-actions/profile-modification`
 - `GET /api/hosts`; `POST /api/hosts`; `PATCH /api/hosts` body: `{ uuid, ...fields }`
 - `GET /api/system/tools/x25519/generate` — ответ: `{ response: { keypairs: [{ publicKey, privateKey }] } }`
+
+### Локальные API endpoints (NestJS, префикс `/api`)
+
+- `GET /settings/profiles/managed` — список управляемых профилей
+- `POST /settings/profiles/managed` — добавить профиль; body: `{ uuid?, name, createNew? }` (при `createNew: true` создаёт профиль в Remnawave)
+- `PATCH /settings/profiles/managed/:uuid` — обновить поля профиля
+- `PATCH /settings/profiles/managed/:uuid/name` — переименовать (синхронно переименовывает в Remnawave)
+- `DELETE /settings/profiles/managed/:uuid?deleteFromRemnawave=true` — удалить; опциональный query-параметр удаляет из Remnawave
+- `POST /settings/profiles/managed/:uuid/rotate` — немедленная ротация одного профиля
+- `POST /settings/profiles/managed/:uuid/hosts/create` — создать хосты для инбаундов профиля и сохранить `hostMappings`
+- `POST /rotation/rotate-all` — ротация всех профилей с `rotationEnabled: true`
 
 ### База данных (TypeORM + PostgreSQL)
 

@@ -84,6 +84,7 @@ export class RotationService implements OnModuleInit {
           uuid: profileUuidSetting.value,
           name: 'Default',
           inboundsConfig,
+          excludedPorts: [],
           nodeUuid: await getKey('remnawave_node_uuid'),
           nodeAddress: await getKey('remnawave_node_address'),
           applyToNode: false,
