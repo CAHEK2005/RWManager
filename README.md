@@ -21,19 +21,19 @@
 ## Установка
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/CAHEK2005/3dp-manager-remna/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/CAHEK2005/RWManager/main/install.sh)
 ```
 
 ## Обновление
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/CAHEK2005/3dp-manager-remna/main/update.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/CAHEK2005/RWManager/main/update.sh)
 ```
 
 ## Удаление
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/CAHEK2005/3dp-manager-remna/main/delete.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/CAHEK2005/RWManager/main/delete.sh)
 ```
 
 ---
