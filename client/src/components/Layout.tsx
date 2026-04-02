@@ -2,7 +2,7 @@ import {
   Toolbar, Drawer, List, ListItem,
   ListItemButton, ListItemIcon, ListItemText, Box, useMediaQuery, useTheme
 } from '@mui/material';
-import { Layers, Dns, Settings, Storage } from '@mui/icons-material';
+import { Layers, Dns, Settings, Storage, Dashboard } from '@mui/icons-material';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useState } from 'react';
 
@@ -22,14 +22,15 @@ export default function Layout() {
   };
 
   const menuItems = [
-    { text: 'Профили',   icon: <Layers />,   path: '/' },
-    { text: 'Ноды',      icon: <Storage />,  path: '/nodes' },
-    { text: 'Домены',    icon: <Dns />,      path: '/domains' },
-    { text: 'Настройки', icon: <Settings />, path: '/settings' },
+    { text: 'Главная',   icon: <Dashboard />, path: '/dashboard' },
+    { text: 'Профили',   icon: <Layers />,    path: '/profiles' },
+    { text: 'Ноды',      icon: <Storage />,   path: '/nodes' },
+    { text: 'Домены',    icon: <Dns />,       path: '/domains' },
+    { text: 'Настройки', icon: <Settings />,  path: '/settings' },
   ];
 
   const isActive = (path: string) => {
-    if (path === '/') return location.pathname === '/' || location.pathname === '/profiles';
+    if (path === '/dashboard') return location.pathname === '/' || location.pathname === '/dashboard';
     return location.pathname === path;
   };
 

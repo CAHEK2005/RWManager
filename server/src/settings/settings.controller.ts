@@ -10,6 +10,7 @@ import * as dns from 'dns/promises';
 import { COUNTRIES } from './countries';
 import { RemnavaveService } from '../remnawave/remnawave.service';
 import { RotationService, ManagedProfile } from '../rotation/rotation.service';
+import { TelegramService } from '../telegram/telegram.service';
 
 @Controller('settings')
 export class SettingsController {
@@ -20,6 +21,7 @@ export class SettingsController {
     private settingsRepo: Repository<Setting>,
     private remnavaveService: RemnavaveService,
     private rotationService: RotationService,
+    private telegramService: TelegramService,
   ) {}
 
   @Get()
@@ -282,6 +284,58 @@ export class SettingsController {
       this.logger.error(`Ошибка загрузки хостов: ${e.message}`);
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
+  }
+
+  @Get('profiles/managed/:uuid/hosts-with-sni')
+  async getHostsWithSni(@Param('uuid') uuid: string) {
+    const profiles = await this.rotationService.loadProfiles();
+    const profile = profiles.find(p => p.uuid === uuid);
+    if (!profile) throw new HttpException('Профиль не найден', HttpStatus.NOT_FOUND);
+
+    if (!profile.hostMappings || profile.hostMappings.length === 0) return [];
+
+    let rwProfile: any;
+    try {
+      rwProfile = await this.remnavaveService.getConfigProfile(uuid);
+    } catch (e) {
+      throw new HttpException('Ошибка получения профиля из Remnawave', HttpStatus.BAD_REQUEST);
+    }
+
+    const configInbounds: any[] = rwProfile?.config?.inbounds || [];
+
+    const result = profile.hostMappings.map((mapping) => {
+      const inbound = configInbounds.find((i: any) => i.tag === mapping.tag);
+      let sni = '-';
+      let protocol = '';
+      let port: number | null = null;
+
+      if (inbound) {
+        protocol = inbound.protocol || '';
+        port = inbound.port ?? null;
+        const ss = inbound.streamSettings || {};
+        if (ss.realitySettings?.serverNames?.[0]) {
+          sni = ss.realitySettings.serverNames[0];
+        } else if (ss.tlsSettings?.serverName) {
+          sni = ss.tlsSettings.serverName;
+        } else if (ss.wsSettings?.headers?.Host) {
+          sni = ss.wsSettings.headers.Host;
+        }
+      }
+
+      return { tag: mapping.tag, hostUuid: mapping.hostUuid, sni, protocol, port };
+    });
+
+    return result;
+  }
+
+  @Post('telegram/test')
+  async testTelegram() {
+    const configured = await this.telegramService.isConfigured();
+    if (!configured) {
+      throw new HttpException('Telegram не настроен', HttpStatus.BAD_REQUEST);
+    }
+    await this.telegramService.sendMessage('✅ <b>RWManager</b>\nТестовое сообщение — уведомления работают!');
+    return { success: true };
   }
 
   @Post('check')

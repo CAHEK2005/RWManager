@@ -192,6 +192,7 @@ export default function ProfilesPage() {
   const [localTemplate, setLocalTemplate] = useState('{countryCode} {nodeName} - {inboundType}');
   const [localHostIndexStart, setLocalHostIndexStart] = useState(1);
   const [localHostMappings, setLocalHostMappings] = useState<HostMapping[]>([]);
+  const [sniData, setSniData] = useState<{ tag: string; sni: string; protocol: string; port: number | null }[]>([]);
   const [localExcludedPorts, setLocalExcludedPorts] = useState<number[]>([]);
   const [excludedPortInput, setExcludedPortInput] = useState('');
   const [localRotationEnabled, setLocalRotationEnabled] = useState(true);
@@ -248,6 +249,13 @@ export default function ProfilesPage() {
     } catch { setHosts([]); }
   }, []);
 
+  const loadSni = useCallback(async (profileUuid: string) => {
+    try {
+      const { data } = await api.get(`/settings/profiles/managed/${profileUuid}/hosts-with-sni`);
+      setSniData(Array.isArray(data) ? data : []);
+    } catch { setSniData([]); }
+  }, []);
+
   useEffect(() => {
     loadProfiles();
     loadRwProfiles();
@@ -266,6 +274,7 @@ export default function ProfilesPage() {
     setLocalTemplate(selectedProfile.hostTemplate || '{countryCode} {nodeName} - {inboundType}');
     setLocalHostIndexStart(selectedProfile.hostIndexStart ?? 1);
     setLocalHostMappings(selectedProfile.hostMappings || []);
+    setSniData([]);
     setLocalRotationEnabled(selectedProfile.rotationEnabled !== false);
     setLocalRotationMode(selectedProfile.rotationMode || 'interval');
     setLocalInterval(selectedProfile.rotationInterval || 1440);
@@ -1001,7 +1010,12 @@ export default function ProfilesPage() {
                     <Paper variant="outlined" sx={{ p: 2 }}>
                       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
                         <Typography variant="subtitle1">Маппинг хостов (по тегу инбаунда)</Typography>
-                        <Button size="small" onClick={loadHosts} startIcon={<Refresh />}>Обновить</Button>
+                        <Stack direction="row" spacing={1}>
+                          <Button size="small" onClick={() => selectedProfile && loadSni(selectedProfile.uuid)} variant="outlined">
+                            SNI
+                          </Button>
+                          <Button size="small" onClick={loadHosts} startIcon={<Refresh />}>Обновить</Button>
+                        </Stack>
                       </Stack>
 
                       {localInbounds.length === 0 && (
@@ -1016,9 +1030,24 @@ export default function ProfilesPage() {
                           return localInbounds.map((item, idx) => {
                             const effectiveTag = effectiveTags[idx];
                             const mapping = localHostMappings.find(m => m.tag === effectiveTag);
+                            const sni = sniData.find(s => s.tag === effectiveTag);
                             return (
                               <Box key={idx} sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-                                <Typography variant="body2" sx={{ minWidth: 180 }}>{effectiveTag}</Typography>
+                                <Box sx={{ minWidth: 180 }}>
+                                  <Typography variant="body2">{effectiveTag}</Typography>
+                                  {sni && (
+                                    <Typography
+                                      variant="caption"
+                                      component="a"
+                                      href={sni.sni !== '-' ? `https://${sni.sni}` : undefined}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      sx={{ color: sni.sni !== '-' ? 'success.main' : 'text.disabled', textDecoration: 'none', cursor: sni.sni !== '-' ? 'pointer' : 'default' }}
+                                    >
+                                      SNI: {sni.sni}
+                                    </Typography>
+                                  )}
+                                </Box>
                                 <FormControl size="small" sx={{ minWidth: 280 }}>
                                   <InputLabel>Хост Remnawave</InputLabel>
                                   <Select

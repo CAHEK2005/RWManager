@@ -8,6 +8,16 @@ import { Domain } from '../domains/entities/domain.entity';
 import { Setting } from '../settings/entities/setting.entity';
 import { RemnavaveService } from '../remnawave/remnawave.service';
 import { InboundBuilderService } from '../inbounds/inbound-builder.service';
+import { TelegramService } from '../telegram/telegram.service';
+
+export interface RotationHistoryEntry {
+  id: string;
+  profileUuid: string;
+  profileName: string;
+  timestamp: number;
+  status: 'success' | 'error';
+  message: string;
+}
 
 export interface ManagedProfile {
   uuid: string;
@@ -40,6 +50,7 @@ export class RotationService implements OnModuleInit {
     @InjectRepository(Setting) private settingRepo: Repository<Setting>,
     private remnavaveService: RemnavaveService,
     private inboundBuilder: InboundBuilderService,
+    private telegramService: TelegramService,
   ) {}
 
   async onModuleInit() {
@@ -358,9 +369,15 @@ export class RotationService implements OnModuleInit {
       }
 
       this.logger.log(`Ротация профиля ${profile.name} завершена. Инбаундов: ${generatedInbounds.length}`);
-      return { success: true, message: `Ротация выполнена: ${generatedInbounds.length} инбаундов обновлено` };
+      const successMsg = `Ротация выполнена: ${generatedInbounds.length} инбаундов обновлено`;
+      await this.appendHistory({ id: uuidv4(), profileUuid: profile.uuid, profileName: profile.name, timestamp: Date.now(), status: 'success', message: successMsg });
+      await this.telegramService.notifyRotation(profile.name, 'success', successMsg);
+      return { success: true, message: successMsg };
     } catch (e) {
-      return { success: false, message: e?.message || String(e) };
+      const errMsg = e?.message || String(e);
+      await this.appendHistory({ id: uuidv4(), profileUuid: profile.uuid, profileName: profile.name, timestamp: Date.now(), status: 'error', message: errMsg }).catch(() => {});
+      await this.telegramService.notifyRotation(profile.name, 'error', errMsg).catch(() => {});
+      return { success: false, message: errMsg };
     }
   }
 
@@ -413,5 +430,21 @@ export class RotationService implements OnModuleInit {
       port = Math.floor(Math.random() * (60000 - 10000)) + 10000;
     } while (usedPorts.has(port) || excludedPorts.has(port));
     return port;
+  }
+
+  async getHistory(): Promise<RotationHistoryEntry[]> {
+    const raw = await this.settingRepo.findOne({ where: { key: 'rotation_history' } });
+    try {
+      return JSON.parse(raw?.value || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  private async appendHistory(entry: RotationHistoryEntry): Promise<void> {
+    const history = await this.getHistory();
+    history.unshift(entry);
+    if (history.length > 100) history.length = 100;
+    await this.saveSetting('rotation_history', JSON.stringify(history));
   }
 }

@@ -4,9 +4,10 @@ import { SettingsController } from './settings.controller';
 import { Setting } from './entities/setting.entity';
 import { RemnavaveModule } from '../remnawave/remnawave.module';
 import { RotationModule } from '../rotation/rotation.module';
+import { TelegramModule } from '../telegram/telegram.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Setting]), RemnavaveModule, RotationModule],
+  imports: [TypeOrmModule.forFeature([Setting]), RemnavaveModule, RotationModule, TelegramModule],
   controllers: [SettingsController],
 })
 export class SettingsModule {}

@@ -6,6 +6,7 @@ import { RotationService } from './rotation.service';
 import { RotationController } from './rotation.controller';
 import { RemnavaveModule } from '../remnawave/remnawave.module';
 import { InboundsModule } from '../inbounds/inbounds.module';
+import { TelegramModule } from '../telegram/telegram.module';
 
 import { Domain } from '../domains/entities/domain.entity';
 import { Setting } from '../settings/entities/setting.entity';
@@ -16,6 +17,7 @@ import { Setting } from '../settings/entities/setting.entity';
     ScheduleModule.forRoot(),
     RemnavaveModule,
     InboundsModule,
+    TelegramModule,
   ],
   providers: [RotationService],
   controllers: [RotationController],

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box, TextField, Button, Typography, Paper, Snackbar, Alert,
-  Stack, Divider, Tabs, Tab, useTheme, useMediaQuery,
+  Stack, Divider, Tabs, Tab, useTheme, useMediaQuery, Switch, FormControlLabel,
 } from '@mui/material';
 import api from '../api';
 
@@ -23,6 +23,12 @@ export default function SettingsPage() {
   const [adminLogin, setAdminLogin] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
 
+  // Telegram tab state
+  const [tgToken, setTgToken] = useState('');
+  const [tgChatId, setTgChatId] = useState('');
+  const [tgOnError, setTgOnError] = useState(true);
+  const [tgOnSuccess, setTgOnSuccess] = useState(false);
+
   const [msg, setMsg] = useState({ open: false, type: 'success' as 'success' | 'error', text: '' });
 
   const showMsg = (type: 'success' | 'error', text: string) => setMsg({ open: true, type, text });
@@ -32,6 +38,10 @@ export default function SettingsPage() {
       if (data.remnawave_url) setUrl(data.remnawave_url);
       if (data.remnawave_api_key) setApiKey(data.remnawave_api_key);
       if (data.admin_login) setAdminLogin(data.admin_login);
+      if (data.telegram_bot_token) setTgToken(data.telegram_bot_token);
+      if (data.telegram_chat_id) setTgChatId(data.telegram_chat_id);
+      if (data.telegram_notify_on_error !== undefined) setTgOnError(data.telegram_notify_on_error === 'true');
+      if (data.telegram_notify_on_success !== undefined) setTgOnSuccess(data.telegram_notify_on_success === 'true');
     }).catch(console.error);
   }, []);
 
@@ -64,6 +74,29 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSaveTelegram = async () => {
+    try {
+      await api.post('/settings', {
+        telegram_bot_token: tgToken.trim(),
+        telegram_chat_id: tgChatId.trim(),
+        telegram_notify_on_error: String(tgOnError),
+        telegram_notify_on_success: String(tgOnSuccess),
+      });
+      showMsg('success', 'Настройки Telegram сохранены!');
+    } catch {
+      showMsg('error', 'Ошибка сохранения');
+    }
+  };
+
+  const handleTestTelegram = async () => {
+    try {
+      await api.post('/settings/telegram/test');
+      showMsg('success', 'Тестовое сообщение отправлено!');
+    } catch (e: any) {
+      showMsg('error', e?.response?.data?.message || 'Ошибка отправки');
+    }
+  };
+
   const handleSaveAdmin = async () => {
     try {
       await api.post('/auth/update-profile', { login: adminLogin, password: adminPassword });
@@ -82,6 +115,7 @@ export default function SettingsPage() {
         <Tabs value={tab} onChange={(_, v) => setTab(v)}>
           <Tab label="Подключение" />
           <Tab label="Система" />
+          <Tab label="Уведомления" />
         </Tabs>
 
         <Box sx={{ p: 3 }}>
@@ -103,6 +137,38 @@ export default function SettingsPage() {
               {url && apiKey && (
                 <Button variant="outlined" color="info" onClick={handleCheckConnection}>Проверить</Button>
               )}
+            </Stack>
+          </TabPanel>
+
+          {/* Tab 2: Telegram */}
+          <TabPanel value={tab} index={2}>
+            <Typography variant="h6" gutterBottom>Telegram-уведомления</Typography>
+            <Divider sx={{ mb: 2 }} />
+            <TextField
+              fullWidth margin="normal" label="Bot Token" type="password"
+              value={tgToken} onChange={e => setTgToken(e.target.value)}
+              helperText="Получить у @BotFather"
+            />
+            <TextField
+              fullWidth margin="normal" label="Chat ID"
+              value={tgChatId} onChange={e => setTgChatId(e.target.value)}
+              helperText="ID чата или @username канала"
+            />
+            <Stack sx={{ mt: 1 }}>
+              <FormControlLabel
+                control={<Switch checked={tgOnError} onChange={e => setTgOnError(e.target.checked)} />}
+                label="Уведомлять об ошибках ротации"
+              />
+              <FormControlLabel
+                control={<Switch checked={tgOnSuccess} onChange={e => setTgOnSuccess(e.target.checked)} />}
+                label="Уведомлять об успешных ротациях"
+              />
+            </Stack>
+            <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+              <Button variant="contained" onClick={handleSaveTelegram}>Сохранить</Button>
+              <Button variant="outlined" onClick={handleTestTelegram} disabled={!tgToken || !tgChatId}>
+                Отправить тест
+              </Button>
             </Stack>
           </TabPanel>
 
