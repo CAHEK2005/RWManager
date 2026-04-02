@@ -26,6 +26,7 @@ export default function SettingsPage() {
   // Telegram tab state
   const [tgToken, setTgToken] = useState('');
   const [tgChatId, setTgChatId] = useState('');
+  const [tgTopicId, setTgTopicId] = useState('');
   const [tgOnError, setTgOnError] = useState(true);
   const [tgOnSuccess, setTgOnSuccess] = useState(false);
 
@@ -40,6 +41,7 @@ export default function SettingsPage() {
       if (data.admin_login) setAdminLogin(data.admin_login);
       if (data.telegram_bot_token) setTgToken(data.telegram_bot_token);
       if (data.telegram_chat_id) setTgChatId(data.telegram_chat_id);
+      if (data.telegram_topic_id) setTgTopicId(data.telegram_topic_id);
       if (data.telegram_notify_on_error !== undefined) setTgOnError(data.telegram_notify_on_error === 'true');
       if (data.telegram_notify_on_success !== undefined) setTgOnSuccess(data.telegram_notify_on_success === 'true');
     }).catch(console.error);
@@ -79,6 +81,7 @@ export default function SettingsPage() {
       await api.post('/settings', {
         telegram_bot_token: tgToken.trim(),
         telegram_chat_id: tgChatId.trim(),
+        telegram_topic_id: tgTopicId.trim(),
         telegram_notify_on_error: String(tgOnError),
         telegram_notify_on_success: String(tgOnSuccess),
       });
@@ -153,6 +156,11 @@ export default function SettingsPage() {
               fullWidth margin="normal" label="Chat ID"
               value={tgChatId} onChange={e => setTgChatId(e.target.value)}
               helperText="ID чата или @username канала"
+            />
+            <TextField
+              fullWidth margin="normal" label="Topic ID (опционально)"
+              value={tgTopicId} onChange={e => setTgTopicId(e.target.value)}
+              helperText="ID топика в супергруппе (message_thread_id)"
             />
             <Stack sx={{ mt: 1 }}>
               <FormControlLabel

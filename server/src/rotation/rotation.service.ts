@@ -265,6 +265,7 @@ export class RotationService implements OnModuleInit {
       const generatedInbounds: any[] = [];
       const usedPorts = new Set<number>();
       const excludedPorts = new Set<number>(profile.excludedPorts || []);
+      const rotNonce = Date.now().toString(36);
 
       for (const config of profile.inboundsConfig) {
         const type = config.type;

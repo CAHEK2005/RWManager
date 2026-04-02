@@ -274,7 +274,7 @@ export default function ProfilesPage() {
     setLocalTemplate(selectedProfile.hostTemplate || '{countryCode} {nodeName} - {inboundType}');
     setLocalHostIndexStart(selectedProfile.hostIndexStart ?? 1);
     setLocalHostMappings(selectedProfile.hostMappings || []);
-    setSniData([]);
+    loadSni(selectedProfile.uuid);
     setLocalRotationEnabled(selectedProfile.rotationEnabled !== false);
     setLocalRotationMode(selectedProfile.rotationMode || 'interval');
     setLocalInterval(selectedProfile.rotationInterval || 1440);
@@ -402,6 +402,7 @@ export default function ProfilesPage() {
         ...(hasSni ? { sni: item.sni || 'random' } : {}),
         ...(newType === 'vless-ws' && item.security ? { security: item.security } : {}),
         ...(item.tag ? { tag: item.tag } : {}),
+        ...(item.tagSuffix ? { tagSuffix: item.tagSuffix } : {}),
       } : item
     ));
   };
@@ -814,7 +815,10 @@ export default function ProfilesPage() {
                     <Stack spacing={2}>
                       {(() => {
                         const effectiveTags = computeEffectiveTags(localInbounds);
-                        return localInbounds.map((item, idx) => (
+                        return localInbounds.map((item, idx) => {
+                          const effectiveTag = effectiveTags[idx];
+                          const sniEntry = sniData.find(s => s.tag === effectiveTag);
+                          return (
                           <Box key={idx} sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                             <FormControl size="small" sx={{ minWidth: 200 }}>
                               <InputLabel>Тип</InputLabel>
@@ -837,12 +841,28 @@ export default function ProfilesPage() {
                             />
 
                             {SNI_TYPES.has(item.type) && (
-                              <TextField
-                                size="small" label="SNI" value={item.sni || ''}
-                                onChange={e => updateInbound(idx, 'sni', e.target.value)}
-                                helperText="random или домен"
-                                sx={{ width: 200 }}
-                              />
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                <TextField
+                                  size="small" label="SNI" value={item.sni || ''}
+                                  onChange={e => updateInbound(idx, 'sni', e.target.value)}
+                                  helperText="random или домен"
+                                  sx={{ width: 200 }}
+                                />
+                                {sniEntry && sniEntry.sni && sniEntry.sni !== '-' && (
+                                  <Tooltip title="Открыть в новой вкладке">
+                                    <Typography
+                                      variant="caption"
+                                      component="a"
+                                      href={`https://${sniEntry.sni}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      sx={{ color: 'success.main', cursor: 'pointer', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                                    >
+                                      ↳ {sniEntry.sni}
+                                    </Typography>
+                                  </Tooltip>
+                                )}
+                              </Box>
                             )}
 
                             {item.type === 'vless-ws' && (
@@ -879,7 +899,8 @@ export default function ProfilesPage() {
                               </IconButton>
                             </Tooltip>
                           </Box>
-                        ));
+                          );
+                        });
                       })()}
                     </Stack>
 
