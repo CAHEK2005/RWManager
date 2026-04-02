@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import {
   Add, Delete, PlayArrow, PauseCircleFilled, Warning, Check, Refresh,
-  CheckCircle, UploadFile, Language, FileDownload,
+  CheckCircle, UploadFile, Language, FileDownload, ContentCopy,
 } from '@mui/icons-material';
 import type { SelectChangeEvent } from '@mui/material/Select';
 import api from '../api';
@@ -849,18 +849,25 @@ export default function ProfilesPage() {
                                   sx={{ width: 200 }}
                                 />
                                 {sniEntry && sniEntry.sni && sniEntry.sni !== '-' && (
-                                  <Tooltip title="Открыть в новой вкладке">
-                                    <Typography
-                                      variant="caption"
-                                      component="a"
-                                      href={`https://${sniEntry.sni}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      sx={{ color: 'success.main', cursor: 'pointer', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
-                                    >
-                                      ↳ {sniEntry.sni}
-                                    </Typography>
-                                  </Tooltip>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <Tooltip title="Открыть в новой вкладке">
+                                      <Typography
+                                        variant="caption"
+                                        component="a"
+                                        href={`https://${sniEntry.sni}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        sx={{ color: 'success.main', cursor: 'pointer', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                                      >
+                                        ↳ {sniEntry.sni}
+                                      </Typography>
+                                    </Tooltip>
+                                    <Tooltip title="Скопировать SNI">
+                                      <IconButton size="small" sx={{ p: 0.2 }} onClick={() => navigator.clipboard.writeText(sniEntry.sni)}>
+                                        <ContentCopy sx={{ fontSize: 12 }} />
+                                      </IconButton>
+                                    </Tooltip>
+                                  </Box>
                                 )}
                               </Box>
                             )}
