@@ -179,7 +179,7 @@ export class SettingsController {
       throw new HttpException('Ошибка получения профиля из Remnawave', HttpStatus.BAD_REQUEST);
     }
 
-    const inbounds: any[] = rwProfile?.config?.inbounds || [];
+    const inbounds: any[] = rwProfile?.inbounds || [];
     if (inbounds.length === 0) {
       throw new HttpException('Сначала запустите ротацию для генерации инбаундов', HttpStatus.BAD_REQUEST);
     }
