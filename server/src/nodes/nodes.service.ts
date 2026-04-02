@@ -134,14 +134,20 @@ export class NodesService {
     const composeContent = [
       `services:`,
       `  remnanode:`,
-      `    image: remnawave/node:latest`,
       `    container_name: remnanode`,
       `    hostname: remnanode`,
-      `    restart: always`,
+      `    image: remnawave/node:latest`,
       `    network_mode: host`,
+      `    restart: always`,
+      `    cap_add:`,
+      `      - NET_ADMIN`,
+      `    ulimits:`,
+      `      nofile:`,
+      `        soft: 1048576`,
+      `        hard: 1048576`,
       `    environment:`,
-      `      NODE_PORT: "${nodePort}"`,
-      `      SECRET_KEY: "${sslCert}"`,
+      `      - NODE_PORT=${nodePort}`,
+      `      - SECRET_KEY=${sslCert}`,
     ].join('\n');
 
     const commands: string[] = [
