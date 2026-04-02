@@ -106,7 +106,27 @@ export class RotationService implements OnModuleInit {
         this.logger.log(`Миграция: создан профиль Default из старых настроек (uuid=${migrated.uuid})`);
       }
     } else {
-      const count = JSON.parse(existing?.value || '[]').length;
+      // Миграция: добавить tagSuffix к инбаундам без него
+      let profiles: ManagedProfile[];
+      try {
+        profiles = JSON.parse(existing?.value || '[]');
+      } catch {
+        profiles = [];
+      }
+      let migrated = false;
+      for (const p of profiles) {
+        for (const cfg of p.inboundsConfig || []) {
+          if (!cfg.tagSuffix && cfg.type && cfg.type !== 'custom') {
+            cfg.tagSuffix = Math.random().toString(16).slice(2, 8);
+            migrated = true;
+          }
+        }
+      }
+      if (migrated) {
+        await this.saveSetting('managed_profiles', JSON.stringify(profiles));
+        this.logger.log('Миграция: добавлен tagSuffix для инбаундов без суффикса');
+      }
+      const count = profiles.length;
       this.logger.log(`Текущее количество managed_profiles: ${count}`);
     }
   }
@@ -278,6 +298,9 @@ export class RotationService implements OnModuleInit {
         if (inbound) {
           if (config.tag) {
             inbound.tag = config.tag;
+          }
+          if (config.tagSuffix) {
+            inbound.tag = `${inbound.tag}-${config.tagSuffix}`;
           }
           const baseTag: string = inbound.tag;
           const sameTagCount = generatedInbounds.filter(

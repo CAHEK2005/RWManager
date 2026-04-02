@@ -221,7 +221,7 @@ export class SettingsController {
     for (let i = 0; i < configInbounds.length; i++) {
       const configInbound = configInbounds[i];
       const inboundTag: string = configInbound.tag || '';
-      const inboundType = inboundTag.replace(/-rwm(-\d+)?$/, '');
+      const inboundType = inboundTag.replace(/-rwm.*$/, '');
       const inboundUuid = tagToUuid.get(inboundTag);
 
       if (!inboundUuid) {

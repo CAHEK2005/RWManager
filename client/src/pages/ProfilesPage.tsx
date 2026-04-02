@@ -22,6 +22,7 @@ interface InboundConfigItem {
   sni?: string;
   security?: string;
   tag?: string;
+  tagSuffix?: string;
 }
 
 interface HostMapping {
@@ -146,8 +147,9 @@ function computeEffectiveTags(items: InboundConfigItem[]): string[] {
       continue;
     }
     const baseTag = item.tag || `${item.type}-rwm`;
-    const sameCount = result.filter(t => t === baseTag || t.startsWith(`${baseTag}-`)).length;
-    result.push(sameCount > 0 ? `${baseTag}-${sameCount + 1}` : baseTag);
+    const tagWithSuffix = item.tagSuffix ? `${baseTag}-${item.tagSuffix}` : baseTag;
+    const sameCount = result.filter(t => t === tagWithSuffix || t.startsWith(`${tagWithSuffix}-`)).length;
+    result.push(sameCount > 0 ? `${tagWithSuffix}-${sameCount + 1}` : tagWithSuffix);
   }
   return result;
 }
@@ -370,7 +372,8 @@ export default function ProfilesPage() {
   // ── Tab 0: Inbounds ───────────────────────────────────────────────────────
 
   const addInbound = () => {
-    setLocalInbounds(prev => [...prev, { type: 'vless-tcp-reality', port: 'random', sni: 'random' }]);
+    const tagSuffix = Math.random().toString(16).slice(2, 8);
+    setLocalInbounds(prev => [...prev, { type: 'vless-tcp-reality', port: 'random', sni: 'random', tagSuffix }]);
   };
 
   const removeInbound = (idx: number) => {
@@ -852,6 +855,13 @@ export default function ProfilesPage() {
                               onChange={e => updateInbound(idx, 'tag', e.target.value)}
                               helperText={`→ ${effectiveTags[idx]}`}
                               sx={{ width: 220 }}
+                            />
+
+                            <TextField
+                              size="small" label="Суффикс тега" value={item.tagSuffix || ''}
+                              onChange={e => updateInbound(idx, 'tagSuffix', e.target.value)}
+                              helperText="уникальный суффикс профиля"
+                              sx={{ width: 160 }}
                             />
 
                             <Tooltip title="Удалить">
