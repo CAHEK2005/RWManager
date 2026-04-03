@@ -116,24 +116,20 @@ sysctl -p /etc/sysctl.d/99-vpn.conf`,
   {
     id: 'builtin-setup-ssh-key',
     name: 'Настройка SSH-ключа',
-    description: 'Добавляет публичный SSH-ключ и отключает вход по паролю. Клонируйте скрипт и вставьте свой публичный ключ вместо placeholder-а.',
+    description: 'Добавляет публичный SSH-ключ и отключает вход по паролю. Перед запуском потребуется ввести публичный ключ.',
     isBuiltIn: true,
-    content: `# Вставьте сюда свой публичный SSH-ключ (ssh-rsa / ssh-ed25519 / ecdsa)
-PUBLIC_KEY="ssh-ed25519 AAAAC3Nza... user@host"
+    content: `PUBLIC_KEY="{{ ssh_public_key | Публичный SSH-ключ (ssh-ed25519 AAAA... или ssh-rsa AAAA...) }}"
 
 mkdir -p ~/.ssh
 chmod 700 ~/.ssh
-# Добавить ключ, если его ещё нет
 grep -qxF "$PUBLIC_KEY" ~/.ssh/authorized_keys 2>/dev/null || echo "$PUBLIC_KEY" >> ~/.ssh/authorized_keys
 chmod 600 ~/.ssh/authorized_keys
 
-# Включить авторизацию по ключу и отключить по паролю
-sed -i 's/^#*\\s*PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
-sed -i 's/^#*\\s*PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-grep -q '^PubkeyAuthentication' /etc/ssh/sshd_config    || echo 'PubkeyAuthentication yes'   >> /etc/ssh/sshd_config
-grep -q '^PasswordAuthentication' /etc/ssh/sshd_config  || echo 'PasswordAuthentication no'  >> /etc/ssh/sshd_config
+sed -i 's/^#*[[:space:]]*PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
+sed -i 's/^#*[[:space:]]*PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+grep -q '^PubkeyAuthentication' /etc/ssh/sshd_config   || echo 'PubkeyAuthentication yes'  >> /etc/ssh/sshd_config
+grep -q '^PasswordAuthentication' /etc/ssh/sshd_config || echo 'PasswordAuthentication no' >> /etc/ssh/sshd_config
 
-# Перезапустить SSH
 systemctl restart sshd 2>/dev/null || service ssh restart
 echo "Готово: ключ добавлен, вход по паролю отключён"`,
   },
@@ -157,15 +153,28 @@ export class ScriptsService implements OnModuleInit {
     const scripts = await this.loadScripts();
     let changed = false;
     for (const builtin of BUILT_IN_SCRIPTS) {
-      const existing = scripts.find(s => s.id === builtin.id);
-      if (!existing) {
+      const idx = scripts.findIndex(s => s.id === builtin.id);
+      if (idx < 0) {
         scripts.push(builtin);
+        changed = true;
+      } else if (
+        scripts[idx].content !== builtin.content ||
+        scripts[idx].name !== builtin.name ||
+        scripts[idx].description !== builtin.description
+      ) {
+        scripts[idx] = builtin; // обновляем встроенные скрипты до актуальной версии
         changed = true;
       }
     }
     if (changed) {
       await this.saveSetting('scripts', JSON.stringify(scripts));
     }
+  }
+
+  private substituteVariables(content: string, variables: Record<string, string>): string {
+    return content.replace(/\{\{\s*(\w+)(?:\s*\|[^}]*)?\s*\}\}/g, (_, name: string) => {
+      return Object.prototype.hasOwnProperty.call(variables, name) ? variables[name] : `{{ ${name} }}`;
+    });
   }
 
   private async saveSetting(key: string, value: string) {
@@ -255,7 +264,11 @@ export class ScriptsService implements OnModuleInit {
 
   // ── Execute ──────────────────────────────────────────────────────────────────
 
-  async executeScript(scriptId: string, nodeIds: string[]): Promise<{ jobId: string }> {
+  async executeScript(
+    scriptId: string,
+    nodeIds: string[],
+    variables?: Record<string, string>,
+  ): Promise<{ jobId: string }> {
     const scripts = await this.loadScripts();
     const script = scripts.find(s => s.id === scriptId);
     if (!script) throw new Error('Скрипт не найден');
@@ -263,6 +276,10 @@ export class ScriptsService implements OnModuleInit {
     const nodes = await this.loadSshNodes();
     const targetNodes = nodes.filter(n => nodeIds.includes(n.id));
     if (!targetNodes.length) throw new Error('Не выбрано ни одной ноды');
+
+    const content = variables && Object.keys(variables).length > 0
+      ? this.substituteVariables(script.content, variables)
+      : script.content;
 
     const jobId = uuidv4();
     const job: ScriptJob = {
@@ -281,7 +298,7 @@ export class ScriptsService implements OnModuleInit {
     const promises = targetNodes.map(async (node, idx) => {
       const result = job.results[idx];
       try {
-        await this.runScriptOnNode(node, script.content, result);
+        await this.runScriptOnNode(node, content, result);
         result.status = 'success';
       } catch (e) {
         result.logs.push(`[ERROR] ${e?.message || String(e)}`);

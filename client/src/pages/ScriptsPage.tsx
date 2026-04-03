@@ -16,6 +16,28 @@ import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import api from '../api';
 
+// ─── Variable extraction ──────────────────────────────────────────────────────
+
+interface ScriptVar {
+  name: string;
+  label: string;
+}
+
+function extractVariables(content: string): ScriptVar[] {
+  const regex = /\{\{\s*(\w+)(?:\s*\|\s*([^}]*?))?\s*\}\}/g;
+  const seen = new Set<string>();
+  const vars: ScriptVar[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = regex.exec(content)) !== null) {
+    const name = m[1];
+    if (!seen.has(name)) {
+      seen.add(name);
+      vars.push({ name, label: m[2]?.trim() || name.replace(/_/g, ' ') });
+    }
+  }
+  return vars;
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface SshNode {
@@ -303,6 +325,8 @@ export default function ScriptsPage() {
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [runJob, setRunJob] = useState<ScriptJob | null>(null);
   const [runLoading, setRunLoading] = useState(false);
+  const [scriptVars, setScriptVars] = useState<ScriptVar[]>([]);
+  const [varValues, setVarValues] = useState<Record<string, string>>({});
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logsEndRef = useRef<HTMLDivElement | null>(null);
   const keyFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -472,9 +496,12 @@ export default function ScriptsPage() {
   // ─── Run handlers ──────────────────────────────────────────────────────────
 
   const openRunDialog = (s: Script) => {
+    const vars = extractVariables(s.content);
     setRunScript(s);
     setSelectedNodeIds([]);
     setRunJob(null);
+    setScriptVars(vars);
+    setVarValues(Object.fromEntries(vars.map(v => [v.name, ''])));
     setRunDialog(true);
   };
 
@@ -516,12 +543,18 @@ export default function ScriptsPage() {
       showMsg('error', 'Выберите хотя бы одну ноду');
       return;
     }
+    const emptyVar = scriptVars.find(v => !varValues[v.name]?.trim());
+    if (emptyVar) {
+      showMsg('error', `Заполните переменную: ${emptyVar.label}`);
+      return;
+    }
     try {
       setRunLoading(true);
       setRunJob(null);
       const { data } = await api.post('/scripts/execute', {
         scriptId: runScript.id,
         nodeIds: selectedNodeIds,
+        variables: varValues,
       });
       startPolling(data.jobId);
     } catch (e: any) {
@@ -535,6 +568,8 @@ export default function ScriptsPage() {
     setRunDialog(false);
     setRunJob(null);
     setRunLoading(false);
+    setScriptVars([]);
+    setVarValues({});
   };
 
   // ─── Terminal handlers ────────────────────────────────────────────────────
@@ -944,6 +979,29 @@ export default function ScriptsPage() {
         <DialogContent>
           {!runJob ? (
             <Box>
+              {scriptVars.length > 0 && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
+                    Переменные скрипта:
+                  </Typography>
+                  <Stack spacing={1.5}>
+                    {scriptVars.map(v => (
+                      <TextField
+                        key={v.name}
+                        label={v.label}
+                        size="small"
+                        fullWidth
+                        value={varValues[v.name] ?? ''}
+                        onChange={e => setVarValues(prev => ({ ...prev, [v.name]: e.target.value }))}
+                        slotProps={{
+                          input: { style: { fontFamily: 'monospace', fontSize: '0.85rem' } },
+                        }}
+                      />
+                    ))}
+                  </Stack>
+                  <Divider sx={{ mt: 2 }} />
+                </Box>
+              )}
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
                 Выберите ноды для запуска:
               </Typography>

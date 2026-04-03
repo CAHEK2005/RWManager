@@ -103,9 +103,9 @@ export class ScriptsController {
   // ── Execute ──────────────────────────────────────────────────────────────────
 
   @Post('execute')
-  async execute(@Body() body: { scriptId: string; nodeIds: string[] }) {
+  async execute(@Body() body: { scriptId: string; nodeIds: string[]; variables?: Record<string, string> }) {
     try {
-      return await this.scriptsService.executeScript(body.scriptId, body.nodeIds);
+      return await this.scriptsService.executeScript(body.scriptId, body.nodeIds, body.variables);
     } catch (e) {
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
