@@ -33,7 +33,7 @@ interface NodeResult {
   status: 'running' | 'success' | 'error';
 }
 
-interface ScriptJob {
+export interface ScriptJob {
   scriptName: string;
   status: 'running' | 'success' | 'error';
   results: NodeResult[];
