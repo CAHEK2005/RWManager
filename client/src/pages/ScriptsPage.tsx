@@ -6,7 +6,7 @@ import {
   Snackbar, Stack, Tab, Table, TableBody, TableCell, TableHead,
   TableRow, Tabs, TextField, Tooltip, Typography,
 } from '@mui/material';
-import { Add, Delete, Edit, PlayArrow, Terminal } from '@mui/icons-material';
+import { Add, Delete, Edit, PlayArrow, Terminal, UploadFile } from '@mui/icons-material';
 import type { SelectChangeEvent } from '@mui/material/Select';
 import api from '../api';
 
@@ -89,6 +89,7 @@ export default function ScriptsPage() {
   const [runLoading, setRunLoading] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logsEndRef = useRef<HTMLDivElement | null>(null);
+  const keyFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // ─── Load ──────────────────────────────────────────────────────────────────
 
@@ -532,17 +533,43 @@ export default function ScriptsPage() {
                 onChange={e => setNodeForm(p => ({ ...p, password: e.target.value }))}
               />
             ) : (
-              <TextField
-                label="Приватный SSH-ключ"
-                size="small"
-                multiline
-                rows={5}
-                fullWidth
-                placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
-                value={nodeForm.sshKey || ''}
-                onChange={e => setNodeForm(p => ({ ...p, sshKey: e.target.value }))}
-                slotProps={{ input: { style: { fontFamily: 'monospace', fontSize: '0.75rem' } } }}
-              />
+              <Box>
+                <input
+                  ref={keyFileInputRef}
+                  type="file"
+                  style={{ display: 'none' }}
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = ev => {
+                      setNodeForm(p => ({ ...p, sshKey: ev.target?.result as string }));
+                    };
+                    reader.readAsText(file);
+                    e.target.value = '';
+                  }}
+                />
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
+                  <Typography variant="caption" color="textSecondary">Приватный SSH-ключ</Typography>
+                  <Button
+                    size="small"
+                    startIcon={<UploadFile />}
+                    onClick={() => keyFileInputRef.current?.click()}
+                  >
+                    Загрузить из файла
+                  </Button>
+                </Stack>
+                <TextField
+                  size="small"
+                  multiline
+                  rows={5}
+                  fullWidth
+                  placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
+                  value={nodeForm.sshKey || ''}
+                  onChange={e => setNodeForm(p => ({ ...p, sshKey: e.target.value }))}
+                  slotProps={{ input: { style: { fontFamily: 'monospace', fontSize: '0.75rem' } } }}
+                />
+              </Box>
             )}
           </Stack>
         </DialogContent>
