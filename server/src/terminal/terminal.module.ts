@@ -7,7 +7,7 @@ import { TerminalController } from './terminal.controller';
 @Module({
   imports: [
     ScriptsModule,
-    JwtModule.register({ secret: 'SECRET_KEY_CHANGE_ME' }),
+    JwtModule.register({ secret: process.env.JWT_SECRET || 'SECRET_KEY_CHANGE_ME' }),
   ],
   providers: [TerminalService],
   controllers: [TerminalController],

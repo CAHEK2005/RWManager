@@ -347,6 +347,9 @@ export class ScriptsService implements OnModuleInit {
       job.status = job.results.every(r => r.status === 'success') ? 'success' : 'error';
     }).catch(() => {
       job.status = 'error';
+    }).finally(() => {
+      // Auto-cleanup completed jobs after 1 hour to prevent memory leak
+      setTimeout(() => this.jobs.delete(jobId), 3_600_000);
     });
 
     return { jobId };

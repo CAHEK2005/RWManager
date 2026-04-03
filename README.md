@@ -30,11 +30,18 @@
 bash <(curl -fsSL https://raw.githubusercontent.com/CAHEK2005/RWManager/main/install.sh)
 ```
 
+Скрипт автоматически:
+- устанавливает Docker если нужно
+- генерирует случайные пароли и ключи (`JWT_SECRET`, `SECRET_ENCRYPTION_KEY`)
+- запускает контейнеры
+
 ## Обновление
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/CAHEK2005/RWManager/main/update.sh)
 ```
+
+Скрипт сохраняет конфигурацию и данные, добавляет недостающие переменные окружения (включая `SECRET_ENCRYPTION_KEY` для старых установок).
 
 ## Удаление
 
@@ -54,7 +61,9 @@ grep -E "ADMIN_LOGIN|ADMIN_PASSWORD" /opt/rwm-manager/server/.env
 
 ## Шифрование секретов
 
-Для хранения SSH-ключей, паролей и токенов с шифрованием задайте переменную `SECRET_ENCRYPTION_KEY` в `/opt/rwm-manager/server/.env`:
+Ключ `SECRET_ENCRYPTION_KEY` генерируется автоматически при установке через `install.sh`.
+
+Для ручной установки или добавления ключа к существующей инсталляции:
 
 ```bash
 # Сгенерировать ключ
@@ -67,7 +76,7 @@ echo "SECRET_ENCRYPTION_KEY=<результат>" >> /opt/rwm-manager/server/.en
 docker compose -f /opt/rwm-manager/docker-compose.yml restart backend
 ```
 
-Без ключа секреты сохраняются в plain text (предупреждение в логах). После добавления ключа все новые и обновлённые секреты автоматически шифруются. Значения переменных скриптов маскируются в логах выполнения (`***`).
+Без ключа секреты сохраняются в plain text (предупреждение в логах бэкенда). После добавления ключа все новые и обновлённые секреты автоматически шифруются. Значения переменных скриптов маскируются в логах выполнения (`***`).
 
 ---
 

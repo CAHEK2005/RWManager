@@ -24,6 +24,14 @@ export class TerminalService implements OnModuleInit, OnModuleDestroy {
     this.wss = new WebSocket.Server({ server: httpServer, path: '/api/terminal' });
     this.wss.on('connection', (ws, req) => this.handleConnection(ws as any, req));
     this.logger.log('WebSocket terminal server started at /api/terminal');
+
+    // Cleanup expired tickets every minute to prevent memory leak
+    setInterval(() => {
+      const now = Date.now();
+      for (const [ticket, entry] of this.tickets.entries()) {
+        if (entry.expiresAt < now) this.tickets.delete(ticket);
+      }
+    }, 60_000);
   }
 
   onModuleDestroy() {

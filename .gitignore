@@ -77,6 +77,7 @@ whitelist.txt
 
 # Claude Code
 CLAUDE.md
+FRONTEND.md
 
 # Playwright temp screenshots / scripts
 pw-*.png
