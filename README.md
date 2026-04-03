@@ -1,16 +1,20 @@
 # RWManager
 
-![Version](https://img.shields.io/badge/version-2.0.2-blue.svg) [![License](https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true)](https://www.gnu.org/licenses/gpl-3.0)
+![Version](https://img.shields.io/badge/version-2.1.0-blue.svg) [![License](https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true)](https://www.gnu.org/licenses/gpl-3.0)
 
-Утилита для автоматического обновления config-profile в панели [Remnawave](https://github.com/remnawave) случайными инбаундами по расписанию.
+Утилита для автоматической ротации инбаундов в панели [Remnawave](https://github.com/remnawave) (xray-based). Подключается к Remnawave по API-ключу, генерирует случайные инбаунды и обновляет config-профили по расписанию.
 
 ## Возможности
 
-- Автоматическая ротация инбаундов в выбранном config-profile Remnawave с заданным интервалом
+- Автоматическая ротация инбаундов в config-профилях Remnawave
 - Поддержка VLESS Reality (TCP / XHTTP / gRPC), VLESS WS, Shadowsocks, Trojan
-- Белый список SNI-доменов для Reality инбаундов (выбираются случайно)
+- Три режима расписания: по интервалу, ежедневно в заданное время, по дням недели
+- Белый список SNI-доменов для Reality инбаундов (глобальный и на уровне профиля)
 - Синхронизация хостов Remnawave после каждой ротации
-- Веб-интерфейс с настройками, маппингом хостов и выбором ноды
+- Установка нод Remnawave Node прямо из интерфейса по SSH
+- Запуск bash-скриптов на нодах через SSH (встроенные: оптимизация сети, обновление, перезапуск)
+- Уведомления в Telegram после каждой ротации
+- Дашборд с историей ротаций и статусом нод
 
 ## Требования
 
@@ -49,6 +53,3 @@ grep -E "ADMIN_LOGIN|ADMIN_PASSWORD" /opt/rwm-manager/server/.env
 ## Стек
 
 NestJS (backend) + React + Vite (frontend) + PostgreSQL, запускается через Docker Compose.
-
----
-
