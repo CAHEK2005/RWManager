@@ -6,8 +6,14 @@ import {
   Snackbar, Stack, Tab, Table, TableBody, TableCell, TableHead,
   TableRow, Tabs, TextField, Tooltip, Typography,
 } from '@mui/material';
-import { Add, Delete, Edit, FileDownload, PlayArrow, Terminal, UploadFile } from '@mui/icons-material';
+import {
+  Add, Close, Delete, Edit, FileDownload, Fullscreen,
+  OpenInNew, PlayArrow, Remove, Terminal, UploadFile,
+} from '@mui/icons-material';
 import type { SelectChangeEvent } from '@mui/material/Select';
+import { Terminal as XTerm } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import '@xterm/xterm/css/xterm.css';
 import api from '../api';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -51,13 +57,212 @@ interface ScriptJob {
   results: NodeResult[];
 }
 
-// ─── Blank node form ─────────────────────────────────────────────────────────
+interface TerminalSession {
+  id: string;
+  nodeId: string;
+  nodeName: string;
+  minimized: boolean;
+  position: { x: number; y: number };
+}
+
+type TerminalInstance = {
+  xterm: XTerm;
+  ws: WebSocket;
+  fit: FitAddon;
+  observer: ResizeObserver;
+};
+
+// ─── TerminalWindow ───────────────────────────────────────────────────────────
+
+function TerminalWindow({
+  session,
+  index,
+  onClose,
+  onPositionChange,
+  onMinimizeToggle,
+  instanceRef,
+}: {
+  session: TerminalSession;
+  index: number;
+  onClose: (id: string) => void;
+  onPositionChange: (id: string, pos: { x: number; y: number }) => void;
+  onMinimizeToggle: (id: string) => void;
+  instanceRef: React.MutableRefObject<Map<string, TerminalInstance>>;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
+
+  // Initialize xterm + WebSocket on mount
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const term = new XTerm({
+      cursorBlink: true,
+      fontSize: 13,
+      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      theme: { background: '#1a1a1a', foreground: '#f0f0f0' },
+    });
+    const fitAddon = new FitAddon();
+    term.loadAddon(fitAddon);
+    term.open(container);
+    const initTimer = setTimeout(() => fitAddon.fit(), 50);
+
+    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const token = localStorage.getItem('token') ?? '';
+    const wsUrl = `${proto}://${window.location.host}/api/terminal?nodeId=${encodeURIComponent(session.nodeId)}&token=${encodeURIComponent(token)}&cols=${term.cols}&rows=${term.rows}`;
+
+    const ws = new WebSocket(wsUrl);
+    ws.binaryType = 'arraybuffer';
+
+    ws.onmessage = (e: MessageEvent) => {
+      if (e.data instanceof ArrayBuffer) {
+        term.write(new Uint8Array(e.data));
+      } else {
+        term.write(e.data as string);
+      }
+    };
+
+    ws.onclose = () => {
+      term.writeln('\r\n\x1b[33m[Соединение закрыто]\x1b[0m');
+    };
+
+    ws.onerror = () => {
+      term.writeln('\r\n\x1b[31m[Ошибка соединения]\x1b[0m');
+    };
+
+    term.onData((data: string) => {
+      if (ws.readyState === WebSocket.OPEN) ws.send(data);
+    });
+
+    const observer = new ResizeObserver(() => {
+      if (!container.clientHeight) return;
+      fitAddon.fit();
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
+      }
+    });
+    observer.observe(container);
+
+    instanceRef.current.set(session.id, { xterm: term, ws, fit: fitAddon, observer });
+
+    return () => {
+      clearTimeout(initTimer);
+      observer.disconnect();
+      ws.close();
+      term.dispose();
+      instanceRef.current.delete(session.id);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.id]);
+
+  // Re-fit when un-minimized
+  useEffect(() => {
+    if (!session.minimized) {
+      const inst = instanceRef.current.get(session.id);
+      if (inst) setTimeout(() => inst.fit.fit(), 50);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.minimized]);
+
+  // Drag
+  const handleTitleMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    isDragging.current = true;
+    dragOffset.current = { x: e.clientX - session.position.x, y: e.clientY - session.position.y };
+    e.preventDefault();
+  };
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      onPositionChange(session.id, {
+        x: e.clientX - dragOffset.current.x,
+        y: e.clientY - dragOffset.current.y,
+      });
+    };
+    const onUp = () => { isDragging.current = false; };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [session.id, onPositionChange]);
+
+  const handlePopup = () => {
+    const params = new URLSearchParams({ nodeId: session.nodeId, nodeName: session.nodeName });
+    window.open(`/terminal-popup?${params.toString()}`, '_blank', 'width=800,height=500,noopener');
+    onClose(session.id);
+  };
+
+  return (
+    <Box
+      sx={{
+        position: 'fixed',
+        left: session.position.x,
+        top: session.position.y,
+        width: 680,
+        zIndex: 9999 + index,
+        boxShadow: 8,
+        borderRadius: 1,
+        overflow: 'hidden',
+        border: '1px solid rgba(255,255,255,0.15)',
+      }}
+    >
+      {/* Title bar */}
+      <Box
+        onMouseDown={handleTitleMouseDown}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          px: 1.5,
+          py: 0.75,
+          bgcolor: '#2d2d2d',
+          cursor: 'move',
+          userSelect: 'none',
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
+          gap: 0.5,
+        }}
+      >
+        <Terminal sx={{ color: '#4caf50', fontSize: 16, mr: 0.5 }} />
+        <Typography variant="caption" sx={{ flex: 1, color: '#e0e0e0', fontSize: '0.8rem', fontWeight: 500 }}>
+          {session.nodeName}
+        </Typography>
+        <Tooltip title="Открыть в отдельном окне">
+          <IconButton size="small" onClick={handlePopup} sx={{ color: '#9e9e9e', p: 0.3 }}>
+            <OpenInNew sx={{ fontSize: 15 }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title={session.minimized ? 'Развернуть' : 'Свернуть'}>
+          <IconButton size="small" onClick={() => onMinimizeToggle(session.id)} sx={{ color: '#9e9e9e', p: 0.3 }}>
+            {session.minimized ? <Fullscreen sx={{ fontSize: 15 }} /> : <Remove sx={{ fontSize: 15 }} />}
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Закрыть">
+          <IconButton size="small" onClick={() => onClose(session.id)} sx={{ color: '#9e9e9e', p: 0.3 }}>
+            <Close sx={{ fontSize: 15 }} />
+          </IconButton>
+        </Tooltip>
+      </Box>
+
+      {/* Terminal body */}
+      <Box
+        ref={containerRef}
+        sx={{ width: '100%', height: session.minimized ? 0 : 350, bgcolor: '#1a1a1a', overflow: 'hidden' }}
+      />
+    </Box>
+  );
+}
+
+// ─── Blank node form ──────────────────────────────────────────────────────────
 
 const blankNode = (): Partial<SshNode> => ({
   name: '', ip: '', sshPort: 22, sshUser: 'root', authType: 'password', password: '', sshKey: '',
 });
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ScriptsPage() {
   const [tab, setTab] = useState(0);
@@ -71,7 +276,7 @@ export default function ScriptsPage() {
   const [msg, setMsg] = useState({ open: false, type: 'success' as 'success' | 'error', text: '' });
   const showMsg = (type: 'success' | 'error', text: string) => setMsg({ open: true, type, text });
 
-  // ── SSH Node dialog ────────────────────────────────────────────────────────
+  // ── SSH Node dialog ───────────────────────────────────────────────────────
   const [nodeDialog, setNodeDialog] = useState(false);
   const [nodeForm, setNodeForm] = useState<Partial<SshNode>>(blankNode());
   const [nodeEditId, setNodeEditId] = useState<string | null>(null);
@@ -85,14 +290,14 @@ export default function ScriptsPage() {
       return next;
     });
 
-  // ── Script dialog ──────────────────────────────────────────────────────────
+  // ── Script dialog ─────────────────────────────────────────────────────────
   const [scriptDialog, setScriptDialog] = useState(false);
   const [scriptForm, setScriptForm] = useState<Partial<Script>>({ name: '', description: '', content: '' });
   const [scriptEditId, setScriptEditId] = useState<string | null>(null);
   const [urlInput, setUrlInput] = useState('');
   const [urlLoading, setUrlLoading] = useState(false);
 
-  // ── Run dialog ─────────────────────────────────────────────────────────────
+  // ── Run dialog ────────────────────────────────────────────────────────────
   const [runDialog, setRunDialog] = useState(false);
   const [runScript, setRunScript] = useState<Script | null>(null);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
@@ -102,7 +307,11 @@ export default function ScriptsPage() {
   const logsEndRef = useRef<HTMLDivElement | null>(null);
   const keyFileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // ─── Load ──────────────────────────────────────────────────────────────────
+  // ── Terminals ─────────────────────────────────────────────────────────────
+  const [terminals, setTerminals] = useState<TerminalSession[]>([]);
+  const termInstancesRef = useRef<Map<string, TerminalInstance>>(new Map());
+
+  // ─── Load ─────────────────────────────────────────────────────────────────
 
   const loadSshNodes = useCallback(async () => {
     try {
@@ -131,7 +340,7 @@ export default function ScriptsPage() {
     loadRwNodes();
   }, []);
 
-  // ─── SSH Node handlers ─────────────────────────────────────────────────────
+  // ─── SSH Node handlers ────────────────────────────────────────────────────
 
   const openAddNode = () => {
     setNodeEditId(null);
@@ -174,7 +383,6 @@ export default function ScriptsPage() {
     }
   };
 
-  // Выбор ноды из Remnawave — автозаполнение IP и имени
   const handleRwNodeSelect = (e: SelectChangeEvent<string>) => {
     const uuid = e.target.value;
     const rw = rwNodes.find(n => n.uuid === uuid);
@@ -315,7 +523,31 @@ export default function ScriptsPage() {
     setRunLoading(false);
   };
 
-  // ─── Render ────────────────────────────────────────────────────────────────
+  // ─── Terminal handlers ────────────────────────────────────────────────────
+
+  const openTerminal = useCallback((node: SshNode) => {
+    setTerminals(prev => [...prev, {
+      id: crypto.randomUUID(),
+      nodeId: node.id,
+      nodeName: node.name,
+      minimized: false,
+      position: { x: 80 + prev.length * 30, y: 80 + prev.length * 30 },
+    }]);
+  }, []);
+
+  const closeTerminal = useCallback((id: string) => {
+    setTerminals(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  const toggleMinimize = useCallback((id: string) => {
+    setTerminals(prev => prev.map(t => t.id === id ? { ...t, minimized: !t.minimized } : t));
+  }, []);
+
+  const moveTerminal = useCallback((id: string, pos: { x: number; y: number }) => {
+    setTerminals(prev => prev.map(t => t.id === id ? { ...t, position: pos } : t));
+  }, []);
+
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <Box>
@@ -384,6 +616,11 @@ export default function ScriptsPage() {
                             )}
                           </TableCell>
                           <TableCell align="right">
+                            <Tooltip title="Открыть терминал">
+                              <IconButton size="small" color="primary" onClick={() => openTerminal(node)}>
+                                <Terminal fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                             <Tooltip title="Изменить">
                               <IconButton size="small" onClick={() => openEditNode(node)}>
                                 <Edit fontSize="small" />
@@ -680,9 +917,7 @@ export default function ScriptsPage() {
 
       {/* ── Run Dialog ── */}
       <Dialog open={runDialog} onClose={handleCloseRunDialog} maxWidth="md" fullWidth>
-        <DialogTitle>
-          Запуск: {runScript?.name}
-        </DialogTitle>
+        <DialogTitle>Запуск: {runScript?.name}</DialogTitle>
         <DialogContent>
           {!runJob ? (
             <Box>
@@ -803,6 +1038,19 @@ export default function ScriptsPage() {
           {msg.text}
         </Alert>
       </Snackbar>
+
+      {/* ── Floating terminal windows ── */}
+      {terminals.map((session, index) => (
+        <TerminalWindow
+          key={session.id}
+          session={session}
+          index={index}
+          onClose={closeTerminal}
+          onPositionChange={moveTerminal}
+          onMinimizeToggle={toggleMinimize}
+          instanceRef={termInstancesRef}
+        />
+      ))}
     </Box>
   );
 }

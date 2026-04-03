@@ -6,6 +6,7 @@ import DomainsPage from './pages/DomainsPage';
 import NodesPage from './pages/NodesPage';
 import DashboardPage from './pages/DashboardPage';
 import ScriptsPage from './pages/ScriptsPage';
+import TerminalPopupPage from './pages/TerminalPopupPage';
 import LoginPage from './pages/LoginPage';
 import { ThemeProvider } from './ThemeContext';
 import { AuthProvider } from './auth/AuthContext';
@@ -39,6 +40,7 @@ function App() {
               <Route path="scripts" element={<ScriptsPage />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />
+            <Route path="/terminal-popup" element={<TerminalPopupPage />} />
           </Routes>
         </BrowserRouter>
       </ThemeProvider>
