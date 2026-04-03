@@ -306,7 +306,7 @@ export default function ScriptsPage() {
 
       <Paper>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tab label="Ноды SSH" />
+          <Tab label="Ноды" />
           <Tab label="Скрипты" />
         </Tabs>
 
@@ -316,7 +316,7 @@ export default function ScriptsPage() {
           {tab === 0 && (
             <Box>
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-                <Typography variant="h6">SSH-ноды</Typography>
+                <Typography variant="h6">Ноды</Typography>
                 <Button variant="contained" startIcon={<Add />} size="small" onClick={openAddNode}>
                   Добавить
                 </Button>
@@ -325,7 +325,7 @@ export default function ScriptsPage() {
 
               {sshNodes.length === 0 ? (
                 <Alert severity="info">
-                  Нет SSH-нод. Добавьте вручную или установите ноду через раздел «Ноды» — она появится здесь автоматически.
+                  Нет нод. Добавьте вручную или установите ноду через раздел «Ноды» — она появится здесь автоматически.
                 </Alert>
               ) : (
                 <Table size="small">
@@ -482,7 +482,7 @@ export default function ScriptsPage() {
 
       {/* ── SSH Node Dialog ── */}
       <Dialog open={nodeDialog} onClose={() => setNodeDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{nodeEditId ? 'Изменить SSH-ноду' : 'Добавить SSH-ноду'}</DialogTitle>
+        <DialogTitle>{nodeEditId ? 'Изменить ноду' : 'Добавить ноду'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             {rwNodes.length > 0 && (
@@ -649,7 +649,7 @@ export default function ScriptsPage() {
                 Выберите ноды для запуска:
               </Typography>
               {sshNodes.length === 0 ? (
-                <Alert severity="warning">Нет SSH-нод. Добавьте ноды на вкладке «Ноды SSH».</Alert>
+                <Alert severity="warning">Нет нод. Добавьте ноды на вкладке «Ноды».</Alert>
               ) : (
                 <Stack spacing={1} sx={{ mb: 2 }}>
                   {sshNodes.map(node => {
