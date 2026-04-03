@@ -7,7 +7,7 @@ import {
   TableRow, Tabs, TextField, Tooltip, Typography,
 } from '@mui/material';
 import {
-  Add, Close, Delete, Edit, FileDownload, Fullscreen,
+  Add, Close, ContentCopy, Delete, Edit, FileDownload, Fullscreen,
   OpenInNew, PlayArrow, Remove, Terminal, UploadFile,
 } from '@mui/icons-material';
 import type { SelectChangeEvent } from '@mui/material/Select';
@@ -455,6 +455,20 @@ export default function ScriptsPage() {
     }
   };
 
+  const handleCloneScript = async (s: Script) => {
+    try {
+      await api.post('/scripts/scripts', {
+        name: `${s.name} (копия)`,
+        description: s.description,
+        content: s.content,
+      });
+      showMsg('success', 'Скрипт клонирован — отредактируйте копию');
+      loadScripts();
+    } catch (e: any) {
+      showMsg('error', e?.response?.data?.message || 'Ошибка клонирования');
+    }
+  };
+
   // ─── Run handlers ──────────────────────────────────────────────────────────
 
   const openRunDialog = (s: Script) => {
@@ -706,7 +720,16 @@ export default function ScriptsPage() {
                         >
                           Запустить
                         </Button>
-                        {!s.isBuiltIn && (
+                        {s.isBuiltIn ? (
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<ContentCopy />}
+                            onClick={() => handleCloneScript(s)}
+                          >
+                            Клонировать
+                          </Button>
+                        ) : (
                           <>
                             <Button
                               variant="outlined"

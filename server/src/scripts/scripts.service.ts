@@ -113,6 +113,30 @@ sysctl -p /etc/sysctl.d/99-vpn.conf`,
     isBuiltIn: true,
     content: `cd /opt/remnanode && docker compose ps && echo "--- Logs ---" && docker compose logs --tail=30`,
   },
+  {
+    id: 'builtin-setup-ssh-key',
+    name: 'Настройка SSH-ключа',
+    description: 'Добавляет публичный SSH-ключ и отключает вход по паролю. Клонируйте скрипт и вставьте свой публичный ключ вместо placeholder-а.',
+    isBuiltIn: true,
+    content: `# Вставьте сюда свой публичный SSH-ключ (ssh-rsa / ssh-ed25519 / ecdsa)
+PUBLIC_KEY="ssh-ed25519 AAAAC3Nza... user@host"
+
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+# Добавить ключ, если его ещё нет
+grep -qxF "$PUBLIC_KEY" ~/.ssh/authorized_keys 2>/dev/null || echo "$PUBLIC_KEY" >> ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+
+# Включить авторизацию по ключу и отключить по паролю
+sed -i 's/^#*\\s*PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
+sed -i 's/^#*\\s*PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+grep -q '^PubkeyAuthentication' /etc/ssh/sshd_config    || echo 'PubkeyAuthentication yes'   >> /etc/ssh/sshd_config
+grep -q '^PasswordAuthentication' /etc/ssh/sshd_config  || echo 'PasswordAuthentication no'  >> /etc/ssh/sshd_config
+
+# Перезапустить SSH
+systemctl restart sshd 2>/dev/null || service ssh restart
+echo "Готово: ключ добавлен, вход по паролю отключён"`,
+  },
 ];
 
 @Injectable()
