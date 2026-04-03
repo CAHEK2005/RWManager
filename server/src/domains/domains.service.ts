@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Domain } from './entities/domain.entity';
 
 const SERVICE_PATTERNS: Record<string, string[]> = {
+  'MAX':           ['max.ru'],
   'Яндекс':        ['yandex.ru','yandex.net','yandex.com','yandex.by','yandex.kz','ya.ru','yastatic.net','yandexcloud.net','ya.cc','yandex-team.ru'],
   'ВКонтакте':     ['vk.com','vk.ru','vkvideo.ru','userapi.com','vkontakte.ru','vk-apps.com','vkuseraudio.net','vkuservideo.net'],
   'Одноклассники': ['ok.ru'],
