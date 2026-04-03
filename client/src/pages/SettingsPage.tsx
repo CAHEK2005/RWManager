@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import {
   Box, TextField, Button, Typography, Paper, Snackbar, Alert,
   Stack, Divider, Tabs, Tab, useTheme, useMediaQuery, Switch, FormControlLabel,
+  IconButton, Menu, MenuItem, Tooltip,
 } from '@mui/material';
+import { LockOpen, VpnKey } from '@mui/icons-material';
 import api from '../api';
 
 interface TabPanelProps { children?: React.ReactNode; index: number; value: number; }
@@ -32,9 +34,24 @@ export default function SettingsPage() {
 
   const [msg, setMsg] = useState({ open: false, type: 'success' as 'success' | 'error', text: '' });
 
+  // Secrets picker
+  const [secrets, setSecrets] = useState<{ id: string; name: string; type: string }[]>([]);
+  const [secretMenuAnchor, setSecretMenuAnchor] = useState<{ el: HTMLElement; onPick: (v: string) => void } | null>(null);
+
   const showMsg = (type: 'success' | 'error', text: string) => setMsg({ open: true, type, text });
 
+  const handlePickSecret = async (id: string) => {
+    const anchor = secretMenuAnchor;
+    setSecretMenuAnchor(null);
+    if (!anchor) return;
+    try {
+      const { data } = await api.get(`/secrets/${id}/value`);
+      anchor.onPick(data.value);
+    } catch { /* silent */ }
+  };
+
   useEffect(() => {
+    api.get('/secrets').then(r => setSecrets(r.data)).catch(() => {});
     api.get('/settings').then(({ data }) => {
       if (data.remnawave_url) setUrl(data.remnawave_url);
       if (data.remnawave_api_key) setApiKey(data.remnawave_api_key);
@@ -134,6 +151,13 @@ export default function SettingsPage() {
             <TextField
               fullWidth margin="normal" label="API ключ (Bearer token)" type="password"
               value={apiKey} onChange={e => setApiKey(e.target.value)}
+              slotProps={{ input: { endAdornment: secrets.length > 0 ? (
+                <Tooltip title="Вставить из секретов">
+                  <IconButton size="small" edge="end" onClick={e => setSecretMenuAnchor({ el: e.currentTarget, onPick: setApiKey })}>
+                    <LockOpen fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              ) : undefined }}}
             />
             <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
               <Button variant="contained" onClick={handleSaveConnection}>Сохранить</Button>
@@ -151,6 +175,13 @@ export default function SettingsPage() {
               fullWidth margin="normal" label="Bot Token" type="password"
               value={tgToken} onChange={e => setTgToken(e.target.value)}
               helperText="Получить у @BotFather"
+              slotProps={{ input: { endAdornment: secrets.length > 0 ? (
+                <Tooltip title="Вставить из секретов">
+                  <IconButton size="small" edge="end" onClick={e => setSecretMenuAnchor({ el: e.currentTarget, onPick: setTgToken })}>
+                    <LockOpen fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              ) : undefined }}}
             />
             <TextField
               fullWidth margin="normal" label="Chat ID"
@@ -203,6 +234,23 @@ export default function SettingsPage() {
       <Snackbar open={msg.open} autoHideDuration={5000} onClose={() => setMsg(m => ({ ...m, open: false }))}>
         <Alert severity={msg.type}>{msg.text}</Alert>
       </Snackbar>
+
+      {/* Secret picker menu */}
+      <Menu anchorEl={secretMenuAnchor?.el} open={Boolean(secretMenuAnchor)} onClose={() => setSecretMenuAnchor(null)}>
+        {secrets.map(s => (
+          <MenuItem key={s.id} onClick={() => handlePickSecret(s.id)}>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <VpnKey fontSize="small" color="action" />
+              <Box>
+                <Typography variant="body2">{s.name}</Typography>
+                <Typography variant="caption" color="textSecondary">
+                  {s.type === 'ssh-key' ? 'SSH-ключ' : s.type === 'password' ? 'Пароль' : s.type === 'token' ? 'Токен' : 'Другое'}
+                </Typography>
+              </Box>
+            </Stack>
+          </MenuItem>
+        ))}
+      </Menu>
     </Box>
   );
 }

@@ -16,6 +16,7 @@ import {
   FormLabel,
   IconButton,
   InputLabel,
+  Menu,
   MenuItem,
   Paper,
   Radio,
@@ -29,10 +30,12 @@ import {
 import {
   CheckCircleOutline,
   ErrorOutline,
+  LockOpen,
   PowerSettingsNew,
   Refresh,
   Delete,
   Add,
+  VpnKey,
 } from '@mui/icons-material';
 import api from '../api';
 
@@ -101,6 +104,10 @@ export default function NodesPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Secrets picker
+  const [secrets, setSecrets] = useState<{ id: string; name: string; type: string }[]>([]);
+  const [secretMenuAnchor, setSecretMenuAnchor] = useState<{ el: HTMLElement; onPick: (v: string) => void } | null>(null);
+
   const loadNodes = useCallback(async () => {
     setLoading(true);
     try {
@@ -124,7 +131,18 @@ export default function NodesPage() {
 
   useEffect(() => {
     loadNodes();
+    api.get('/secrets').then(r => setSecrets(r.data)).catch(() => {});
   }, [loadNodes]);
+
+  const handlePickSecret = async (id: string) => {
+    const anchor = secretMenuAnchor;
+    setSecretMenuAnchor(null);
+    if (!anchor) return;
+    try {
+      const { data } = await api.get(`/secrets/${id}/value`);
+      anchor.onPick(data.value);
+    } catch { /* silent */ }
+  };
 
   useEffect(() => {
     if (logsEndRef.current) {
@@ -408,18 +426,30 @@ export default function NodesPage() {
                 onChange={(e) => setSshPassword(e.target.value)}
                 fullWidth
                 size="small"
+                slotProps={{ input: { endAdornment: secrets.length > 0 ? (
+                  <Tooltip title="Вставить из секретов">
+                    <IconButton size="small" edge="end" onClick={e => setSecretMenuAnchor({ el: e.currentTarget, onPick: setSshPassword })}>
+                      <LockOpen fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                ) : undefined }}}
               />
             ) : (
               <Box>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
                   <Typography variant="body2">SSH-ключ</Typography>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    Загрузить файл
-                  </Button>
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    {secrets.length > 0 && (
+                      <Tooltip title="Вставить из секретов">
+                        <IconButton size="small" onClick={e => setSecretMenuAnchor({ el: e.currentTarget, onPick: setSshKey })}>
+                          <LockOpen fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    <Button size="small" variant="outlined" onClick={() => fileInputRef.current?.click()}>
+                      Загрузить файл
+                    </Button>
+                  </Stack>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -566,6 +596,23 @@ export default function NodesPage() {
           <Button onClick={handleProgressClose}>Закрыть</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Secret picker menu */}
+      <Menu anchorEl={secretMenuAnchor?.el} open={Boolean(secretMenuAnchor)} onClose={() => setSecretMenuAnchor(null)}>
+        {secrets.map(s => (
+          <MenuItem key={s.id} onClick={() => handlePickSecret(s.id)}>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <VpnKey fontSize="small" color="action" />
+              <Box>
+                <Typography variant="body2">{s.name}</Typography>
+                <Typography variant="caption" color="textSecondary">
+                  {s.type === 'ssh-key' ? 'SSH-ключ' : s.type === 'password' ? 'Пароль' : s.type === 'token' ? 'Токен' : 'Другое'}
+                </Typography>
+              </Box>
+            </Stack>
+          </MenuItem>
+        ))}
+      </Menu>
     </Box>
   );
 }

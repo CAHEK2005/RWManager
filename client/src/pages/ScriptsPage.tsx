@@ -412,14 +412,15 @@ export default function ScriptsPage() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logsEndRef = useRef<HTMLDivElement | null>(null);
   const keyFileInputRef = useRef<HTMLInputElement | null>(null);
+  const secretFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // ── Secrets ───────────────────────────────────────────────────────────────
   const [secrets, setSecrets] = useState<Secret[]>([]);
   const [secretDialog, setSecretDialog] = useState(false);
   const [secretEditId, setSecretEditId] = useState<string | null>(null);
   const [secretForm, setSecretForm] = useState({ name: '', type: 'password', value: '', description: '' });
-  // For RunDialog — menu anchor for secret picker per variable
-  const [secretMenuAnchor, setSecretMenuAnchor] = useState<{ el: HTMLElement; varName: string } | null>(null);
+  // Universal secret picker anchor — works in any dialog
+  const [secretMenuAnchor, setSecretMenuAnchor] = useState<{ el: HTMLElement; onPick: (v: string) => void } | null>(null);
 
   // ── Terminals ─────────────────────────────────────────────────────────────
   const [terminals, setTerminals] = useState<TerminalSession[]>([]);
@@ -718,13 +719,13 @@ export default function ScriptsPage() {
   };
 
   const handlePickSecret = async (secretId: string) => {
-    const varName = secretMenuAnchor?.varName;
+    const anchor = secretMenuAnchor;
     setSecretMenuAnchor(null);
-    if (!varName) return;
+    if (!anchor) return;
     try {
       const { data } = await api.get(`/secrets/${secretId}/value`);
-      setVarValues(prev => ({ ...prev, [varName]: data.value }));
-    } catch (e: any) {
+      anchor.onPick(data.value);
+    } catch {
       showMsg('error', 'Не удалось получить значение секрета');
     }
   };
@@ -1116,6 +1117,13 @@ export default function ScriptsPage() {
                 fullWidth
                 value={nodeForm.password || ''}
                 onChange={e => setNodeForm(p => ({ ...p, password: e.target.value }))}
+                slotProps={{ input: { endAdornment: secrets.length > 0 ? (
+                  <Tooltip title="Вставить из секретов">
+                    <IconButton size="small" edge="end" onClick={e => setSecretMenuAnchor({ el: e.currentTarget, onPick: v => setNodeForm(p => ({ ...p, password: v })) })}>
+                      <LockOpen fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                ) : undefined }}}
               />
             ) : (
               <Box>
@@ -1136,13 +1144,18 @@ export default function ScriptsPage() {
                 />
                 <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
                   <Typography variant="caption" color="textSecondary">Приватный SSH-ключ</Typography>
-                  <Button
-                    size="small"
-                    startIcon={<UploadFile />}
-                    onClick={() => keyFileInputRef.current?.click()}
-                  >
-                    Загрузить из файла
-                  </Button>
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    {secrets.length > 0 && (
+                      <Tooltip title="Вставить из секретов">
+                        <IconButton size="small" onClick={e => setSecretMenuAnchor({ el: e.currentTarget, onPick: v => setNodeForm(p => ({ ...p, sshKey: v })) })}>
+                          <LockOpen fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    <Button size="small" startIcon={<UploadFile />} onClick={() => keyFileInputRef.current?.click()}>
+                      Загрузить из файла
+                    </Button>
+                  </Stack>
                 </Stack>
                 <TextField
                   size="small"
@@ -1248,18 +1261,40 @@ export default function ScriptsPage() {
                 <MenuItem value="custom">Другое</MenuItem>
               </Select>
             </FormControl>
-            <TextField
-              label={secretEditId ? 'Новое значение (оставьте пустым, чтобы не менять)' : 'Значение'}
-              size="small"
-              fullWidth
-              multiline={secretForm.type === 'ssh-key'}
-              rows={secretForm.type === 'ssh-key' ? 6 : 1}
-              type={secretForm.type !== 'ssh-key' ? 'password' : undefined}
-              value={secretForm.value}
-              onChange={e => setSecretForm(p => ({ ...p, value: e.target.value }))}
-              placeholder={secretForm.type === 'ssh-key' ? '-----BEGIN OPENSSH PRIVATE KEY-----' : undefined}
-              slotProps={secretForm.type === 'ssh-key' ? { input: { style: { fontFamily: 'monospace', fontSize: '0.75rem' } } } : undefined}
-            />
+            <Box>
+              <input
+                ref={secretFileInputRef}
+                type="file"
+                style={{ display: 'none' }}
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = ev => setSecretForm(p => ({ ...p, value: ev.target?.result as string }));
+                  reader.readAsText(file);
+                  e.target.value = '';
+                }}
+              />
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
+                <Typography variant="caption" color="textSecondary">
+                  {secretEditId ? 'Новое значение (пусто = не менять)' : 'Значение'}
+                </Typography>
+                <Button size="small" startIcon={<UploadFile />} onClick={() => secretFileInputRef.current?.click()}>
+                  Загрузить из файла
+                </Button>
+              </Stack>
+              <TextField
+                size="small"
+                fullWidth
+                multiline={secretForm.type === 'ssh-key'}
+                rows={secretForm.type === 'ssh-key' ? 6 : 1}
+                type={secretForm.type !== 'ssh-key' ? 'password' : undefined}
+                value={secretForm.value}
+                onChange={e => setSecretForm(p => ({ ...p, value: e.target.value }))}
+                placeholder={secretForm.type === 'ssh-key' ? '-----BEGIN OPENSSH PRIVATE KEY-----' : undefined}
+                slotProps={secretForm.type === 'ssh-key' ? { input: { style: { fontFamily: 'monospace', fontSize: '0.75rem' } } } : undefined}
+              />
+            </Box>
             <TextField
               label="Описание (необязательно)"
               size="small"
@@ -1303,7 +1338,7 @@ export default function ScriptsPage() {
                                 <IconButton
                                   size="small"
                                   edge="end"
-                                  onClick={e => setSecretMenuAnchor({ el: e.currentTarget, varName: v.name })}
+                                  onClick={e => setSecretMenuAnchor({ el: e.currentTarget, onPick: val => setVarValues(prev => ({ ...prev, [v.name]: val })) })}
                                 >
                                   <LockOpen fontSize="small" />
                                 </IconButton>
