@@ -247,7 +247,7 @@ function TerminalWindow({
   };
 
   const handlePopup = async () => {
-    const popup = window.open('about:blank', '_blank', 'width=900,height=600,noopener');
+    const popup = window.open('about:blank', '_blank', 'width=900,height=600');
     try {
       const { data } = await api.post('/terminal/ticket', { nodeId: session.nodeId });
       const params = new URLSearchParams({ ticket: data.ticket, nodeName: session.nodeName });
@@ -660,7 +660,7 @@ export default function ScriptsPage() {
   }, []);
 
   const openTerminalPopup = useCallback(async (node: SshNode) => {
-    const popup = window.open('about:blank', '_blank', 'width=900,height=600,noopener');
+    const popup = window.open('about:blank', '_blank', 'width=900,height=600');
     try {
       const { data } = await api.post('/terminal/ticket', { nodeId: node.id });
       const params = new URLSearchParams({ ticket: data.ticket, nodeName: node.name });
