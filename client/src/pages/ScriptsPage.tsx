@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions,
   DialogContent, DialogTitle, Divider, FormControl, FormControlLabel,
-  IconButton, InputLabel, Menu, MenuItem, Paper, Radio, RadioGroup, Select,
+  IconButton, InputLabel, MenuItem, Paper, Radio, RadioGroup, Select,
   Snackbar, Stack, Tab, Table, TableBody, TableCell, TableHead,
   TableRow, Tabs, TextField, Tooltip, Typography,
 } from '@mui/material';
@@ -419,8 +419,9 @@ export default function ScriptsPage() {
   const [secretDialog, setSecretDialog] = useState(false);
   const [secretEditId, setSecretEditId] = useState<string | null>(null);
   const [secretForm, setSecretForm] = useState({ name: '', type: 'password', value: '', description: '' });
-  // Universal secret picker anchor — works in any dialog
-  const [secretMenuAnchor, setSecretMenuAnchor] = useState<{ el: HTMLElement; onPick: (v: string) => void } | null>(null);
+  // Universal secret picker dialog
+  const [secretPickerOpen, setSecretPickerOpen] = useState(false);
+  const [secretPickerCallback, setSecretPickerCallback] = useState<((v: string) => void) | null>(null);
 
   // ── Terminals ─────────────────────────────────────────────────────────────
   const [terminals, setTerminals] = useState<TerminalSession[]>([]);
@@ -718,13 +719,17 @@ export default function ScriptsPage() {
     }
   };
 
-  const handlePickSecret = async (secretId: string) => {
-    const anchor = secretMenuAnchor;
-    setSecretMenuAnchor(null);
-    if (!anchor) return;
+  const openSecretPicker = (onPick: (v: string) => void) => {
+    setSecretPickerCallback(() => onPick);
+    setSecretPickerOpen(true);
+  };
+
+  const handlePickSecret = async (id: string) => {
+    setSecretPickerOpen(false);
+    if (!secretPickerCallback) return;
     try {
-      const { data } = await api.get(`/secrets/${secretId}/value`);
-      anchor.onPick(data.value);
+      const { data } = await api.get(`/secrets/${id}/value`);
+      secretPickerCallback(data.value);
     } catch {
       showMsg('error', 'Не удалось получить значение секрета');
     }
@@ -1119,7 +1124,7 @@ export default function ScriptsPage() {
                 onChange={e => setNodeForm(p => ({ ...p, password: e.target.value }))}
                 slotProps={{ input: { endAdornment: secrets.length > 0 ? (
                   <Tooltip title="Вставить из секретов">
-                    <IconButton size="small" edge="end" onClick={e => setSecretMenuAnchor({ el: e.currentTarget, onPick: v => setNodeForm(p => ({ ...p, password: v })) })}>
+                    <IconButton size="small" edge="end" onClick={() => openSecretPicker(v => setNodeForm(p => ({ ...p, password: v })))}>
                       <LockOpen fontSize="small" />
                     </IconButton>
                   </Tooltip>
@@ -1147,7 +1152,7 @@ export default function ScriptsPage() {
                   <Stack direction="row" spacing={0.5} alignItems="center">
                     {secrets.length > 0 && (
                       <Tooltip title="Вставить из секретов">
-                        <IconButton size="small" onClick={e => setSecretMenuAnchor({ el: e.currentTarget, onPick: v => setNodeForm(p => ({ ...p, sshKey: v })) })}>
+                        <IconButton size="small" onClick={() => openSecretPicker(v => setNodeForm(p => ({ ...p, sshKey: v })))}>
                           <LockOpen fontSize="small" />
                         </IconButton>
                       </Tooltip>
@@ -1338,7 +1343,7 @@ export default function ScriptsPage() {
                                 <IconButton
                                   size="small"
                                   edge="end"
-                                  onClick={e => setSecretMenuAnchor({ el: e.currentTarget, onPick: val => setVarValues(prev => ({ ...prev, [v.name]: val })) })}
+                                  onClick={() => openSecretPicker(val => setVarValues(prev => ({ ...prev, [v.name]: val })))}
                                 >
                                   <LockOpen fontSize="small" />
                                 </IconButton>
@@ -1352,27 +1357,6 @@ export default function ScriptsPage() {
                   <Divider sx={{ mt: 2 }} />
                 </Box>
               )}
-              {/* Secret picker menu */}
-              <Menu
-                anchorEl={secretMenuAnchor?.el}
-                open={Boolean(secretMenuAnchor)}
-                onClose={() => setSecretMenuAnchor(null)}
-              >
-                {secrets.map(s => (
-                  <MenuItem key={s.id} onClick={() => handlePickSecret(s.id)}>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <VpnKey fontSize="small" color="action" />
-                      <Box>
-                        <Typography variant="body2">{s.name}</Typography>
-                        <Typography variant="caption" color="textSecondary">
-                          {s.type === 'ssh-key' ? 'SSH-ключ' : s.type === 'password' ? 'Пароль' : s.type === 'token' ? 'Токен' : 'Другое'}
-                          {s.description ? ` — ${s.description}` : ''}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </MenuItem>
-                ))}
-              </Menu>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>
                 Выберите ноды для запуска:
               </Typography>
@@ -1478,6 +1462,27 @@ export default function ScriptsPage() {
             </Button>
           )}
         </DialogActions>
+      </Dialog>
+
+      {/* Secret picker dialog */}
+      <Dialog open={secretPickerOpen} onClose={() => setSecretPickerOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Выбрать секрет</DialogTitle>
+        <DialogContent dividers sx={{ p: 0 }}>
+          {secrets.map(s => (
+            <MenuItem key={s.id} onClick={() => handlePickSecret(s.id)}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <VpnKey fontSize="small" color="action" />
+                <Box>
+                  <Typography variant="body2">{s.name}</Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    {s.type === 'ssh-key' ? 'SSH-ключ' : s.type === 'password' ? 'Пароль' : s.type === 'token' ? 'Токен' : 'Другое'}
+                    {s.description ? ` — ${s.description}` : ''}
+                  </Typography>
+                </Box>
+              </Stack>
+            </MenuItem>
+          ))}
+        </DialogContent>
       </Dialog>
 
       <Snackbar

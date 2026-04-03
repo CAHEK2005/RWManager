@@ -16,7 +16,6 @@ import {
   FormLabel,
   IconButton,
   InputLabel,
-  Menu,
   MenuItem,
   Paper,
   Radio,
@@ -106,7 +105,8 @@ export default function NodesPage() {
 
   // Secrets picker
   const [secrets, setSecrets] = useState<{ id: string; name: string; type: string }[]>([]);
-  const [secretMenuAnchor, setSecretMenuAnchor] = useState<{ el: HTMLElement; onPick: (v: string) => void } | null>(null);
+  const [secretPickerOpen, setSecretPickerOpen] = useState(false);
+  const [secretPickerCallback, setSecretPickerCallback] = useState<((v: string) => void) | null>(null);
 
   const loadNodes = useCallback(async () => {
     setLoading(true);
@@ -134,13 +134,17 @@ export default function NodesPage() {
     api.get('/secrets').then(r => setSecrets(r.data)).catch(() => {});
   }, [loadNodes]);
 
+  const openSecretPicker = (onPick: (v: string) => void) => {
+    setSecretPickerCallback(() => onPick);
+    setSecretPickerOpen(true);
+  };
+
   const handlePickSecret = async (id: string) => {
-    const anchor = secretMenuAnchor;
-    setSecretMenuAnchor(null);
-    if (!anchor) return;
+    setSecretPickerOpen(false);
+    if (!secretPickerCallback) return;
     try {
       const { data } = await api.get(`/secrets/${id}/value`);
-      anchor.onPick(data.value);
+      secretPickerCallback(data.value);
     } catch { /* silent */ }
   };
 
@@ -428,7 +432,7 @@ export default function NodesPage() {
                 size="small"
                 slotProps={{ input: { endAdornment: secrets.length > 0 ? (
                   <Tooltip title="Вставить из секретов">
-                    <IconButton size="small" edge="end" onClick={e => setSecretMenuAnchor({ el: e.currentTarget, onPick: setSshPassword })}>
+                    <IconButton size="small" edge="end" onClick={() => openSecretPicker(setSshPassword)}>
                       <LockOpen fontSize="small" />
                     </IconButton>
                   </Tooltip>
@@ -441,7 +445,7 @@ export default function NodesPage() {
                   <Stack direction="row" spacing={0.5} alignItems="center">
                     {secrets.length > 0 && (
                       <Tooltip title="Вставить из секретов">
-                        <IconButton size="small" onClick={e => setSecretMenuAnchor({ el: e.currentTarget, onPick: setSshKey })}>
+                        <IconButton size="small" onClick={() => openSecretPicker(setSshKey)}>
                           <LockOpen fontSize="small" />
                         </IconButton>
                       </Tooltip>
@@ -597,22 +601,25 @@ export default function NodesPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Secret picker menu */}
-      <Menu anchorEl={secretMenuAnchor?.el} open={Boolean(secretMenuAnchor)} onClose={() => setSecretMenuAnchor(null)}>
-        {secrets.map(s => (
-          <MenuItem key={s.id} onClick={() => handlePickSecret(s.id)}>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <VpnKey fontSize="small" color="action" />
-              <Box>
-                <Typography variant="body2">{s.name}</Typography>
-                <Typography variant="caption" color="textSecondary">
-                  {s.type === 'ssh-key' ? 'SSH-ключ' : s.type === 'password' ? 'Пароль' : s.type === 'token' ? 'Токен' : 'Другое'}
-                </Typography>
-              </Box>
-            </Stack>
-          </MenuItem>
-        ))}
-      </Menu>
+      {/* Secret picker dialog */}
+      <Dialog open={secretPickerOpen} onClose={() => setSecretPickerOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Выбрать секрет</DialogTitle>
+        <DialogContent dividers sx={{ p: 0 }}>
+          {secrets.map(s => (
+            <MenuItem key={s.id} onClick={() => handlePickSecret(s.id)}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <VpnKey fontSize="small" color="action" />
+                <Box>
+                  <Typography variant="body2">{s.name}</Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    {s.type === 'ssh-key' ? 'SSH-ключ' : s.type === 'password' ? 'Пароль' : s.type === 'token' ? 'Токен' : 'Другое'}
+                  </Typography>
+                </Box>
+              </Stack>
+            </MenuItem>
+          ))}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }
