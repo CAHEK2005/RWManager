@@ -85,6 +85,7 @@ interface TerminalSession {
   nodeName: string;
   minimized: boolean;
   position: { x: number; y: number };
+  size: { width: number; height: number };
 }
 
 type TerminalInstance = {
@@ -96,12 +97,17 @@ type TerminalInstance = {
 
 // ─── TerminalWindow ───────────────────────────────────────────────────────────
 
+const TERM_HEADER_H = 40;
+const TERM_MIN_W = 380;
+const TERM_MIN_H = 160;
+
 function TerminalWindow({
   session,
   index,
   onClose,
   onPositionChange,
   onMinimizeToggle,
+  onResize,
   instanceRef,
 }: {
   session: TerminalSession;
@@ -109,11 +115,14 @@ function TerminalWindow({
   onClose: (id: string) => void;
   onPositionChange: (id: string, pos: { x: number; y: number }) => void;
   onMinimizeToggle: (id: string) => void;
+  onResize: (id: string, size: { width: number; height: number }) => void;
   instanceRef: React.MutableRefObject<Map<string, TerminalInstance>>;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const dragOffset = useRef({ x: 0, y: 0 });
+  const isResizing = useRef(false);
+  const resizeStart = useRef({ x: 0, y: 0, w: 0, h: 0 });
 
   // Initialize xterm + WebSocket on mount
   useEffect(() => {
@@ -188,7 +197,30 @@ function TerminalWindow({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.minimized]);
 
-  // Drag
+  // Global mouse handlers for drag + resize
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (isDragging.current) {
+        onPositionChange(session.id, {
+          x: e.clientX - dragOffset.current.x,
+          y: e.clientY - dragOffset.current.y,
+        });
+      }
+      if (isResizing.current) {
+        const newW = Math.max(TERM_MIN_W, resizeStart.current.w + e.clientX - resizeStart.current.x);
+        const newH = Math.max(TERM_MIN_H + TERM_HEADER_H, resizeStart.current.h + e.clientY - resizeStart.current.y);
+        onResize(session.id, { width: newW, height: newH });
+      }
+    };
+    const onUp = () => { isDragging.current = false; isResizing.current = false; };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [session.id, onPositionChange, onResize]);
+
   const handleTitleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('button')) return;
     isDragging.current = true;
@@ -196,22 +228,17 @@ function TerminalWindow({
     e.preventDefault();
   };
 
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      if (!isDragging.current) return;
-      onPositionChange(session.id, {
-        x: e.clientX - dragOffset.current.x,
-        y: e.clientY - dragOffset.current.y,
-      });
+  const handleResizeMouseDown = (e: React.MouseEvent) => {
+    isResizing.current = true;
+    resizeStart.current = {
+      x: e.clientX,
+      y: e.clientY,
+      w: session.size.width,
+      h: session.size.height,
     };
-    const onUp = () => { isDragging.current = false; };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-  }, [session.id, onPositionChange]);
+    e.preventDefault();
+    e.stopPropagation();
+  };
 
   const handlePopup = () => {
     const params = new URLSearchParams({ nodeId: session.nodeId, nodeName: session.nodeName });
@@ -219,13 +246,15 @@ function TerminalWindow({
     onClose(session.id);
   };
 
+  const bodyHeight = session.size.height - TERM_HEADER_H;
+
   return (
     <Box
       sx={{
         position: 'fixed',
         left: session.position.x,
         top: session.position.y,
-        width: 680,
+        width: session.size.width,
         zIndex: 9999 + index,
         boxShadow: 8,
         borderRadius: 1,
@@ -239,13 +268,14 @@ function TerminalWindow({
         sx={{
           display: 'flex',
           alignItems: 'center',
+          height: TERM_HEADER_H,
           px: 1.5,
-          py: 0.75,
           bgcolor: '#2d2d2d',
           cursor: 'move',
           userSelect: 'none',
           borderBottom: '1px solid rgba(255,255,255,0.1)',
           gap: 0.5,
+          flexShrink: 0,
         }}
       >
         <Terminal sx={{ color: '#4caf50', fontSize: 16, mr: 0.5 }} />
@@ -272,8 +302,40 @@ function TerminalWindow({
       {/* Terminal body */}
       <Box
         ref={containerRef}
-        sx={{ width: '100%', height: session.minimized ? 0 : 350, bgcolor: '#1a1a1a', overflow: 'hidden' }}
+        sx={{
+          width: '100%',
+          height: session.minimized ? 0 : bodyHeight,
+          bgcolor: '#1a1a1a',
+          overflow: 'hidden',
+        }}
       />
+
+      {/* Resize handle (bottom-right corner) */}
+      {!session.minimized && (
+        <Box
+          onMouseDown={handleResizeMouseDown}
+          sx={{
+            position: 'absolute',
+            bottom: 0,
+            right: 0,
+            width: 18,
+            height: 18,
+            cursor: 'nwse-resize',
+            zIndex: 1,
+            opacity: 0.4,
+            '&:hover': { opacity: 0.9 },
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'flex-end',
+            pb: '3px',
+            pr: '3px',
+          }}
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10">
+            <path d="M9 1 L1 9 M9 5 L5 9 M9 9 L9 9" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </Box>
+      )}
     </Box>
   );
 }
@@ -581,7 +643,13 @@ export default function ScriptsPage() {
       nodeName: node.name,
       minimized: false,
       position: { x: 80 + prev.length * 30, y: 80 + prev.length * 30 },
+      size: { width: 680, height: 420 },
     }]);
+  }, []);
+
+  const openTerminalPopup = useCallback((node: SshNode) => {
+    const params = new URLSearchParams({ nodeId: node.id, nodeName: node.name });
+    window.open(`/terminal-popup?${params.toString()}`, '_blank', 'width=900,height=600,noopener');
   }, []);
 
   const closeTerminal = useCallback((id: string) => {
@@ -594,6 +662,10 @@ export default function ScriptsPage() {
 
   const moveTerminal = useCallback((id: string, pos: { x: number; y: number }) => {
     setTerminals(prev => prev.map(t => t.id === id ? { ...t, position: pos } : t));
+  }, []);
+
+  const resizeTerminal = useCallback((id: string, size: { width: number; height: number }) => {
+    setTerminals(prev => prev.map(t => t.id === id ? { ...t, size } : t));
   }, []);
 
   // ─── Render ───────────────────────────────────────────────────────────────
@@ -668,6 +740,11 @@ export default function ScriptsPage() {
                             <Tooltip title="Открыть терминал">
                               <IconButton size="small" color="primary" onClick={() => openTerminal(node)}>
                                 <Terminal fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Открыть терминал в отдельном окне">
+                              <IconButton size="small" onClick={() => openTerminalPopup(node)}>
+                                <OpenInNew fontSize="small" />
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="Изменить">
@@ -1129,6 +1206,7 @@ export default function ScriptsPage() {
           onClose={closeTerminal}
           onPositionChange={moveTerminal}
           onMinimizeToggle={toggleMinimize}
+          onResize={resizeTerminal}
           instanceRef={termInstancesRef}
         />
       ))}
