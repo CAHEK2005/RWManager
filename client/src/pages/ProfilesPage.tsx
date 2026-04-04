@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   Box, Typography, Paper, Button, Stack, Chip, Tooltip, IconButton,
-  TextField, Select, MenuItem, FormControl, InputLabel, Switch, FormControlLabel,
+  TextField, Select, MenuItem, Menu, FormControl, InputLabel, Switch, FormControlLabel,
   Dialog, DialogTitle, DialogContent, DialogActions, Checkbox,
   Tabs, Tab, Snackbar, Alert, useTheme, useMediaQuery, Grid, Divider,
   CircularProgress, FormHelperText, List, ListItem, ListItemText,
 } from '@mui/material';
 import {
   Add, Delete, PlayArrow, PauseCircleFilled, Warning, Check, Refresh,
-  CheckCircle, UploadFile, Language, FileDownload, ContentCopy,
+  CheckCircle, UploadFile, Language, FileDownload, ContentCopy, MoreVert,
 } from '@mui/icons-material';
 import type { SelectChangeEvent } from '@mui/material/Select';
 import api from '../api';
@@ -220,6 +220,7 @@ export default function ProfilesPage() {
 
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ open: false, type: 'success' as 'success' | 'error', text: '' });
+  const [cardMenuAnchor, setCardMenuAnchor] = useState<{ el: HTMLElement; uuid: string } | null>(null);
 
   const showMsg = (type: 'success' | 'error', text: string) => setMsg({ open: true, type, text });
 
@@ -308,6 +309,23 @@ export default function ProfilesPage() {
   const handleSelectProfile = (p: ManagedProfile) => {
     setSelectedProfile(p);
     setProfileTab(0);
+  };
+
+  const handleRotateProfile = async (uuid: string) => {
+    try {
+      setLoading(true);
+      const { data } = await api.post(`/settings/profiles/managed/${uuid}/rotate`);
+      if (data.success) {
+        showMsg('success', data.message || 'Ротация выполнена');
+        updateProfileInState(uuid, { lastRotationTimestamp: Date.now(), lastRotationStatus: 'success', lastRotationError: '' });
+      } else {
+        showMsg('error', data.message || 'Ошибка ротации');
+        updateProfileInState(uuid, { lastRotationStatus: 'error', lastRotationError: data.message || '' });
+      }
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      showMsg('error', err?.response?.data?.message || 'Ошибка сети');
+    } finally { setLoading(false); }
   };
 
   const handleRotateAll = async () => {
@@ -659,15 +677,18 @@ export default function ProfilesPage() {
   return (
     <Box>
       {/* Header */}
-      <Stack
-        direction={isMobile ? 'column' : 'row'}
-        justifyContent="space-between"
-        alignItems={isMobile ? 'flex-start' : 'center'}
-        spacing={1}
-        sx={{ mb: 3 }}
-      >
-        <Typography variant={isMobile ? 'h5' : 'h4'}>Профили</Typography>
-        <Stack direction="row" spacing={1} flexWrap="wrap">
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 3, gap: 2, flexWrap: 'wrap' }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>Профили</Typography>
+          <Typography variant="body2" color="text.secondary">Управление config-профилями Remnawave</Typography>
+        </Box>
+        <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ flexShrink: 0 }}>
+          <Button variant="outlined" onClick={() => { setAddDialogOpen(true); loadRwProfiles(); }}>
+            Добавить существующий
+          </Button>
+          <Button variant="contained" startIcon={<Add />} onClick={() => setCreateDialogOpen(true)}>
+            Создать профиль
+          </Button>
           <Button
             variant="outlined"
             color="warning"
@@ -675,16 +696,10 @@ export default function ProfilesPage() {
             disabled={loading || profiles.length === 0}
             startIcon={loading ? <CircularProgress size={16} /> : <Refresh />}
           >
-            Запустить все
-          </Button>
-          <Button variant="outlined" onClick={() => { setAddDialogOpen(true); loadRwProfiles(); }}>
-            Добавить существующий
-          </Button>
-          <Button variant="contained" startIcon={<Add />} onClick={() => setCreateDialogOpen(true)}>
-            Создать новый
+            Ротировать всё
           </Button>
         </Stack>
-      </Stack>
+      </Box>
 
       <Grid container spacing={3}>
         {/* Profile cards */}
@@ -771,22 +786,56 @@ export default function ProfilesPage() {
                       Следующая: {getNextRotationTime(p)}
                     </Typography>
                   </Box>
-
-                  <Tooltip title="Удалить профиль">
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={e => handleDeleteOpen(p, e)}
-                      sx={{ ml: 1, flexShrink: 0 }}
-                    >
-                      <Delete fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
                 </Stack>
+
+                {/* Card footer */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1.5, pt: 1.5, borderTop: 1, borderColor: 'divider' }}>
+                  <Button
+                    size="small" variant="text"
+                    startIcon={<Refresh sx={{ fontSize: 14 }} />}
+                    onClick={e => { e.stopPropagation(); handleRotateProfile(p.uuid); }}
+                    disabled={loading}
+                  >
+                    Ротировать
+                  </Button>
+                  <IconButton size="small" onClick={e => { e.stopPropagation(); setCardMenuAnchor({ el: e.currentTarget, uuid: p.uuid }); }}>
+                    <MoreVert sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Box>
               </Paper>
             ))}
           </Stack>
         </Grid>
+
+        {/* Profile card overflow menu */}
+        <Menu
+          anchorEl={cardMenuAnchor?.el}
+          open={Boolean(cardMenuAnchor)}
+          onClose={() => setCardMenuAnchor(null)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <MenuItem onClick={e => {
+            const uuid = cardMenuAnchor?.uuid;
+            setCardMenuAnchor(null);
+            if (uuid) {
+              const p = profiles.find(x => x.uuid === uuid);
+              if (p) { setRenamingUuid(uuid); setRenameValue(p.name); }
+            }
+          }}>
+            Переименовать
+          </MenuItem>
+          <MenuItem sx={{ color: 'error.main' }} onClick={e => {
+            const uuid = cardMenuAnchor?.uuid;
+            setCardMenuAnchor(null);
+            if (uuid) {
+              const p = profiles.find(x => x.uuid === uuid);
+              if (p) handleDeleteOpen(p, e as unknown as React.MouseEvent);
+            }
+          }}>
+            <Delete sx={{ fontSize: 16, mr: 1 }} />Удалить
+          </MenuItem>
+        </Menu>
 
         {/* Profile detail */}
         {selectedProfile && (

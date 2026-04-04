@@ -1,24 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Paper,
-  Snackbar,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Tooltip,
-  Typography,
+  Alert, Box, Button, Chip, CircularProgress,
+  Snackbar, Stack, Table, TableBody, TableCell,
+  TableHead, TableRow, Tooltip, Typography, Paper,
 } from '@mui/material';
-import { Refresh, PlayArrow } from '@mui/icons-material';
+import {
+  Refresh, PlayArrow, Storage, Layers, Autorenew, Public,
+  CheckCircle, Cancel, RadioButtonUnchecked,
+} from '@mui/icons-material';
 import api from '../api';
 
 interface ManagedProfile {
@@ -58,6 +47,87 @@ function formatAgo(ts: number): string {
   if (diff < 86400) return `${Math.floor(diff / 3600)}ч назад`;
   return `${Math.floor(diff / 86400)}д назад`;
 }
+
+// ── Stat card ─────────────────────────────────────────────────────────────────
+
+interface StatCardProps {
+  label: string;
+  value: string;
+  sub: string;
+  icon: React.ReactNode;
+  accent: string;
+}
+
+function StatCard({ label, value, sub, icon, accent }: StatCardProps) {
+  return (
+    <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+        <Box>
+          <Typography sx={{
+            fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.07em',
+            textTransform: 'uppercase', color: 'text.secondary', mb: 0.75,
+          }}>
+            {label}
+          </Typography>
+          <Typography sx={{ fontSize: '1.75rem', fontWeight: 700, lineHeight: 1, mb: 0.5, letterSpacing: '-0.02em' }}>
+            {value}
+          </Typography>
+          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+            {sub}
+          </Typography>
+        </Box>
+        <Box sx={{
+          width: 38, height: 38, borderRadius: '10px', flexShrink: 0,
+          bgcolor: accent + '18',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: accent,
+        }}>
+          {icon}
+        </Box>
+      </Stack>
+    </Paper>
+  );
+}
+
+// ── Section header ────────────────────────────────────────────────────────────
+
+function SectionHeader({ title, count }: { title: string; count?: number }) {
+  return (
+    <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>{title}</Typography>
+      {count !== undefined && (
+        <Box sx={{ px: 1, py: 0.25, borderRadius: '5px', bgcolor: 'action.hover' }}>
+          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: 'text.secondary' }}>{count}</Typography>
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+// ── Node status ───────────────────────────────────────────────────────────────
+
+function NodeStatus({ node }: { node: RwNode }) {
+  if (node.isDisabled) return (
+    <Stack direction="row" alignItems="center" spacing={0.5}>
+      <RadioButtonUnchecked sx={{ fontSize: 12, color: 'text.disabled' }} />
+      <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled' }}>Откл.</Typography>
+    </Stack>
+  );
+  if (node.isConnected) return (
+    <Stack direction="row" alignItems="center" spacing={0.5}>
+      <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#10b981', flexShrink: 0 }} />
+      <Typography sx={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 500 }}>Онлайн</Typography>
+    </Stack>
+  );
+  return (
+    <Stack direction="row" alignItems="center" spacing={0.5}>
+      <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#ef4444', flexShrink: 0 }} />
+      <Typography sx={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 500 }}>Офлайн</Typography>
+    </Stack>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const [profiles, setProfiles] = useState<ManagedProfile[]>([]);
@@ -103,9 +173,7 @@ export default function DashboardPage() {
       await loadAll();
     } catch (e: any) {
       showMsg('error', e?.response?.data?.message || 'Ошибка ротации');
-    } finally {
-      setRotating(null);
-    }
+    } finally { setRotating(null); }
   };
 
   const handleRotateOne = async (uuid: string) => {
@@ -116,9 +184,7 @@ export default function DashboardPage() {
       await loadAll();
     } catch (e: any) {
       showMsg('error', e?.response?.data?.message || 'Ошибка ротации');
-    } finally {
-      setRotating(null);
-    }
+    } finally { setRotating(null); }
   };
 
   const onlineNodes = nodes.filter(n => n.isConnected && !n.isDisabled).length;
@@ -127,25 +193,32 @@ export default function DashboardPage() {
     .filter(p => p.lastRotationTimestamp)
     .sort((a, b) => b.lastRotationTimestamp - a.lastRotationTimestamp)[0];
 
-  const statCards = [
-    { label: 'Ноды', value: `${onlineNodes} / ${nodes.length}`, sub: 'онлайн', color: onlineNodes === nodes.length && nodes.length > 0 ? 'success.main' : 'warning.main' },
-    { label: 'Профили', value: String(profiles.length), sub: `${enabledProfiles} активных`, color: 'primary.main' },
-    { label: 'Последняя ротация', value: lastRotation ? formatAgo(lastRotation.lastRotationTimestamp) : 'никогда', sub: lastRotation?.name || '', color: 'text.primary' },
-    { label: 'Домены', value: domainsCount !== null ? String(domainsCount) : '—', sub: 'для SNI', color: 'text.primary' },
-  ];
-
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h5">Главная</Typography>
+      {/* Page header */}
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3 }}>
+        <Box>
+          <Typography sx={{ fontSize: '1.125rem', fontWeight: 700, letterSpacing: '-0.01em', mb: 0.25 }}>
+            Главная
+          </Typography>
+          <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
+            Обзор системы и управление ротацией
+          </Typography>
+        </Box>
         <Stack direction="row" spacing={1}>
-          <Button size="small" variant="outlined" startIcon={<Refresh />} onClick={loadAll} disabled={loading}>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={loading ? <CircularProgress size={12} color="inherit" /> : <Refresh sx={{ fontSize: 14 }} />}
+            onClick={loadAll}
+            disabled={loading}
+          >
             Обновить
           </Button>
           <Button
             size="small"
             variant="contained"
-            startIcon={rotating === 'all' ? <CircularProgress size={14} color="inherit" /> : <PlayArrow />}
+            startIcon={rotating === 'all' ? <CircularProgress size={12} color="inherit" /> : <PlayArrow sx={{ fontSize: 14 }} />}
             onClick={handleRotateAll}
             disabled={!!rotating}
           >
@@ -155,26 +228,56 @@ export default function DashboardPage() {
       </Stack>
 
       {/* Stat cards */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
-        {statCards.map((c) => (
-          <Card key={c.label} variant="outlined">
-            <CardContent sx={{ pb: '12px !important' }}>
-              <Typography variant="caption" color="textSecondary">{c.label}</Typography>
-              <Typography variant="h5" fontWeight={700} sx={{ color: c.color }}>{c.value}</Typography>
-              <Typography variant="caption" color="textSecondary">{c.sub}</Typography>
-            </CardContent>
-          </Card>
-        ))}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
+        gap: 2,
+        mb: 3,
+      }}>
+        <StatCard
+          label="Ноды"
+          value={`${onlineNodes}/${nodes.length}`}
+          sub="онлайн / всего"
+          icon={<Storage sx={{ fontSize: 18 }} />}
+          accent={onlineNodes === nodes.length && nodes.length > 0 ? '#10b981' : '#f59e0b'}
+        />
+        <StatCard
+          label="Профили"
+          value={String(profiles.length)}
+          sub={`${enabledProfiles} с ротацией`}
+          icon={<Layers sx={{ fontSize: 18 }} />}
+          accent="#1395de"
+        />
+        <StatCard
+          label="Последняя ротация"
+          value={lastRotation ? formatAgo(lastRotation.lastRotationTimestamp) : '—'}
+          sub={lastRotation?.name || 'нет данных'}
+          icon={<Autorenew sx={{ fontSize: 18 }} />}
+          accent="#8b5cf6"
+        />
+        <StatCard
+          label="Домены SNI"
+          value={domainsCount !== null ? String(domainsCount) : '—'}
+          sub="в белом списке"
+          icon={<Public sx={{ fontSize: 18 }} />}
+          accent="#f59e0b"
+        />
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 3 }}>
-        {/* Profiles table */}
-        <Paper variant="outlined">
-          <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-            <Typography variant="subtitle1" fontWeight={600}>Профили</Typography>
-          </Box>
+      {/* Tables row */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
+        gap: 2.5,
+        mb: 2.5,
+      }}>
+        {/* Profiles */}
+        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+          <SectionHeader title="Профили" count={profiles.length} />
           {profiles.length === 0 ? (
-            <Box sx={{ p: 2 }}><Typography variant="body2" color="textSecondary">Нет профилей</Typography></Box>
+            <Box sx={{ p: 3, textAlign: 'center' }}>
+              <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>Нет профилей</Typography>
+            </Box>
           ) : (
             <Table size="small">
               <TableHead>
@@ -182,37 +285,49 @@ export default function DashboardPage() {
                   <TableCell>Имя</TableCell>
                   <TableCell>Статус</TableCell>
                   <TableCell>Ротация</TableCell>
-                  <TableCell align="right"></TableCell>
+                  <TableCell align="right" sx={{ pr: '16px !important' }}></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {profiles.map((p) => (
-                  <TableRow key={p.uuid} hover>
+                  <TableRow key={p.uuid}>
                     <TableCell>
-                      <Typography variant="body2" fontWeight={500}>{p.name}</Typography>
+                      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500 }}>{p.name}</Typography>
                     </TableCell>
                     <TableCell>
-                      {p.lastRotationStatus === 'success' && <Chip label="OK" size="small" color="success" />}
+                      {p.lastRotationStatus === 'success' && (
+                        <Stack direction="row" spacing={0.5} alignItems="center">
+                          <CheckCircle sx={{ fontSize: 13, color: '#10b981' }} />
+                          <Typography sx={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 500 }}>OK</Typography>
+                        </Stack>
+                      )}
                       {p.lastRotationStatus === 'error' && (
                         <Tooltip title={p.lastRotationError}>
-                          <Chip label="Ошибка" size="small" color="error" />
+                          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ cursor: 'help' }}>
+                            <Cancel sx={{ fontSize: 13, color: '#ef4444' }} />
+                            <Typography sx={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 500 }}>Ошибка</Typography>
+                          </Stack>
                         </Tooltip>
                       )}
-                      {!p.lastRotationStatus && <Chip label="—" size="small" />}
+                      {!p.lastRotationStatus && (
+                        <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled' }}>—</Typography>
+                      )}
                     </TableCell>
                     <TableCell>
-                      <Typography variant="caption" color="textSecondary">
+                      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
                         {formatAgo(p.lastRotationTimestamp)}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
                       <Button
                         size="small"
+                        variant="text"
                         onClick={() => handleRotateOne(p.uuid)}
                         disabled={!!rotating}
-                        startIcon={rotating === p.uuid ? <CircularProgress size={12} color="inherit" /> : undefined}
+                        sx={{ fontSize: '0.75rem', py: 0.25, px: 1, minWidth: 0 }}
+                        startIcon={rotating === p.uuid ? <CircularProgress size={10} color="inherit" /> : undefined}
                       >
-                        Ротировать
+                        {rotating === p.uuid ? '' : 'Ротировать'}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -222,13 +337,13 @@ export default function DashboardPage() {
           )}
         </Paper>
 
-        {/* Nodes table */}
-        <Paper variant="outlined">
-          <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-            <Typography variant="subtitle1" fontWeight={600}>Ноды</Typography>
-          </Box>
+        {/* Nodes */}
+        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+          <SectionHeader title="Ноды" count={nodes.length} />
           {nodes.length === 0 ? (
-            <Box sx={{ p: 2 }}><Typography variant="body2" color="textSecondary">Нет нод</Typography></Box>
+            <Box sx={{ p: 3, textAlign: 'center' }}>
+              <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>Нет нод</Typography>
+            </Box>
           ) : (
             <Table size="small">
               <TableHead>
@@ -241,23 +356,25 @@ export default function DashboardPage() {
               </TableHead>
               <TableBody>
                 {nodes.map((n) => (
-                  <TableRow key={n.uuid} hover>
+                  <TableRow key={n.uuid}>
                     <TableCell>
-                      <Typography variant="body2" fontWeight={500}>{n.name}</Typography>
-                      {n.countryCode && <Typography variant="caption" color="textSecondary"> {n.countryCode}</Typography>}
+                      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, lineHeight: 1.3 }}>{n.name}</Typography>
+                      {n.countryCode && (
+                        <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>{n.countryCode}</Typography>
+                      )}
                     </TableCell>
                     <TableCell>
-                      <Typography variant="caption">{n.address}{n.port ? `:${n.port}` : ''}</Typography>
+                      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontFamily: 'monospace' }}>
+                        {n.address}{n.port ? `:${n.port}` : ''}
+                      </Typography>
                     </TableCell>
                     <TableCell>
-                      {n.isDisabled
-                        ? <Chip label="Откл." size="small" />
-                        : n.isConnected
-                          ? <Chip label="Онлайн" size="small" color="success" />
-                          : <Chip label="Офлайн" size="small" color="error" />}
+                      <NodeStatus node={n} />
                     </TableCell>
                     <TableCell>
-                      <Typography variant="caption">{n.usersOnline ?? '—'}</Typography>
+                      <Typography sx={{ fontSize: '0.8125rem', fontWeight: n.usersOnline ? 600 : 400, color: n.usersOnline ? 'text.primary' : 'text.secondary' }}>
+                        {n.usersOnline ?? '—'}
+                      </Typography>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -269,10 +386,8 @@ export default function DashboardPage() {
 
       {/* History */}
       {history.length > 0 && (
-        <Paper variant="outlined" sx={{ mt: 3 }}>
-          <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-            <Typography variant="subtitle1" fontWeight={600}>Последние ротации</Typography>
-          </Box>
+        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+          <SectionHeader title="Последние ротации" count={history.length} />
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -284,18 +399,34 @@ export default function DashboardPage() {
             </TableHead>
             <TableBody>
               {history.map((h) => (
-                <TableRow key={h.id} hover>
+                <TableRow key={h.id}>
                   <TableCell>
-                    <Typography variant="caption">{new Date(h.timestamp).toLocaleString('ru')}</Typography>
-                  </TableCell>
-                  <TableCell>{h.profileName}</TableCell>
-                  <TableCell>
-                    {h.status === 'success'
-                      ? <Chip label="OK" size="small" color="success" />
-                      : <Chip label="Ошибка" size="small" color="error" />}
+                    <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                      {new Date(h.timestamp).toLocaleString('ru', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="caption" color="textSecondary">{h.message}</Typography>
+                    <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500 }}>{h.profileName}</Typography>
+                  </TableCell>
+                  <TableCell>
+                    {h.status === 'success' ? (
+                      <Chip
+                        label="OK"
+                        size="small"
+                        sx={{ bgcolor: '#10b98120', color: '#10b981', border: 'none', fontWeight: 600, fontSize: '0.68rem' }}
+                        variant="outlined"
+                      />
+                    ) : (
+                      <Chip
+                        label="Ошибка"
+                        size="small"
+                        sx={{ bgcolor: '#ef444420', color: '#ef4444', border: 'none', fontWeight: 600, fontSize: '0.68rem' }}
+                        variant="outlined"
+                      />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{h.message}</Typography>
                   </TableCell>
                 </TableRow>
               ))}
@@ -304,8 +435,15 @@ export default function DashboardPage() {
         </Paper>
       )}
 
-      <Snackbar open={msg.open} autoHideDuration={4000} onClose={() => setMsg(m => ({ ...m, open: false }))}>
-        <Alert severity={msg.type}>{msg.text}</Alert>
+      <Snackbar
+        open={msg.open}
+        autoHideDuration={4000}
+        onClose={() => setMsg(m => ({ ...m, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity={msg.type} onClose={() => setMsg(m => ({ ...m, open: false }))}>
+          {msg.text}
+        </Alert>
       </Snackbar>
     </Box>
   );

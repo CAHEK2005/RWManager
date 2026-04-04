@@ -2,13 +2,13 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions,
   DialogContent, DialogTitle, Divider, FormControl, FormControlLabel,
-  IconButton, InputLabel, MenuItem, Paper, Radio, RadioGroup, Select,
+  IconButton, InputLabel, Menu, MenuItem, Paper, Radio, RadioGroup, Select,
   Snackbar, Stack, Switch, Tab, Table, TableBody, TableCell, TableHead,
   TableRow, Tabs, TextField, Tooltip, Typography,
 } from '@mui/material';
 import {
   Add, Close, ContentCopy, CropSquare, Delete, Edit, FileDownload,
-  KeyboardArrowDown, KeyboardArrowUp, Label,
+  KeyboardArrowDown, KeyboardArrowUp, Label, MoreVert,
   LockOpen, OpenInNew, PlayArrow, Remove, Terminal, UploadFile, VpnKey,
 } from '@mui/icons-material';
 import type { SelectChangeEvent } from '@mui/material/Select';
@@ -450,6 +450,10 @@ export default function ScriptsPage() {
   // ── Per-node vars (queue run) ─────────────────────────────────────────────
   const [perNodeVarsQueueMode, setPerNodeVarsQueueMode] = useState(false);
   const [varValuesPerScriptPerNode, setVarValuesPerScriptPerNode] = useState<Record<string, Record<string, Record<string, string>>>>({});
+
+  // ── Overflow menus ────────────────────────────────────────────────────────
+  const [nodeRowMenu, setNodeRowMenu] = useState<{ el: HTMLElement; nodeId: string; nodeName: string } | null>(null);
+  const [secretRowMenu, setSecretRowMenu] = useState<{ el: HTMLElement; id: string; name: string } | null>(null);
 
   // ── Confirm dialogs ───────────────────────────────────────────────────────
   const [confirmDel, setConfirmDel] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({ open: false, title: '', message: '', onConfirm: () => {} });
@@ -1029,10 +1033,10 @@ export default function ScriptsPage() {
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
-        <Terminal color="primary" />
-        <Typography variant="h5">Скрипты</Typography>
-      </Stack>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>Скрипты</Typography>
+        <Typography variant="body2" color="text.secondary">SSH-ноды, bash-скрипты и хранилище секретов</Typography>
+      </Box>
 
       <Paper>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
@@ -1047,17 +1051,19 @@ export default function ScriptsPage() {
           {tab === 0 && (
             <Box>
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-                <Typography variant="h6">Ноды</Typography>
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>SSH-ноды</Typography>
+                  <Typography variant="caption" color="text.secondary">Серверы для выполнения скриптов</Typography>
+                </Box>
                 <Stack direction="row" spacing={1}>
                   <Button variant="outlined" startIcon={<Label />} size="small" onClick={() => { setCatDialog(true); setCatEditId(null); setCatForm({ name: '', color: '#1976d2' }); }}>
                     Категории
                   </Button>
                   <Button variant="contained" startIcon={<Add />} size="small" onClick={openAddNode}>
-                    Добавить
+                    Добавить ноду
                   </Button>
                 </Stack>
               </Stack>
-              <Divider sx={{ mb: 2 }} />
 
               {sshNodes.length === 0 ? (
                 <Alert severity="info">
@@ -1112,26 +1118,23 @@ export default function ScriptsPage() {
                             )}
                           </TableCell>
                           <TableCell align="right">
-                            <Tooltip title="Открыть терминал">
-                              <IconButton size="small" color="primary" onClick={() => openTerminal(node)}>
-                                <Terminal fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Открыть терминал в отдельном окне">
-                              <IconButton size="small" onClick={() => openTerminalPopup(node)}>
-                                <OpenInNew fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Изменить">
-                              <IconButton size="small" onClick={() => openEditNode(node)}>
-                                <Edit fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Удалить">
-                              <IconButton size="small" color="error" onClick={() => handleDeleteNode(node.id, node.name)}>
-                                <Delete fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
+                            <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                              <Tooltip title="Открыть терминал">
+                                <IconButton size="small" color="primary" onClick={() => openTerminal(node)}>
+                                  <Terminal sx={{ fontSize: 16 }} />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Изменить">
+                                <IconButton size="small" onClick={() => openEditNode(node)}>
+                                  <Edit sx={{ fontSize: 16 }} />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Ещё">
+                                <IconButton size="small" onClick={e => setNodeRowMenu({ el: e.currentTarget, nodeId: node.id, nodeName: node.name })}>
+                                  <MoreVert sx={{ fontSize: 16 }} />
+                                </IconButton>
+                              </Tooltip>
+                            </Stack>
                           </TableCell>
                         </TableRow>
                       );
@@ -1146,9 +1149,12 @@ export default function ScriptsPage() {
           {tab === 1 && (
             <Box>
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-                <Typography variant="h6">Скрипты</Typography>
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Скрипты</Typography>
+                  <Typography variant="caption" color="text.secondary">Bash-скрипты для выполнения на нодах</Typography>
+                </Box>
                 <Button variant="contained" startIcon={<Add />} size="small" onClick={openAddScript}>
-                  Новый скрипт
+                  Создать скрипт
                 </Button>
               </Stack>
 
@@ -1223,53 +1229,40 @@ export default function ScriptsPage() {
                           </Box>
                         )}
                       </Box>
-                      <Stack direction="column" spacing={1} sx={{ flexShrink: 0 }}>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          startIcon={<PlayArrow />}
-                          onClick={() => openRunDialog(s)}
-                          disabled={sshNodes.length === 0}
-                        >
+                    </Stack>
+                    {/* Card footer */}
+                    <Stack direction="row" justifyContent="space-between" alignItems="center"
+                      sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: 'divider' }}>
+                      <Stack direction="row" spacing={1}>
+                        <Button size="small" variant="contained" startIcon={<PlayArrow />}
+                          onClick={() => openRunDialog(s)} disabled={sshNodes.length === 0}>
                           Запустить
                         </Button>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<Add />}
-                          onClick={() => addToQueue(s)}
-                          disabled={sshNodes.length === 0}
-                        >
+                        <Button size="small" variant="outlined" startIcon={<Add />}
+                          onClick={() => addToQueue(s)} disabled={sshNodes.length === 0}>
                           В очередь
                         </Button>
+                      </Stack>
+                      <Stack direction="row" spacing={0.5}>
                         {s.isBuiltIn ? (
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<ContentCopy />}
-                            onClick={() => handleCloneScript(s)}
-                          >
-                            Клонировать
-                          </Button>
+                          <Tooltip title="Клонировать">
+                            <IconButton size="small" onClick={() => handleCloneScript(s)}>
+                              <ContentCopy sx={{ fontSize: 16 }} />
+                            </IconButton>
+                          </Tooltip>
                         ) : (
                           <>
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              startIcon={<Edit />}
-                              onClick={() => openEditScript(s)}
-                            >
-                              Изменить
-                            </Button>
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              color="error"
-                              startIcon={<Delete />}
-                              onClick={() => handleDeleteScript(s.id, s.name)}
-                            >
-                              Удалить
-                            </Button>
+                            <Tooltip title="Изменить">
+                              <IconButton size="small" onClick={() => openEditScript(s)}>
+                                <Edit sx={{ fontSize: 16 }} />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Удалить">
+                              <IconButton size="small" onClick={() => handleDeleteScript(s.id, s.name)}
+                                sx={{ color: 'error.main' }}>
+                                <Delete sx={{ fontSize: 16 }} />
+                              </IconButton>
+                            </Tooltip>
                           </>
                         )}
                       </Stack>
@@ -1284,12 +1277,14 @@ export default function ScriptsPage() {
           {tab === 2 && (
             <Box>
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-                <Typography variant="h6">Секреты</Typography>
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Секреты</Typography>
+                  <Typography variant="caption" color="text.secondary">Зашифрованное хранилище паролей, ключей и токенов</Typography>
+                </Box>
                 <Button variant="contained" startIcon={<Add />} size="small" onClick={openAddSecret}>
-                  Добавить
+                  Добавить секрет
                 </Button>
               </Stack>
-              <Divider sx={{ mb: 2 }} />
 
               {secrets.length === 0 ? (
                 <Alert severity="info">
@@ -1331,16 +1326,18 @@ export default function ScriptsPage() {
                           </Typography>
                         </TableCell>
                         <TableCell align="right">
-                          <Tooltip title="Изменить">
-                            <IconButton size="small" onClick={() => openEditSecret(s)}>
-                              <Edit fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Удалить">
-                            <IconButton size="small" color="error" onClick={() => handleDeleteSecret(s.id, s.name)}>
-                              <Delete fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                            <Tooltip title="Изменить">
+                              <IconButton size="small" onClick={() => openEditSecret(s)}>
+                                <Edit sx={{ fontSize: 16 }} />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Ещё">
+                              <IconButton size="small" onClick={e => setSecretRowMenu({ el: e.currentTarget, id: s.id, name: s.name })}>
+                                <MoreVert sx={{ fontSize: 16 }} />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -2219,6 +2216,47 @@ export default function ScriptsPage() {
           ))}
         </DialogContent>
       </Dialog>
+
+      {/* Node row overflow menu */}
+      <Menu
+        anchorEl={nodeRowMenu?.el}
+        open={Boolean(nodeRowMenu)}
+        onClose={() => setNodeRowMenu(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <MenuItem onClick={() => {
+          const node = sshNodes.find(n => n.id === nodeRowMenu?.nodeId);
+          setNodeRowMenu(null);
+          if (node) openTerminalPopup(node);
+        }}>
+          <OpenInNew sx={{ fontSize: 16, mr: 1 }} />Открыть терминал в окне
+        </MenuItem>
+        <MenuItem sx={{ color: 'error.main' }} onClick={() => {
+          const { nodeId, nodeName } = nodeRowMenu || {};
+          setNodeRowMenu(null);
+          if (nodeId && nodeName) handleDeleteNode(nodeId, nodeName);
+        }}>
+          <Delete sx={{ fontSize: 16, mr: 1 }} />Удалить
+        </MenuItem>
+      </Menu>
+
+      {/* Secret row overflow menu */}
+      <Menu
+        anchorEl={secretRowMenu?.el}
+        open={Boolean(secretRowMenu)}
+        onClose={() => setSecretRowMenu(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <MenuItem sx={{ color: 'error.main' }} onClick={() => {
+          const { id, name } = secretRowMenu || {};
+          setSecretRowMenu(null);
+          if (id && name) handleDeleteSecret(id, name);
+        }}>
+          <Delete sx={{ fontSize: 16, mr: 1 }} />Удалить
+        </MenuItem>
+      </Menu>
 
       <ConfirmDialog
         open={confirmDel.open}
