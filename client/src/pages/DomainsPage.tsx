@@ -3,6 +3,7 @@ import { Box, TextField, Button, Typography, List, ListItem, ListItemText, IconB
 import { Delete, Add, UploadFile, Remove, Language, FileDownload } from '@mui/icons-material';
 import api from '../api';
 import UrlImportDialog from '../components/UrlImportDialog';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface Domain { id: number; name: string; }
 
@@ -12,6 +13,9 @@ export default function DomainsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [urlImportOpen, setUrlImportOpen] = useState(false);
+  const [confirmDel, setConfirmDel] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({ open: false, title: '', message: '', onConfirm: () => {} });
+  const askDelete = (title: string, message: string, onConfirm: () => void) =>
+    setConfirmDel({ open: true, title, message, onConfirm });
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -49,18 +53,26 @@ export default function DomainsPage() {
     loadDomains();
   };
 
-  const handleDelete = async (id: number) => {
-    await api.delete(`/domains/${id}`);
-    loadDomains();
+  const handleDelete = (id: number, name: string) => {
+    askDelete('Удалить домен', `Удалить домен "${name}" из белого списка?`, async () => {
+      setConfirmDel(d => ({ ...d, open: false }));
+      await api.delete(`/domains/${id}`);
+      loadDomains();
+    });
   };
 
-  const handleDeleteAll = async () => {
-    if (confirm('ВНИМАНИЕ! Вы действительно хотите удалить ВСЕ домены из белого списка?')) {
-      try {
-        await api.delete('/domains/all');
-        loadDomains();
-      } catch (_e) { alert('Ошибка удаления'); }
-    }
+  const handleDeleteAll = () => {
+    askDelete(
+      'Удалить все домены',
+      'ВНИМАНИЕ! Вы действительно хотите удалить ВСЕ домены из белого списка?',
+      async () => {
+        setConfirmDel(d => ({ ...d, open: false }));
+        try {
+          await api.delete('/domains/all');
+          loadDomains();
+        } catch (_e) { /* ignore */ }
+      },
+    );
   };
 
   const handleExport = async () => {
@@ -186,11 +198,21 @@ export default function DomainsPage() {
         onAdd={handleUrlImport}
       />
 
+      <ConfirmDialog
+        open={confirmDel.open}
+        title={confirmDel.title}
+        message={confirmDel.message}
+        confirmLabel="Удалить"
+        confirmColor="error"
+        onConfirm={confirmDel.onConfirm}
+        onCancel={() => setConfirmDel(d => ({ ...d, open: false }))}
+      />
+
       <Paper sx={{ mt: domains.length > 0 ? 0 : 3 }}>
         <List>
           {domains.map((d) => (
             <ListItem key={d.id} secondaryAction={
-              <IconButton edge="end" onClick={() => handleDelete(d.id)}><Delete /></IconButton>
+              <IconButton edge="end" onClick={() => handleDelete(d.id, d.name)}><Delete /></IconButton>
             }>
               <ListItemText primary={d.name} />
             </ListItem>

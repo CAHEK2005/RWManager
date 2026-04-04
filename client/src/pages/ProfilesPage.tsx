@@ -13,6 +13,7 @@ import {
 import type { SelectChangeEvent } from '@mui/material/Select';
 import api from '../api';
 import UrlImportDialog from '../components/UrlImportDialog';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -178,6 +179,7 @@ export default function ProfilesPage() {
   // Dialogs
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createCloseConfirm, setCreateCloseConfirm] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [profileToDelete, setProfileToDelete] = useState<ManagedProfile | null>(null);
   const [deleteFromRemnawave, setDeleteFromRemnawave] = useState(false);
@@ -1469,7 +1471,13 @@ export default function ProfilesPage() {
       </Dialog>
 
       {/* Create New Dialog */}
-      <Dialog open={createDialogOpen} onClose={() => { setCreateDialogOpen(false); setCreateName(''); setCreateNameError(''); }} maxWidth="xs" fullWidth>
+      <Dialog open={createDialogOpen} onClose={(_e, reason) => {
+        if ((reason === 'backdropClick' || reason === 'escapeKeyDown') && createName.trim()) {
+          setCreateCloseConfirm(true);
+        } else {
+          setCreateDialogOpen(false); setCreateName(''); setCreateNameError('');
+        }
+      }} maxWidth="xs" fullWidth>
         <DialogTitle>Создать новый профиль</DialogTitle>
         <DialogContent>
           <TextField
@@ -1495,6 +1503,16 @@ export default function ProfilesPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmDialog
+        open={createCloseConfirm}
+        title="Закрыть без сохранения?"
+        message="Введённые данные будут потеряны."
+        confirmLabel="Закрыть"
+        confirmColor="warning"
+        onConfirm={() => { setCreateCloseConfirm(false); setCreateDialogOpen(false); setCreateName(''); setCreateNameError(''); }}
+        onCancel={() => setCreateCloseConfirm(false)}
+      />
 
       <Snackbar open={msg.open} autoHideDuration={5000} onClose={() => setMsg(m => ({ ...m, open: false }))}>
         <Alert severity={msg.type}>{msg.text}</Alert>

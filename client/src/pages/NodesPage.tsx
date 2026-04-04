@@ -37,6 +37,7 @@ import {
   VpnKey,
 } from '@mui/icons-material';
 import api from '../api';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface RwNode {
   uuid: string;
@@ -72,6 +73,13 @@ export default function NodesPage() {
   const [nodes, setNodes] = useState<RwNode[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionError, setActionError] = useState('');
+
+  // Confirm dialogs
+  const [confirmDel, setConfirmDel] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({ open: false, title: '', message: '', onConfirm: () => {} });
+  const askDelete = (title: string, message: string, onConfirm: () => void) =>
+    setConfirmDel({ open: true, title, message, onConfirm });
+  const [closeConfirm, setCloseConfirm] = useState(false);
+  const [installFormDirty, setInstallFormDirty] = useState(false);
 
   // Install dialog
   const [installOpen, setInstallOpen] = useState(false);
@@ -187,6 +195,7 @@ export default function NodesPage() {
     setNodePort('2222');
     setEnableOptimization(true);
     setInstallError('');
+    setInstallFormDirty(false);
     setInstallOpen(true);
   };
 
@@ -350,7 +359,14 @@ export default function NodesPage() {
                     <IconButton
                       size="small"
                       color="error"
-                      onClick={() => handleAction(() => api.delete(`/nodes/${node.uuid}`).then(() => {}))}
+                      onClick={() => askDelete(
+                        'Удалить ноду',
+                        `Удалить ноду "${node.name}" из Remnawave?`,
+                        () => {
+                          setConfirmDel(d => ({ ...d, open: false }));
+                          handleAction(() => api.delete(`/nodes/${node.uuid}`).then(() => {}));
+                        },
+                      )}
                     >
                       <Delete fontSize="small" />
                     </IconButton>
@@ -363,14 +379,21 @@ export default function NodesPage() {
       )}
 
       {/* Install dialog */}
-      <Dialog open={installOpen} onClose={() => setInstallOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={installOpen} onClose={(_e, reason) => {
+        if ((reason === 'backdropClick' || reason === 'escapeKeyDown') && installFormDirty) {
+          setCloseConfirm(true);
+        } else {
+          setInstallOpen(false);
+          setInstallFormDirty(false);
+        }
+      }} maxWidth="sm" fullWidth>
         <DialogTitle>Добавить ноду</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             <TextField
               label="Внутреннее имя"
               value={nodeName}
-              onChange={(e) => setNodeName(e.target.value)}
+              onChange={(e) => { setNodeName(e.target.value); setInstallFormDirty(true); }}
               fullWidth
               size="small"
             />
@@ -379,7 +402,7 @@ export default function NodesPage() {
               <TextField
                 label="IP-адрес сервера"
                 value={nodeIp}
-                onChange={(e) => setNodeIp(e.target.value)}
+                onChange={(e) => { setNodeIp(e.target.value); setInstallFormDirty(true); }}
                 fullWidth
                 size="small"
               />
@@ -548,7 +571,7 @@ export default function NodesPage() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setInstallOpen(false)}>Отмена</Button>
+          <Button onClick={() => { setInstallOpen(false); setInstallFormDirty(false); }}>Отмена</Button>
           <Button
             variant="contained"
             onClick={handleInstall}
@@ -600,6 +623,26 @@ export default function NodesPage() {
           <Button onClick={handleProgressClose}>Закрыть</Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmDel.open}
+        title={confirmDel.title}
+        message={confirmDel.message}
+        confirmLabel="Удалить"
+        confirmColor="error"
+        onConfirm={confirmDel.onConfirm}
+        onCancel={() => setConfirmDel(d => ({ ...d, open: false }))}
+      />
+
+      <ConfirmDialog
+        open={closeConfirm}
+        title="Закрыть без сохранения?"
+        message="Введённые данные будут потеряны."
+        confirmLabel="Закрыть"
+        confirmColor="warning"
+        onConfirm={() => { setCloseConfirm(false); setInstallOpen(false); setInstallFormDirty(false); }}
+        onCancel={() => setCloseConfirm(false)}
+      />
 
       {/* Secret picker dialog */}
       <Dialog open={secretPickerOpen} onClose={() => setSecretPickerOpen(false)} maxWidth="xs" fullWidth>

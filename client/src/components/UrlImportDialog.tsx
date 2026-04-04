@@ -15,6 +15,7 @@ import {
   Typography,
 } from '@mui/material';
 import api from '../api';
+import ConfirmDialog from './ConfirmDialog';
 
 interface CategoryResult {
   name: string;
@@ -35,6 +36,7 @@ export default function UrlImportDialog({ open, onClose, onAdd }: UrlImportDialo
   const [categories, setCategories] = useState<CategoryResult[] | null>(null);
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [closeConfirm, setCloseConfirm] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -92,8 +94,17 @@ export default function UrlImportDialog({ open, onClose, onAdd }: UrlImportDialo
     onClose();
   };
 
+  const handleClose = (_event?: unknown, reason?: string) => {
+    if ((reason === 'backdropClick' || reason === 'escapeKeyDown') && url.trim() && categories === null) {
+      setCloseConfirm(true);
+    } else {
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>Загрузить домены из URL</DialogTitle>
       <DialogContent>
         {categories === null ? (
@@ -189,5 +200,15 @@ export default function UrlImportDialog({ open, onClose, onAdd }: UrlImportDialo
         )}
       </DialogActions>
     </Dialog>
+    <ConfirmDialog
+      open={closeConfirm}
+      title="Закрыть без сохранения?"
+      message="Введённый URL будет потерян."
+      confirmLabel="Закрыть"
+      confirmColor="warning"
+      onConfirm={() => { setCloseConfirm(false); onClose(); }}
+      onCancel={() => setCloseConfirm(false)}
+    />
+    </>
   );
 }

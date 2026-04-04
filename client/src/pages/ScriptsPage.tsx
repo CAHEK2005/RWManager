@@ -16,6 +16,7 @@ import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import api from '../api';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 // ─── Variable extraction ──────────────────────────────────────────────────────
 
@@ -450,6 +451,19 @@ export default function ScriptsPage() {
   const [perNodeVarsQueueMode, setPerNodeVarsQueueMode] = useState(false);
   const [varValuesPerScriptPerNode, setVarValuesPerScriptPerNode] = useState<Record<string, Record<string, Record<string, string>>>>({});
 
+  // ── Confirm dialogs ───────────────────────────────────────────────────────
+  const [confirmDel, setConfirmDel] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({ open: false, title: '', message: '', onConfirm: () => {} });
+  const askDelete = (title: string, message: string, onConfirm: () => void) =>
+    setConfirmDel({ open: true, title, message, onConfirm });
+  const [closeConfirm, setCloseConfirm] = useState(false);
+  const pendingCloseRef = useRef<() => void>(() => {});
+  const askClose = (onConfirmed: () => void) => { pendingCloseRef.current = onConfirmed; setCloseConfirm(true); };
+  // isDirty per form dialog
+  const [nodeFormDirty, setNodeFormDirty] = useState(false);
+  const [catFormDirty, setCatFormDirty] = useState(false);
+  const [scriptFormDirty, setScriptFormDirty] = useState(false);
+  const [secretFormDirty, setSecretFormDirty] = useState(false);
+
   // ── Terminals ─────────────────────────────────────────────────────────────
   const [terminals, setTerminals] = useState<TerminalSession[]>([]);
   const termInstancesRef = useRef<Map<string, TerminalInstance>>(new Map());
@@ -505,12 +519,14 @@ export default function ScriptsPage() {
   const openAddNode = () => {
     setNodeEditId(null);
     setNodeForm(blankNode());
+    setNodeFormDirty(false);
     setNodeDialog(true);
   };
 
   const openEditNode = (node: SshNode) => {
     setNodeEditId(node.id);
     setNodeForm({ ...node });
+    setNodeFormDirty(false);
     setNodeDialog(true);
   };
 
@@ -534,13 +550,16 @@ export default function ScriptsPage() {
     }
   };
 
-  const handleDeleteNode = async (id: string) => {
-    try {
-      await api.delete(`/scripts/ssh-nodes/${id}`);
-      loadSshNodes();
-    } catch (e: any) {
-      showMsg('error', e?.response?.data?.message || 'Ошибка удаления');
-    }
+  const handleDeleteNode = (id: string, name: string) => {
+    askDelete('Удалить ноду', `Удалить ноду "${name}"?`, async () => {
+      setConfirmDel(d => ({ ...d, open: false }));
+      try {
+        await api.delete(`/scripts/ssh-nodes/${id}`);
+        loadSshNodes();
+      } catch (e: any) {
+        showMsg('error', e?.response?.data?.message || 'Ошибка удаления');
+      }
+    });
   };
 
   const handleRwNodeSelect = (e: SelectChangeEvent<string>) => {
@@ -561,12 +580,14 @@ export default function ScriptsPage() {
   const openAddCategory = () => {
     setCatEditId(null);
     setCatForm({ name: '', color: '#1976d2' });
+    setCatFormDirty(false);
     setCatDialog(true);
   };
 
   const openEditCategory = (cat: NodeCategory) => {
     setCatEditId(cat.id);
     setCatForm({ name: cat.name, color: cat.color });
+    setCatFormDirty(false);
     setCatDialog(true);
   };
 
@@ -584,24 +605,26 @@ export default function ScriptsPage() {
     }
   };
 
-  const handleDeleteCategory = async (id: string) => {
-    const updated = categories.filter(c => c.id !== id);
-    try {
-      await api.post('/settings', { node_categories: JSON.stringify(updated) });
-      setCategories(updated);
-      // Удалить категорию из всех нод
-      const updatedNodes = sshNodes.map(n => ({
-        ...n,
-        categoryIds: (n.categoryIds || []).filter(cid => cid !== id),
-      }));
-      await Promise.all(updatedNodes
-        .filter((n, i) => JSON.stringify(n.categoryIds) !== JSON.stringify(sshNodes[i].categoryIds))
-        .map(n => api.patch(`/scripts/ssh-nodes/${n.id}`, n)),
-      );
-      await loadSshNodes();
-    } catch (e: any) {
-      showMsg('error', e?.response?.data?.message || 'Ошибка удаления');
-    }
+  const handleDeleteCategory = (id: string, name: string) => {
+    askDelete('Удалить категорию', `Удалить категорию "${name}"?`, async () => {
+      setConfirmDel(d => ({ ...d, open: false }));
+      const updated = categories.filter(c => c.id !== id);
+      try {
+        await api.post('/settings', { node_categories: JSON.stringify(updated) });
+        setCategories(updated);
+        const updatedNodes = sshNodes.map(n => ({
+          ...n,
+          categoryIds: (n.categoryIds || []).filter(cid => cid !== id),
+        }));
+        await Promise.all(updatedNodes
+          .filter((n, i) => JSON.stringify(n.categoryIds) !== JSON.stringify(sshNodes[i].categoryIds))
+          .map(n => api.patch(`/scripts/ssh-nodes/${n.id}`, n)),
+        );
+        await loadSshNodes();
+      } catch (e: any) {
+        showMsg('error', e?.response?.data?.message || 'Ошибка удаления');
+      }
+    });
   };
 
   const toggleNodeCategory = (catId: string) => {
@@ -621,6 +644,7 @@ export default function ScriptsPage() {
     setScriptForm({ name: '', description: '', content: '' });
     setUrlInput('');
     setUrlLoading(false);
+    setScriptFormDirty(false);
     setScriptDialog(true);
   };
 
@@ -629,6 +653,7 @@ export default function ScriptsPage() {
     setScriptForm({ name: s.name, description: s.description || '', content: s.content });
     setUrlInput('');
     setUrlLoading(false);
+    setScriptFormDirty(false);
     setScriptDialog(true);
   };
 
@@ -664,13 +689,16 @@ export default function ScriptsPage() {
     }
   };
 
-  const handleDeleteScript = async (id: string) => {
-    try {
-      await api.delete(`/scripts/scripts/${id}`);
-      loadScripts();
-    } catch (e: any) {
-      showMsg('error', e?.response?.data?.message || 'Ошибка удаления');
-    }
+  const handleDeleteScript = (id: string, name: string) => {
+    askDelete('Удалить скрипт', `Удалить скрипт "${name}"?`, async () => {
+      setConfirmDel(d => ({ ...d, open: false }));
+      try {
+        await api.delete(`/scripts/scripts/${id}`);
+        loadScripts();
+      } catch (e: any) {
+        showMsg('error', e?.response?.data?.message || 'Ошибка удаления');
+      }
+    });
   };
 
   const handleCloneScript = async (s: Script) => {
@@ -894,12 +922,14 @@ export default function ScriptsPage() {
   const openAddSecret = () => {
     setSecretEditId(null);
     setSecretForm({ name: '', type: 'password', value: '', description: '' });
+    setSecretFormDirty(false);
     setSecretDialog(true);
   };
 
   const openEditSecret = (s: Secret) => {
     setSecretEditId(s.id);
     setSecretForm({ name: s.name, type: s.type, value: '', description: s.description || '' });
+    setSecretFormDirty(false);
     setSecretDialog(true);
   };
 
@@ -927,13 +957,16 @@ export default function ScriptsPage() {
     }
   };
 
-  const handleDeleteSecret = async (id: string) => {
-    try {
-      await api.delete(`/secrets/${id}`);
-      loadSecrets();
-    } catch (e: any) {
-      showMsg('error', e?.response?.data?.message || 'Ошибка удаления');
-    }
+  const handleDeleteSecret = (id: string, name: string) => {
+    askDelete('Удалить секрет', `Удалить секрет "${name}"?`, async () => {
+      setConfirmDel(d => ({ ...d, open: false }));
+      try {
+        await api.delete(`/secrets/${id}`);
+        loadSecrets();
+      } catch (e: any) {
+        showMsg('error', e?.response?.data?.message || 'Ошибка удаления');
+      }
+    });
   };
 
   const openSecretPicker = (onPick: (v: string) => void) => {
@@ -1095,7 +1128,7 @@ export default function ScriptsPage() {
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="Удалить">
-                              <IconButton size="small" color="error" onClick={() => handleDeleteNode(node.id)}>
+                              <IconButton size="small" color="error" onClick={() => handleDeleteNode(node.id, node.name)}>
                                 <Delete fontSize="small" />
                               </IconButton>
                             </Tooltip>
@@ -1233,7 +1266,7 @@ export default function ScriptsPage() {
                               size="small"
                               color="error"
                               startIcon={<Delete />}
-                              onClick={() => handleDeleteScript(s.id)}
+                              onClick={() => handleDeleteScript(s.id, s.name)}
                             >
                               Удалить
                             </Button>
@@ -1304,7 +1337,7 @@ export default function ScriptsPage() {
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Удалить">
-                            <IconButton size="small" color="error" onClick={() => handleDeleteSecret(s.id)}>
+                            <IconButton size="small" color="error" onClick={() => handleDeleteSecret(s.id, s.name)}>
                               <Delete fontSize="small" />
                             </IconButton>
                           </Tooltip>
@@ -1320,7 +1353,11 @@ export default function ScriptsPage() {
       </Paper>
 
       {/* ── SSH Node Dialog ── */}
-      <Dialog open={nodeDialog} onClose={() => setNodeDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog open={nodeDialog} onClose={(_e, reason) => {
+        if ((reason === 'backdropClick' || reason === 'escapeKeyDown') && nodeFormDirty) {
+          askClose(() => { setNodeDialog(false); setNodeFormDirty(false); });
+        } else { setNodeDialog(false); setNodeFormDirty(false); }
+      }} maxWidth="sm" fullWidth>
         <DialogTitle>{nodeEditId ? 'Изменить ноду' : 'Добавить ноду'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -1345,14 +1382,14 @@ export default function ScriptsPage() {
               size="small"
               fullWidth
               value={nodeForm.name || ''}
-              onChange={e => setNodeForm(p => ({ ...p, name: e.target.value }))}
+              onChange={e => { setNodeForm(p => ({ ...p, name: e.target.value })); setNodeFormDirty(true); }}
             />
             <TextField
               label="IP-адрес"
               size="small"
               fullWidth
               value={nodeForm.ip || ''}
-              onChange={e => setNodeForm(p => ({ ...p, ip: e.target.value }))}
+              onChange={e => { setNodeForm(p => ({ ...p, ip: e.target.value })); setNodeFormDirty(true); }}
             />
             <Stack direction="row" spacing={2}>
               <TextField
@@ -1480,7 +1517,11 @@ export default function ScriptsPage() {
       </Dialog>
 
       {/* ── Categories Dialog ── */}
-      <Dialog open={catDialog} onClose={() => setCatDialog(false)} maxWidth="xs" fullWidth>
+      <Dialog open={catDialog} onClose={(_e, reason) => {
+        if ((reason === 'backdropClick' || reason === 'escapeKeyDown') && catFormDirty) {
+          askClose(() => { setCatDialog(false); setCatFormDirty(false); });
+        } else { setCatDialog(false); setCatFormDirty(false); }
+      }} maxWidth="xs" fullWidth>
         <DialogTitle>Категории нод</DialogTitle>
         <DialogContent>
           <Stack spacing={1} sx={{ mt: 1 }}>
@@ -1492,7 +1533,7 @@ export default function ScriptsPage() {
                 <Box sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: cat.color, flexShrink: 0 }} />
                 <Typography variant="body2" sx={{ flex: 1 }}>{cat.name}</Typography>
                 <IconButton size="small" onClick={() => openEditCategory(cat)}><Edit fontSize="small" /></IconButton>
-                <IconButton size="small" color="error" onClick={() => handleDeleteCategory(cat.id)}><Delete fontSize="small" /></IconButton>
+                <IconButton size="small" color="error" onClick={() => handleDeleteCategory(cat.id, cat.name)}><Delete fontSize="small" /></IconButton>
               </Stack>
             ))}
             <Divider sx={{ my: 1 }} />
@@ -1502,7 +1543,7 @@ export default function ScriptsPage() {
                 label="Название"
                 size="small"
                 value={catForm.name}
-                onChange={e => setCatForm(p => ({ ...p, name: e.target.value }))}
+                onChange={e => { setCatForm(p => ({ ...p, name: e.target.value })); setCatFormDirty(true); }}
                 sx={{ flex: 1 }}
               />
               <Tooltip title="Выбрать цвет">
@@ -1511,7 +1552,7 @@ export default function ScriptsPage() {
                     component="input"
                     type="color"
                     value={catForm.color}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCatForm(p => ({ ...p, color: e.target.value }))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setCatForm(p => ({ ...p, color: e.target.value })); setCatFormDirty(true); }}
                     sx={{
                       position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer',
                       width: '100%', height: '100%', border: 'none', padding: 0,
@@ -1542,7 +1583,11 @@ export default function ScriptsPage() {
       </Dialog>
 
       {/* ── Script Dialog ── */}
-      <Dialog open={scriptDialog} onClose={() => setScriptDialog(false)} maxWidth="md" fullWidth>
+      <Dialog open={scriptDialog} onClose={(_e, reason) => {
+        if ((reason === 'backdropClick' || reason === 'escapeKeyDown') && scriptFormDirty) {
+          askClose(() => { setScriptDialog(false); setScriptFormDirty(false); });
+        } else { setScriptDialog(false); setScriptFormDirty(false); }
+      }} maxWidth="md" fullWidth>
         <DialogTitle>{scriptEditId ? 'Изменить скрипт' : 'Новый скрипт'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -1551,7 +1596,7 @@ export default function ScriptsPage() {
               size="small"
               fullWidth
               value={scriptForm.name || ''}
-              onChange={e => setScriptForm(p => ({ ...p, name: e.target.value }))}
+              onChange={e => { setScriptForm(p => ({ ...p, name: e.target.value })); setScriptFormDirty(true); }}
             />
             <TextField
               label="Описание"
@@ -1588,7 +1633,7 @@ export default function ScriptsPage() {
               rows={12}
               fullWidth
               value={scriptForm.content || ''}
-              onChange={e => setScriptForm(p => ({ ...p, content: e.target.value }))}
+              onChange={e => { setScriptForm(p => ({ ...p, content: e.target.value })); setScriptFormDirty(true); }}
               slotProps={{ input: { style: { fontFamily: 'monospace', fontSize: '0.8rem' } } }}
             />
           </Stack>
@@ -1600,7 +1645,11 @@ export default function ScriptsPage() {
       </Dialog>
 
       {/* ── Secrets Dialog ── */}
-      <Dialog open={secretDialog} onClose={() => setSecretDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog open={secretDialog} onClose={(_e, reason) => {
+        if ((reason === 'backdropClick' || reason === 'escapeKeyDown') && secretFormDirty) {
+          askClose(() => { setSecretDialog(false); setSecretFormDirty(false); });
+        } else { setSecretDialog(false); setSecretFormDirty(false); }
+      }} maxWidth="sm" fullWidth>
         <DialogTitle>{secretEditId ? 'Изменить секрет' : 'Новый секрет'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -1609,7 +1658,7 @@ export default function ScriptsPage() {
               size="small"
               fullWidth
               value={secretForm.name}
-              onChange={e => setSecretForm(p => ({ ...p, name: e.target.value }))}
+              onChange={e => { setSecretForm(p => ({ ...p, name: e.target.value })); setSecretFormDirty(true); }}
               placeholder="Например: SSH-ключ для node-01"
             />
             <FormControl size="small" fullWidth>
@@ -1654,7 +1703,7 @@ export default function ScriptsPage() {
                 rows={secretForm.type === 'ssh-key' ? 6 : 1}
                 type={secretForm.type !== 'ssh-key' ? 'password' : undefined}
                 value={secretForm.value}
-                onChange={e => setSecretForm(p => ({ ...p, value: e.target.value }))}
+                onChange={e => { setSecretForm(p => ({ ...p, value: e.target.value })); setSecretFormDirty(true); }}
                 placeholder={secretForm.type === 'ssh-key' ? '-----BEGIN OPENSSH PRIVATE KEY-----' : undefined}
                 slotProps={secretForm.type === 'ssh-key' ? { input: { style: { fontFamily: 'monospace', fontSize: '0.75rem' } } } : undefined}
               />
@@ -2170,6 +2219,26 @@ export default function ScriptsPage() {
           ))}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmDel.open}
+        title={confirmDel.title}
+        message={confirmDel.message}
+        confirmLabel="Удалить"
+        confirmColor="error"
+        onConfirm={confirmDel.onConfirm}
+        onCancel={() => setConfirmDel(d => ({ ...d, open: false }))}
+      />
+
+      <ConfirmDialog
+        open={closeConfirm}
+        title="Закрыть без сохранения?"
+        message="Введённые данные будут потеряны."
+        confirmLabel="Закрыть"
+        confirmColor="warning"
+        onConfirm={() => { setCloseConfirm(false); pendingCloseRef.current(); }}
+        onCancel={() => setCloseConfirm(false)}
+      />
 
       <Snackbar
         open={msg.open}
