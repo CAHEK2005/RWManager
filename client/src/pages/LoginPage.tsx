@@ -38,7 +38,7 @@ export default function LoginPage() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0,
           }}>
-            <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '0.8rem', lineHeight: 1 }}>RW</Typography>
+            <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '0.7rem', lineHeight: 1 }}>RWM</Typography>
           </Box>
           <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>RWManager</Typography>
         </Box>

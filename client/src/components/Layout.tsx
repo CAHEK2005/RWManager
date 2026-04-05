@@ -107,7 +107,7 @@ export default function Layout() {
           bgcolor: s.textBrand, display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0,
         }}>
-          <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '0.8rem', lineHeight: 1 }}>RW</Typography>
+          <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '0.7rem', lineHeight: 1 }}>RWM</Typography>
         </Box>
         <Typography sx={{ color: s.textActive, fontWeight: 600, fontSize: '0.9rem', letterSpacing: '-0.01em' }}>
           RWManager
