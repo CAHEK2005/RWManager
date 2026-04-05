@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Patch, Delete,
-  Body, Param, HttpException, HttpStatus,
+  Body, Param, Query, HttpException, HttpStatus,
 } from '@nestjs/common';
 import { ScriptsService } from './scripts.service';
 
@@ -153,15 +153,6 @@ export class ScriptsController {
   @Get('history')
   async getHistory(@Query('page') page?: string, @Query('limit') limit?: string) {
     return this.scriptsService.getHistory(Number(page) || 1, Number(limit) || 20);
-  }
-
-  @Get('history/by-script/:scriptId')
-  async getHistoryByScript(
-    @Param('scriptId') scriptId: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.scriptsService.getHistoryByScript(scriptId, Number(page) || 1, Number(limit) || 10);
   }
 
   @Get('history/:id')

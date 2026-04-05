@@ -70,7 +70,6 @@ export interface HistoryListItem {
   durationMs: number;
   nodeCount: number;
   successCount: number;
-  logPreview?: string;
 }
 
 const SYSCTL_CONTENT = `net.ipv6.conf.all.disable_ipv6 = 1
@@ -499,31 +498,6 @@ export class ScriptsService implements OnModuleInit {
     await this.saveSetting('script_history', '[]');
   }
 
-  async getHistoryByScript(scriptId: string, page = 1, limit = 10): Promise<{ data: HistoryListItem[]; total: number }> {
-    const history = await this.loadHistory();
-    const filtered = history.filter(e => e.scriptId === scriptId);
-    const total = filtered.length;
-    const start = (page - 1) * limit;
-    const data = filtered.slice(start, start + limit).map(e => {
-      const allLogs = e.nodeResults.flatMap(r => r.logs);
-      const meaningful = allLogs.filter(l => !l.startsWith('[SSH]') && !l.startsWith('[AUTO]'));
-      const logPreview = (meaningful[meaningful.length - 1] || allLogs[allLogs.length - 1] || '').slice(0, 120);
-      return {
-        id: e.id,
-        scriptId: e.scriptId,
-        scriptName: e.scriptName,
-        status: e.status,
-        startedAt: e.startedAt,
-        finishedAt: e.finishedAt,
-        durationMs: e.durationMs,
-        nodeCount: e.nodeResults.length,
-        successCount: e.nodeResults.filter(r => r.status === 'success').length,
-        logPreview,
-      };
-    });
-    return { data, total };
-  }
-
   // ── Execute ──────────────────────────────────────────────────────────────────
 
   async executeScript(
@@ -546,6 +520,7 @@ export class ScriptsService implements OnModuleInit {
     ].filter(v => v.length > 3);
 
     const jobId = uuidv4();
+    const startedAt = new Date().toISOString();
     const job: ScriptJob = {
       scriptName: script.name,
       status: 'running',
@@ -578,8 +553,23 @@ export class ScriptsService implements OnModuleInit {
       job.status = job.results.every(r => r.status === 'success') ? 'success' : 'error';
     }).catch(() => {
       job.status = 'error';
-    }).finally(() => {
-      // Auto-cleanup completed jobs after 1 hour to prevent memory leak
+    }).finally(async () => {
+      const finishedAt = new Date().toISOString();
+      await this.appendHistory({
+        id: jobId,
+        scriptId,
+        scriptName: script.name,
+        status: job.status as 'success' | 'error',
+        startedAt,
+        finishedAt,
+        durationMs: new Date(finishedAt).getTime() - new Date(startedAt).getTime(),
+        nodeResults: job.results.map(r => ({
+          nodeId: r.nodeId,
+          nodeName: r.nodeName,
+          status: r.status as 'success' | 'error',
+          logs: r.logs,
+        })),
+      });
       setTimeout(() => this.jobs.delete(jobId), 3_600_000);
     });
 
@@ -613,8 +603,10 @@ export class ScriptsService implements OnModuleInit {
     ].filter(v => v.length > 3);
 
     const jobId = uuidv4();
+    const startedAt = new Date().toISOString();
+    const scriptName = resolvedScripts.map(s => s.name).join(' → ');
     const job: ScriptJob = {
-      scriptName: resolvedScripts.map(s => s.name).join(' → '),
+      scriptName,
       status: 'running',
       results: targetNodes.map(n => ({
         nodeId: n.id,
@@ -653,7 +645,23 @@ export class ScriptsService implements OnModuleInit {
       job.status = job.results.every(r => r.status === 'success') ? 'success' : 'error';
     }).catch(() => {
       job.status = 'error';
-    }).finally(() => {
+    }).finally(async () => {
+      const finishedAt = new Date().toISOString();
+      await this.appendHistory({
+        id: jobId,
+        scriptId: scriptIds.join(','),
+        scriptName,
+        status: job.status as 'success' | 'error',
+        startedAt,
+        finishedAt,
+        durationMs: new Date(finishedAt).getTime() - new Date(startedAt).getTime(),
+        nodeResults: job.results.map(r => ({
+          nodeId: r.nodeId,
+          nodeName: r.nodeName,
+          status: r.status as 'success' | 'error',
+          logs: r.logs,
+        })),
+      });
       setTimeout(() => this.jobs.delete(jobId), 3_600_000);
     });
 
