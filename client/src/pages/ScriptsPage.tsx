@@ -4,7 +4,7 @@ import {
   DialogContent, DialogTitle, Divider, FormControl, FormControlLabel,
   IconButton, InputLabel, Menu, MenuItem, Paper, Radio, RadioGroup, Select,
   Snackbar, Stack, Switch, Tab, Table, TableBody, TableCell, TableHead,
-  TableRow, Tabs, TextField, Tooltip, Typography,
+  TableRow, Tabs, TextField, Tooltip, Typography, useMediaQuery, useTheme,
 } from '@mui/material';
 import {
   Add, Close, ContentCopy, CropSquare, Delete, Edit, FileDownload,
@@ -128,6 +128,7 @@ function TerminalWindow({
   onMinimizeToggle,
   onResize,
   instanceRef,
+  isMobile,
 }: {
   session: TerminalSession;
   index: number;
@@ -136,6 +137,7 @@ function TerminalWindow({
   onMinimizeToggle: (id: string) => void;
   onResize: (id: string, size: { width: number; height: number }) => void;
   instanceRef: React.MutableRefObject<Map<string, TerminalInstance>>;
+  isMobile?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -279,6 +281,31 @@ function TerminalWindow({
 
   const bodyHeight = session.size.height - TERM_HEADER_H;
 
+  // ── Mobile: fullscreen Dialog ─────────────────────────────────────────────
+  if (isMobile) {
+    return (
+      <Dialog fullScreen open TransitionProps={{ unmountOnExit: false }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#1a1a1a' }}>
+          <Box sx={{
+            display: 'flex', alignItems: 'center', px: 2,
+            height: 48, bgcolor: '#111', flexShrink: 0,
+            borderBottom: '1px solid rgba(255,255,255,0.1)',
+          }}>
+            <Terminal sx={{ color: '#4caf50', fontSize: 16, mr: 1 }} />
+            <Typography sx={{ color: '#e0e0e0', flex: 1, fontSize: '0.875rem', fontWeight: 500 }}>
+              {session.nodeName}
+            </Typography>
+            <IconButton size="small" onClick={() => onClose(session.id)} sx={{ color: '#9e9e9e' }}>
+              <Close sx={{ fontSize: 20 }} />
+            </IconButton>
+          </Box>
+          <Box ref={containerRef} sx={{ flex: 1, overflow: 'hidden', minHeight: 0 }} />
+        </Box>
+      </Dialog>
+    );
+  }
+
+  // ── Desktop: floating window ──────────────────────────────────────────────
   return (
     <Box
       sx={{
@@ -380,6 +407,9 @@ const blankNode = (): Partial<SshNode> => ({
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ScriptsPage() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   const [tab, setTab] = useState(0);
 
   // Data
@@ -1051,7 +1081,7 @@ export default function ScriptsPage() {
           {/* ── Tab 0: SSH Nodes ── */}
           {tab === 0 && (
             <Box>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ mb: 2, gap: 1 }}>
                 <Box>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>SSH-ноды</Typography>
                   <Typography variant="caption" color="text.secondary">Серверы для выполнения скриптов</Typography>
@@ -1071,16 +1101,17 @@ export default function ScriptsPage() {
                   Нет нод. Добавьте вручную или установите ноду через раздел «Ноды» — она появится здесь автоматически.
                 </Alert>
               ) : (
-                <Table size="small">
+                <Box sx={{ overflowX: 'auto' }}>
+                <Table size="small" sx={{ minWidth: 360 }}>
                   <TableHead>
                     <TableRow>
                       <TableCell>Имя</TableCell>
                       <TableCell>IP</TableCell>
-                      <TableCell>SSH-порт</TableCell>
-                      <TableCell>Пользователь</TableCell>
-                      <TableCell>Авторизация</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>SSH-порт</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Пользователь</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Авторизация</TableCell>
                       <TableCell>Категории</TableCell>
-                      <TableCell>Нода RW</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Нода RW</TableCell>
                       <TableCell align="right">Действия</TableCell>
                     </TableRow>
                   </TableHead>
@@ -1091,9 +1122,9 @@ export default function ScriptsPage() {
                         <TableRow key={node.id} hover>
                           <TableCell>{node.name}</TableCell>
                           <TableCell>{node.ip}</TableCell>
-                          <TableCell>{node.sshPort}</TableCell>
-                          <TableCell>{node.sshUser}</TableCell>
-                          <TableCell>
+                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{node.sshPort}</TableCell>
+                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{node.sshUser}</TableCell>
+                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                             <Chip
                               label={node.authType === 'key' ? 'SSH-ключ' : 'Пароль'}
                               size="small"
@@ -1111,7 +1142,7 @@ export default function ScriptsPage() {
                               })}
                             </Stack>
                           </TableCell>
-                          <TableCell>
+                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                             {rw ? (
                               <Chip label={rw.name} size="small" color="primary" variant="outlined" />
                             ) : (
@@ -1142,6 +1173,7 @@ export default function ScriptsPage() {
                     })}
                   </TableBody>
                 </Table>
+                </Box>
               )}
             </Box>
           )}
@@ -1389,14 +1421,14 @@ export default function ScriptsPage() {
               value={nodeForm.ip || ''}
               onChange={e => { setNodeForm(p => ({ ...p, ip: e.target.value })); setNodeFormDirty(true); }}
             />
-            <Stack direction="row" spacing={2}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
                 label="SSH-порт"
                 size="small"
                 type="number"
                 value={nodeForm.sshPort || 22}
                 onChange={e => setNodeForm(p => ({ ...p, sshPort: Number(e.target.value) }))}
-                sx={{ width: 120 }}
+                sx={{ width: { xs: '100%', sm: 120 } }}
               />
               <TextField
                 label="Пользователь"
@@ -2301,6 +2333,7 @@ export default function ScriptsPage() {
           onMinimizeToggle={toggleMinimize}
           onResize={resizeTerminal}
           instanceRef={termInstancesRef}
+          isMobile={isMobile}
         />
       ))}
     </Box>

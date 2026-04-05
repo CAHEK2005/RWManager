@@ -268,7 +268,7 @@ export default function NodesPage() {
   return (
     <Box>
       {/* Page header */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 3, gap: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'flex-start', justifyContent: 'space-between', mb: 3, gap: 2 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>Ноды</Typography>
           <Typography variant="body2" color="text.secondary">Управление нодами Remnawave</Typography>
@@ -288,98 +288,100 @@ export default function NodesPage() {
       )}
 
       {/* Nodes table */}
-      <Paper variant="outlined">
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Имя</TableCell>
-              <TableCell>Страна</TableCell>
-              <TableCell>Адрес</TableCell>
-              <TableCell>Статус</TableCell>
-              <TableCell>Онлайн</TableCell>
-              <TableCell align="right">Действия</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading && Array(3).fill(0).map((_, i) => (
-              <TableRow key={`sk-${i}`}>
-                {Array(6).fill(0).map((__, j) => (
-                  <TableCell key={j}><Skeleton variant="text" /></TableCell>
-                ))}
-              </TableRow>
-            ))}
-            {!loading && nodes.length === 0 && (
+      <Box sx={{ overflowX: 'auto' }}>
+        <Paper variant="outlined" sx={{ minWidth: 480 }}>
+          <Table size="small">
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                  Нет нод — нажмите «Добавить ноду»
-                </TableCell>
+                <TableCell>Имя</TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Страна</TableCell>
+                <TableCell>Адрес</TableCell>
+                <TableCell>Статус</TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Онлайн</TableCell>
+                <TableCell align="right">Действия</TableCell>
               </TableRow>
-            )}
-            {!loading && nodes.map(node => (
-              <TableRow key={node.uuid}>
-                <TableCell>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>{node.name}</Typography>
-                  {node.lastStatusMessage && !node.isConnected && !node.isDisabled && (
-                    <Typography variant="caption" color="error.main" display="block">{node.lastStatusMessage}</Typography>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" color="text.secondary">{node.countryCode || '—'}</Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>
-                    {node.address}{node.port ? `:${node.port}` : ''}
-                  </Typography>
-                  {node.xrayVersion && (
-                    <Typography variant="caption" color="text.secondary">xray {node.xrayVersion}</Typography>
-                  )}
-                </TableCell>
-                <TableCell><NodeStatusDot node={node} /></TableCell>
-                <TableCell>
-                  <Typography variant="body2">{node.usersOnline != null ? node.usersOnline : '—'}</Typography>
-                </TableCell>
-                <TableCell align="right">
-                  <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                    <Tooltip title="Перезапустить">
-                      <IconButton size="small" onClick={() => handleAction(() => api.post(`/nodes/${node.uuid}/restart`).then(() => {}))}>
-                        <Refresh sx={{ fontSize: 16 }} />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title={node.isDisabled ? 'Включить' : 'Отключить'}>
-                      <IconButton
-                        size="small"
-                        color={node.isDisabled ? 'default' : 'primary'}
-                        onClick={() => handleAction(() => (node.isDisabled
+            </TableHead>
+            <TableBody>
+              {loading && Array(3).fill(0).map((_, i) => (
+                <TableRow key={`sk-${i}`}>
+                  {Array(6).fill(0).map((__, j) => (
+                    <TableCell key={j}><Skeleton variant="text" /></TableCell>
+                  ))}
+                </TableRow>
+              ))}
+              {!loading && nodes.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                    Нет нод — нажмите «Добавить ноду»
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && nodes.map(node => (
+                <TableRow key={node.uuid}>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>{node.name}</Typography>
+                    {node.lastStatusMessage && !node.isConnected && !node.isDisabled && (
+                      <Typography variant="caption" color="error.main" display="block">{node.lastStatusMessage}</Typography>
+                    )}
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                    <Typography variant="body2" color="text.secondary">{node.countryCode || '—'}</Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>
+                      {node.address}{node.port ? `:${node.port}` : ''}
+                    </Typography>
+                    {node.xrayVersion && (
+                      <Typography variant="caption" color="text.secondary">xray {node.xrayVersion}</Typography>
+                    )}
+                  </TableCell>
+                  <TableCell><NodeStatusDot node={node} /></TableCell>
+                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                    <Typography variant="body2">{node.usersOnline != null ? node.usersOnline : '—'}</Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                      <Tooltip title="Перезапустить">
+                        <IconButton size="small" onClick={() => handleAction(() => api.post(`/nodes/${node.uuid}/restart`).then(() => {}))}>
+                          <Refresh sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title={node.isDisabled ? 'Включить' : 'Отключить'}>
+                        <IconButton
+                          size="small"
+                          color={node.isDisabled ? 'default' : 'primary'}
+                          onClick={() => handleAction(() => (node.isDisabled
+                            ? api.post(`/nodes/${node.uuid}/enable`)
+                            : api.post(`/nodes/${node.uuid}/disable`)
+                          ).then(() => {}))}
+                        >
+                          <PowerSettingsNew sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Tooltip>
+                      <NodeRowMenu
+                        node={node}
+                        onRestart={() => handleAction(() => api.post(`/nodes/${node.uuid}/restart`).then(() => {}))}
+                        onToggle={() => handleAction(() => (node.isDisabled
                           ? api.post(`/nodes/${node.uuid}/enable`)
                           : api.post(`/nodes/${node.uuid}/disable`)
                         ).then(() => {}))}
-                      >
-                        <PowerSettingsNew sx={{ fontSize: 16 }} />
-                      </IconButton>
-                    </Tooltip>
-                    <NodeRowMenu
-                      node={node}
-                      onRestart={() => handleAction(() => api.post(`/nodes/${node.uuid}/restart`).then(() => {}))}
-                      onToggle={() => handleAction(() => (node.isDisabled
-                        ? api.post(`/nodes/${node.uuid}/enable`)
-                        : api.post(`/nodes/${node.uuid}/disable`)
-                      ).then(() => {}))}
-                      onDelete={() => askDelete(
-                        'Удалить ноду',
-                        `Удалить ноду "${node.name}" из Remnawave?`,
-                        () => {
-                          setConfirmDel(d => ({ ...d, open: false }));
-                          handleAction(() => api.delete(`/nodes/${node.uuid}`).then(() => {}));
-                        },
-                      )}
-                    />
-                  </Stack>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Paper>
+                        onDelete={() => askDelete(
+                          'Удалить ноду',
+                          `Удалить ноду "${node.name}" из Remnawave?`,
+                          () => {
+                            setConfirmDel(d => ({ ...d, open: false }));
+                            handleAction(() => api.delete(`/nodes/${node.uuid}`).then(() => {}));
+                          },
+                        )}
+                      />
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Paper>
+      </Box>
 
       {/* Install dialog */}
       <Dialog open={installOpen} onClose={(_e, reason) => {
@@ -397,17 +399,17 @@ export default function NodesPage() {
               value={nodeName}
               onChange={e => { setNodeName(e.target.value); setInstallFormDirty(true); }}
             />
-            <Stack direction="row" spacing={1}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
               <TextField
                 label="IP-адрес сервера" size="small" fullWidth
                 value={nodeIp}
                 onChange={e => { setNodeIp(e.target.value); setInstallFormDirty(true); }}
               />
-              <TextField label="SSH-порт" size="small" sx={{ width: 110 }} value={sshPort} onChange={e => setSshPort(e.target.value)} />
+              <TextField label="SSH-порт" size="small" sx={{ width: { xs: '100%', sm: 110 } }} value={sshPort} onChange={e => setSshPort(e.target.value)} />
             </Stack>
-            <Stack direction="row" spacing={1}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
               <TextField label="SSH-пользователь" size="small" fullWidth value={sshUser} onChange={e => setSshUser(e.target.value)} />
-              <TextField label="Порт ноды" size="small" sx={{ width: 120 }} value={nodePort} onChange={e => setNodePort(e.target.value)} helperText="APP_PORT" />
+              <TextField label="Порт ноды" size="small" sx={{ width: { xs: '100%', sm: 120 } }} value={nodePort} onChange={e => setNodePort(e.target.value)} helperText="APP_PORT" />
             </Stack>
             <FormControl>
               <FormLabel>Аутентификация</FormLabel>

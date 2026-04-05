@@ -172,7 +172,7 @@ export default function Layout() {
             borderBottom: `1px solid ${s.border}`,
             zIndex: theme.zIndex.drawer + 1,
           }}>
-            <Toolbar sx={{ minHeight: '48px !important', px: 2 }}>
+            <Toolbar sx={{ minHeight: '48px !important', px: 2, paddingTop: 'env(safe-area-inset-top)' }}>
               <IconButton edge="start" onClick={() => setMobileOpen(true)} sx={{ color: s.textActive, mr: 1 }}>
                 <MenuIcon sx={{ fontSize: 20 }} />
               </IconButton>
@@ -211,7 +211,7 @@ export default function Layout() {
           bgcolor: 'background.default',
         }}
       >
-        <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
+        <Box sx={{ p: { xs: 2, md: 3 }, pb: { xs: 'calc(16px + env(safe-area-inset-bottom))', md: 3 }, maxWidth: 1400, mx: 'auto' }}>
           <Outlet />
         </Box>
       </Box>

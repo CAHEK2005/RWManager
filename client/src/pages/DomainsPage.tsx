@@ -110,7 +110,7 @@ export default function DomainsPage() {
   return (
     <Box>
       {/* Page header */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 3, gap: 2, flexWrap: 'wrap' }}>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'flex-start', justifyContent: 'space-between', mb: 3, gap: 2 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>Домены SNI</Typography>
           <Typography variant="body2" color="text.secondary">Белый список доменов для Reality-инбаундов</Typography>
@@ -129,8 +129,8 @@ export default function DomainsPage() {
 
       {/* Add domain */}
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <DnsOutlined sx={{ color: 'text.secondary', flexShrink: 0 }} />
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
+          <DnsOutlined sx={{ color: 'text.secondary', flexShrink: 0, display: { xs: 'none', sm: 'block' } }} />
           <TextField
             size="small" fullWidth placeholder="Введите доменное имя и нажмите Enter"
             value={newDomain}

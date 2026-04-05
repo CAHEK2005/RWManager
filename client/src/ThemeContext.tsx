@@ -1,5 +1,5 @@
 import React, { createContext, useState, useMemo, useContext, useEffect } from 'react';
-import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material';
+import { ThemeProvider as MuiThemeProvider, createTheme, responsiveFontSizes } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { getDesignTokens } from './theme'; 
@@ -44,8 +44,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     const themeOptions = getDesignTokens(activeMode);
-    
-    return createTheme(themeOptions);
+
+    return responsiveFontSizes(createTheme(themeOptions));
   }, [mode, prefersDarkMode]);
 
   return (

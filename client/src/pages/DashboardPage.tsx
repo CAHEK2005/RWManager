@@ -196,7 +196,7 @@ export default function DashboardPage() {
   return (
     <Box>
       {/* Page header */}
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3, gap: 1.5 }}>
         <Box>
           <Typography sx={{ fontSize: '1.125rem', fontWeight: 700, letterSpacing: '-0.01em', mb: 0.25 }}>
             Главная
@@ -272,7 +272,7 @@ export default function DashboardPage() {
         mb: 2.5,
       }}>
         {/* Profiles */}
-        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', overflowX: 'auto' }}>
           <SectionHeader title="Профили" count={profiles.length} />
           {profiles.length === 0 ? (
             <Box sx={{ p: 3, textAlign: 'center' }}>
@@ -343,7 +343,7 @@ export default function DashboardPage() {
         </Paper>
 
         {/* Nodes */}
-        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', overflowX: 'auto' }}>
           <SectionHeader title="Ноды" count={nodes.length} />
           {!loading && nodes.length === 0 ? (
             <Box sx={{ p: 3, textAlign: 'center' }}>
@@ -396,7 +396,7 @@ export default function DashboardPage() {
 
       {/* History */}
       {history.length > 0 && (
-        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', overflowX: 'auto' }}>
           <SectionHeader title="Последние ротации" count={history.length} />
           <Table size="small">
             <TableHead>
