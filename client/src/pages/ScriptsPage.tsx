@@ -869,6 +869,7 @@ export default function ScriptsPage() {
     setVarValues({});
     setPerNodeVarsMode(false);
     setVarValuesPerNode({});
+    loadScriptDots();
   };
 
   // ─── Queue handlers ───────────────────────────────────────────────────────
@@ -910,6 +911,7 @@ export default function ScriptsPage() {
     setRunLoading(false);
     setPerNodeVarsQueueMode(false);
     setVarValuesPerScriptPerNode({});
+    loadScriptDots();
   };
 
   const handleRunQueue = async () => {
@@ -1285,6 +1287,27 @@ export default function ScriptsPage() {
                         )}
                       </Box>
                     </Stack>
+                    {/* History dots */}
+                    {scriptHistoryDots[s.id]?.length > 0 && (
+                      <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 1, mb: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5, fontSize: '0.65rem' }}>
+                          Запуски:
+                        </Typography>
+                        {[...scriptHistoryDots[s.id]].reverse().map(dot => (
+                          <Tooltip key={dot.id} title={`${dot.status === 'success' ? 'Успешно' : 'Ошибка'} · ${formatDate(dot.startedAt)}`}>
+                            <Box
+                              onClick={e => { e.stopPropagation(); openHistoryDetail(dot.id); }}
+                              sx={{
+                                width: 8, height: 8, borderRadius: '50%', flexShrink: 0, cursor: 'pointer',
+                                bgcolor: dot.status === 'success' ? 'success.main' : 'error.main',
+                                transition: 'transform 0.1s', '&:hover': { transform: 'scale(1.5)' },
+                              }}
+                            />
+                          </Tooltip>
+                        ))}
+                      </Stack>
+                    )}
+
                     {/* Card footer */}
                     <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap"
                       sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: 'divider', gap: 1 }}>
@@ -1296,6 +1319,14 @@ export default function ScriptsPage() {
                         <Button size="small" variant="outlined" startIcon={<Add />}
                           onClick={() => addToQueue(s)} disabled={sshNodes.length === 0}>
                           В очередь
+                        </Button>
+                        <Button
+                          size="small" variant="text"
+                          startIcon={<History sx={{ fontSize: 14 }} />}
+                          onClick={() => toggleScriptHistory(s.id)}
+                          sx={{ color: expandedHistoryScript === s.id ? 'primary.main' : 'text.secondary' }}
+                        >
+                          История
                         </Button>
                       </Stack>
                       <Stack direction="row" spacing={0.5}>
@@ -1325,6 +1356,50 @@ export default function ScriptsPage() {
                         </Tooltip>
                       </Stack>
                     </Stack>
+
+                    {/* Expandable history panel */}
+                    {expandedHistoryScript === s.id && (
+                      <Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: 'divider' }}>
+                        {expandedHistoryLoading && !expandedHistoryItems.length
+                          ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress size={20} /></Box>
+                          : !expandedHistoryItems.length
+                            ? <Typography variant="caption" color="text.secondary">История запусков пуста</Typography>
+                            : (
+                              <Stack spacing={0}>
+                                {expandedHistoryItems.map(item => (
+                                  <Box key={item.id} onClick={() => openHistoryDetail(item.id)}
+                                    sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.75,
+                                      borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}>
+                                    <Box sx={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                                      bgcolor: item.status === 'success' ? 'success.main' : 'error.main' }} />
+                                    <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, minWidth: 90 }}>
+                                      {formatDate(item.startedAt)}
+                                    </Typography>
+                                    <Chip label={`${item.successCount}/${item.nodeCount}`} size="small" variant="outlined"
+                                      color={item.successCount === item.nodeCount ? 'success' : item.successCount === 0 ? 'error' : 'warning'}
+                                      sx={{ height: 18, fontSize: '0.65rem' }} />
+                                    <Typography variant="caption"
+                                      color={item.status === 'success' ? 'text.secondary' : 'error.main'}
+                                      sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {(item as any).logPreview || (item.status === 'success' ? 'Выполнено успешно' : 'Ошибка')}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                                      {formatDuration(item.durationMs)}
+                                    </Typography>
+                                  </Box>
+                                ))}
+                                {expandedHistoryItems.length < expandedHistoryTotal && (
+                                  <Button size="small" variant="text" sx={{ alignSelf: 'flex-start', mt: 0.5 }}
+                                    disabled={expandedHistoryLoading}
+                                    onClick={e => { e.stopPropagation(); loadMoreHistory(s.id); }}>
+                                    Загрузить ещё ({Math.min(10, expandedHistoryTotal - expandedHistoryItems.length)})
+                                  </Button>
+                                )}
+                              </Stack>
+                            )
+                        }
+                      </Box>
+                    )}
                   </Paper>
                 ))}
               </Stack>

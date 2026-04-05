@@ -42,6 +42,37 @@ export interface ScriptJob {
   results: NodeResult[];
 }
 
+export interface HistoryNodeResult {
+  nodeId: string;
+  nodeName: string;
+  status: 'success' | 'error';
+  logs: string[];
+}
+
+export interface HistoryEntry {
+  id: string;
+  scriptId: string;
+  scriptName: string;
+  status: 'success' | 'error';
+  startedAt: string;
+  finishedAt: string;
+  durationMs: number;
+  nodeResults: HistoryNodeResult[];
+}
+
+export interface HistoryListItem {
+  id: string;
+  scriptId: string;
+  scriptName: string;
+  status: 'success' | 'error';
+  startedAt: string;
+  finishedAt: string;
+  durationMs: number;
+  nodeCount: number;
+  successCount: number;
+  logPreview?: string;
+}
+
 const SYSCTL_CONTENT = `net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
 net.ipv6.conf.lo.disable_ipv6 = 1
@@ -422,6 +453,75 @@ export class ScriptsService implements OnModuleInit {
     scripts[idx] = reverted;
     await this.saveSetting('scripts', JSON.stringify(scripts));
     return reverted;
+  }
+
+  // ── History ──────────────────────────────────────────────────────────────────
+
+  private async loadHistory(): Promise<HistoryEntry[]> {
+    const raw = await this.settingRepo.findOne({ where: { key: 'script_history' } });
+    try { return JSON.parse(raw?.value || '[]'); } catch { return []; }
+  }
+
+  private async appendHistory(entry: HistoryEntry): Promise<void> {
+    try {
+      const history = await this.loadHistory();
+      history.unshift(entry);
+      await this.saveSetting('script_history', JSON.stringify(history.slice(0, 100)));
+    } catch (e) {
+      this.logger.error('Ошибка сохранения истории:', e);
+    }
+  }
+
+  async getHistory(page = 1, limit = 20): Promise<{ data: HistoryListItem[]; total: number }> {
+    const history = await this.loadHistory();
+    const total = history.length;
+    const start = (page - 1) * limit;
+    const data = history.slice(start, start + limit).map(e => ({
+      id: e.id,
+      scriptId: e.scriptId,
+      scriptName: e.scriptName,
+      status: e.status,
+      startedAt: e.startedAt,
+      finishedAt: e.finishedAt,
+      durationMs: e.durationMs,
+      nodeCount: e.nodeResults.length,
+      successCount: e.nodeResults.filter(r => r.status === 'success').length,
+    }));
+    return { data, total };
+  }
+
+  async getHistoryEntry(id: string): Promise<HistoryEntry | null> {
+    const history = await this.loadHistory();
+    return history.find(e => e.id === id) ?? null;
+  }
+
+  async clearHistory(): Promise<void> {
+    await this.saveSetting('script_history', '[]');
+  }
+
+  async getHistoryByScript(scriptId: string, page = 1, limit = 10): Promise<{ data: HistoryListItem[]; total: number }> {
+    const history = await this.loadHistory();
+    const filtered = history.filter(e => e.scriptId === scriptId);
+    const total = filtered.length;
+    const start = (page - 1) * limit;
+    const data = filtered.slice(start, start + limit).map(e => {
+      const allLogs = e.nodeResults.flatMap(r => r.logs);
+      const meaningful = allLogs.filter(l => !l.startsWith('[SSH]') && !l.startsWith('[AUTO]'));
+      const logPreview = (meaningful[meaningful.length - 1] || allLogs[allLogs.length - 1] || '').slice(0, 120);
+      return {
+        id: e.id,
+        scriptId: e.scriptId,
+        scriptName: e.scriptName,
+        status: e.status,
+        startedAt: e.startedAt,
+        finishedAt: e.finishedAt,
+        durationMs: e.durationMs,
+        nodeCount: e.nodeResults.length,
+        successCount: e.nodeResults.filter(r => r.status === 'success').length,
+        logPreview,
+      };
+    });
+    return { data, total };
   }
 
   // ── Execute ──────────────────────────────────────────────────────────────────

@@ -147,4 +147,33 @@ export class ScriptsController {
     if (!job) throw new HttpException('Job not found', HttpStatus.NOT_FOUND);
     return job;
   }
+
+  // ── History ──────────────────────────────────────────────────────────────────
+
+  @Get('history')
+  async getHistory(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.scriptsService.getHistory(Number(page) || 1, Number(limit) || 20);
+  }
+
+  @Get('history/by-script/:scriptId')
+  async getHistoryByScript(
+    @Param('scriptId') scriptId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.scriptsService.getHistoryByScript(scriptId, Number(page) || 1, Number(limit) || 10);
+  }
+
+  @Get('history/:id')
+  async getHistoryEntry(@Param('id') id: string) {
+    const entry = await this.scriptsService.getHistoryEntry(id);
+    if (!entry) throw new HttpException('Запись не найдена', HttpStatus.NOT_FOUND);
+    return entry;
+  }
+
+  @Delete('history')
+  async clearHistory() {
+    await this.scriptsService.clearHistory();
+    return { success: true };
+  }
 }
