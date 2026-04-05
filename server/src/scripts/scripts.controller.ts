@@ -59,6 +59,15 @@ export class ScriptsController {
     }
   }
 
+  @Post('scripts/:id/revert')
+  async revertScript(@Param('id') id: string) {
+    try {
+      return await this.scriptsService.revertScript(id);
+    } catch (e) {
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
   @Patch('scripts/:id')
   async updateScript(@Param('id') id: string, @Body() body: any) {
     try {

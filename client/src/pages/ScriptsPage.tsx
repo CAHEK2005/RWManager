@@ -9,7 +9,7 @@ import {
 import {
   Add, Close, ContentCopy, CropSquare, Delete, Edit, FileDownload,
   KeyboardArrowDown, KeyboardArrowUp, Label, MoreVert,
-  LockOpen, OpenInNew, PlayArrow, Remove, Terminal, UploadFile, VpnKey,
+  LockOpen, OpenInNew, PlayArrow, Remove, Restore, Terminal, UploadFile, VpnKey,
 } from '@mui/icons-material';
 import type { SelectChangeEvent } from '@mui/material/Select';
 import { Terminal as XTerm } from '@xterm/xterm';
@@ -69,6 +69,8 @@ interface Script {
   description?: string;
   content: string;
   isBuiltIn: boolean;
+  isModified?: boolean;
+  isHidden?: boolean;
 }
 
 interface RwNode {
@@ -724,11 +726,28 @@ export default function ScriptsPage() {
     }
   };
 
-  const handleDeleteScript = (id: string, name: string) => {
-    askDelete('Удалить скрипт', `Удалить скрипт "${name}"?`, async () => {
+  const handleDeleteScript = (id: string, name: string, isBuiltIn?: boolean) => {
+    const title = isBuiltIn ? 'Скрыть скрипт' : 'Удалить скрипт';
+    const message = isBuiltIn
+      ? `Скрыть встроенный скрипт "${name}"? Его можно восстановить через откат.`
+      : `Удалить скрипт "${name}"?`;
+    askDelete(title, message, async () => {
       setConfirmDel(d => ({ ...d, open: false }));
       try {
         await api.delete(`/scripts/scripts/${id}`);
+        loadScripts();
+      } catch (e: unknown) {
+        showMsg('error', getErrorMessage(e));
+      }
+    });
+  };
+
+  const handleRevertScript = (id: string, name: string) => {
+    askDelete('Откатить скрипт', `Откатить "${name}" к оригинальной версии? Ваши изменения будут потеряны.`, async () => {
+      setConfirmDel(d => ({ ...d, open: false }));
+      try {
+        await api.post(`/scripts/scripts/${id}/revert`);
+        showMsg('success', 'Скрипт откатан к оригиналу');
         loadScripts();
       } catch (e: unknown) {
         showMsg('error', getErrorMessage(e));
@@ -1225,8 +1244,11 @@ export default function ScriptsPage() {
                       <Box sx={{ flex: 1 }}>
                         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
                           <Typography variant="subtitle1" fontWeight={600}>{s.name}</Typography>
-                          {s.isBuiltIn && (
+                          {s.isBuiltIn && !s.isModified && (
                             <Chip label="Встроенный" size="small" color="info" variant="outlined" />
+                          )}
+                          {s.isBuiltIn && s.isModified && (
+                            <Chip label="Изменён" size="small" color="warning" variant="outlined" />
                           )}
                         </Stack>
                         {s.description && (
@@ -1277,27 +1299,30 @@ export default function ScriptsPage() {
                         </Button>
                       </Stack>
                       <Stack direction="row" spacing={0.5}>
-                        {s.isBuiltIn ? (
-                          <Tooltip title="Клонировать">
-                            <IconButton size="small" onClick={() => handleCloneScript(s)}>
-                              <ContentCopy sx={{ fontSize: 16 }} />
+                        {s.isBuiltIn && s.isModified && (
+                          <Tooltip title="Откатить к оригиналу">
+                            <IconButton size="small" onClick={() => handleRevertScript(s.id, s.name)}
+                              sx={{ color: 'warning.main' }}>
+                              <Restore sx={{ fontSize: 16 }} />
                             </IconButton>
                           </Tooltip>
-                        ) : (
-                          <>
-                            <Tooltip title="Изменить">
-                              <IconButton size="small" onClick={() => openEditScript(s)}>
-                                <Edit sx={{ fontSize: 16 }} />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Удалить">
-                              <IconButton size="small" onClick={() => handleDeleteScript(s.id, s.name)}
-                                sx={{ color: 'error.main' }}>
-                                <Delete sx={{ fontSize: 16 }} />
-                              </IconButton>
-                            </Tooltip>
-                          </>
                         )}
+                        <Tooltip title="Клонировать">
+                          <IconButton size="small" onClick={() => handleCloneScript(s)}>
+                            <ContentCopy sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Изменить">
+                          <IconButton size="small" onClick={() => openEditScript(s)}>
+                            <Edit sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title={s.isBuiltIn ? 'Скрыть' : 'Удалить'}>
+                          <IconButton size="small" onClick={() => handleDeleteScript(s.id, s.name, s.isBuiltIn)}
+                            sx={{ color: 'error.main' }}>
+                            <Delete sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
                       </Stack>
                     </Stack>
                   </Paper>

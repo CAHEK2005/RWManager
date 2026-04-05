@@ -25,6 +25,8 @@ export interface Script {
   description?: string;
   content: string;
   isBuiltIn: boolean;
+  isModified?: boolean;
+  isHidden?: boolean;
 }
 
 interface NodeResult {
@@ -82,6 +84,87 @@ fs.suid_dumpable = 0
 vm.swappiness = 10
 fs.file-max = 2097152`;
 
+const WARP_SETUP_SCRIPT = `PROXY_PORT="{{ warp_proxy_port | SOCKS5-порт WARP (по умолчанию 40000) }}"
+PROXY_PORT="\${PROXY_PORT:-40000}"
+
+# ── 1. Зависимости ────────────────────────────────────────────────────────────
+echo "[1/5] Установка зависимостей..."
+apt-get install -y curl gnupg lsb-release 2>/dev/null || true
+
+# ── 2. Репозиторий Cloudflare ─────────────────────────────────────────────────
+echo "[2/5] Добавление репозитория Cloudflare WARP..."
+curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg \\
+  | gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+
+echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ \$(lsb_release -cs) main" \\
+  | tee /etc/apt/sources.list.d/cloudflare-client.list > /dev/null
+
+# ── 3. Установка пакета ───────────────────────────────────────────────────────
+echo "[3/5] Установка cloudflare-warp..."
+apt-get update -qq
+apt-get install -y cloudflare-warp
+
+# ── 4. Запуск демона ──────────────────────────────────────────────────────────
+echo "[4/5] Запуск warp-svc..."
+systemctl enable warp-svc 2>/dev/null || true
+systemctl start  warp-svc 2>/dev/null || true
+sleep 3
+
+# ── 5. Регистрация, режим proxy, подключение ──────────────────────────────────
+echo "[5/5] Регистрация и подключение..."
+
+WARP_STATUS=\$(warp-cli status 2>&1 || true)
+
+if echo "\$WARP_STATUS" | grep -qi "Registration Missing"; then
+  echo "  Регистрация новой учётной записи..."
+  warp-cli registration new --accept-tos
+  sleep 2
+else
+  echo "  Учётная запись уже зарегистрирована, пропускаем"
+fi
+
+warp-cli mode proxy
+
+if [ "\$PROXY_PORT" != "40000" ]; then
+  echo "  Устанавливаем порт прокси: \$PROXY_PORT"
+  warp-cli proxy port "\$PROXY_PORT"
+fi
+
+warp-cli connect
+sleep 3
+
+# ── Итог ─────────────────────────────────────────────────────────────────────
+echo ""
+echo "=== Статус WARP ==="
+warp-cli status 2>&1 || true
+echo ""
+echo "=== Настройки прокси ==="
+warp-cli settings 2>&1 | grep -i proxy || true
+echo ""
+echo "Готово: WARP настроен в режиме SOCKS5-прокси"
+echo "  Адрес: 127.0.0.1:\${PROXY_PORT}"
+echo "  Используйте в Xray как outbound: socks://127.0.0.1:\${PROXY_PORT}"`;
+
+const WARP_STATUS_SCRIPT = `echo "=== Статус WARP ==="
+warp-cli status 2>&1 || echo "warp-cli не найден"
+echo ""
+echo "=== Настройки ==="
+warp-cli settings 2>&1 || true
+echo ""
+echo "=== Сервис warp-svc ==="
+systemctl status warp-svc --no-pager 2>/dev/null || true`;
+
+const WARP_UNINSTALL_SCRIPT = `echo "Отключение и удаление WARP..."
+warp-cli disconnect 2>/dev/null || true
+warp-cli registration delete 2>/dev/null || true
+systemctl stop    warp-svc 2>/dev/null || true
+systemctl disable warp-svc 2>/dev/null || true
+apt-get remove -y cloudflare-warp 2>/dev/null || true
+rm -f /etc/apt/sources.list.d/cloudflare-client.list
+rm -f /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+apt-get update -qq 2>/dev/null || true
+echo "Готово: WARP удалён"`;
+
 const BUILT_IN_SCRIPTS: Script[] = [
   {
     id: 'builtin-optimize-network',
@@ -98,14 +181,16 @@ sysctl -p /etc/sysctl.d/99-vpn.conf`,
     name: 'Обновление ноды',
     description: 'Скачивает последний образ Remnawave Node и перезапускает контейнер',
     isBuiltIn: true,
-    content: `cd /opt/remnanode && docker compose pull && docker compose up -d`,
+    content: `[ -d /opt/remnanode ] || { echo "[ERROR] /opt/remnanode не найден"; exit 1; }
+cd /opt/remnanode && docker compose pull && docker compose up -d`,
   },
   {
     id: 'builtin-restart-node',
     name: 'Перезапуск ноды',
     description: 'Перезапускает Docker-контейнер Remnawave Node',
     isBuiltIn: true,
-    content: `cd /opt/remnanode && docker compose up -d --force-recreate`,
+    content: `[ -d /opt/remnanode ] || { echo "[ERROR] /opt/remnanode не найден"; exit 1; }
+cd /opt/remnanode && docker compose up -d --force-recreate`,
   },
   {
     id: 'builtin-status-node',
@@ -113,6 +198,27 @@ sysctl -p /etc/sysctl.d/99-vpn.conf`,
     description: 'Показывает статус контейнера и последние 30 строк логов',
     isBuiltIn: true,
     content: `cd /opt/remnanode && docker compose ps && echo "--- Logs ---" && docker compose logs --tail=30`,
+  },
+  {
+    id: 'builtin-setup-warp',
+    name: 'Установка WARP',
+    description: 'Устанавливает Cloudflare WARP, регистрирует учётную запись и настраивает SOCKS5-прокси на указанном порту (по умолчанию 40000)',
+    isBuiltIn: true,
+    content: WARP_SETUP_SCRIPT,
+  },
+  {
+    id: 'builtin-warp-status',
+    name: 'Статус WARP',
+    description: 'Показывает текущий статус Cloudflare WARP и настройки прокси',
+    isBuiltIn: true,
+    content: WARP_STATUS_SCRIPT,
+  },
+  {
+    id: 'builtin-uninstall-warp',
+    name: 'Удаление WARP',
+    description: 'Отключает, удаляет регистрацию и деинсталлирует Cloudflare WARP',
+    isBuiltIn: true,
+    content: WARP_UNINSTALL_SCRIPT,
   },
   {
     id: 'builtin-setup-ssh-key',
@@ -185,12 +291,12 @@ export class ScriptsService implements OnModuleInit {
       if (idx < 0) {
         scripts.push(builtin);
         changed = true;
-      } else if (
+      } else if (!scripts[idx].isModified && !scripts[idx].isHidden && (
         scripts[idx].content !== builtin.content ||
         scripts[idx].name !== builtin.name ||
         scripts[idx].description !== builtin.description
-      ) {
-        scripts[idx] = builtin; // обновляем встроенные скрипты до актуальной версии
+      )) {
+        scripts[idx] = { ...builtin }; // обновляем только немодифицированные встроенные скрипты
         changed = true;
       }
     }
@@ -273,18 +379,22 @@ export class ScriptsService implements OnModuleInit {
   }
 
   async getScripts(): Promise<Script[]> {
-    return this.loadScripts();
+    const scripts = await this.loadScripts();
+    return scripts.filter(s => !s.isHidden);
   }
 
   async upsertScript(script: Omit<Script, 'id' | 'isBuiltIn'> & { id?: string }): Promise<Script> {
     const scripts = await this.loadScripts();
     const id = script.id || uuidv4();
-    const saved: Script = { ...script, id, isBuiltIn: false };
     const idx = scripts.findIndex(s => s.id === id);
+    let saved: Script;
     if (idx >= 0) {
-      if (scripts[idx].isBuiltIn) throw new Error('Встроенные скрипты нельзя изменять');
+      const existing = scripts[idx];
+      saved = { ...existing, name: script.name, description: script.description, content: script.content };
+      if (existing.isBuiltIn) saved.isModified = true;
       scripts[idx] = saved;
     } else {
+      saved = { ...script, id, isBuiltIn: false };
       scripts.push(saved);
     }
     await this.saveSetting('scripts', JSON.stringify(scripts));
@@ -294,8 +404,24 @@ export class ScriptsService implements OnModuleInit {
   async deleteScript(id: string): Promise<void> {
     const scripts = await this.loadScripts();
     const script = scripts.find(s => s.id === id);
-    if (script?.isBuiltIn) throw new Error('Встроенные скрипты нельзя удалять');
+    if (script?.isBuiltIn) {
+      script.isHidden = true;
+      await this.saveSetting('scripts', JSON.stringify(scripts));
+      return;
+    }
     await this.saveSetting('scripts', JSON.stringify(scripts.filter(s => s.id !== id)));
+  }
+
+  async revertScript(id: string): Promise<Script> {
+    const original = BUILT_IN_SCRIPTS.find(s => s.id === id);
+    if (!original) throw new Error('Скрипт не является встроенным или не найден');
+    const scripts = await this.loadScripts();
+    const idx = scripts.findIndex(s => s.id === id);
+    if (idx < 0) throw new Error('Скрипт не найден');
+    const reverted: Script = { ...original };
+    scripts[idx] = reverted;
+    await this.saveSetting('scripts', JSON.stringify(scripts));
+    return reverted;
   }
 
   // ── Execute ──────────────────────────────────────────────────────────────────
