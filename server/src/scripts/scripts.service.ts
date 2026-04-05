@@ -70,6 +70,7 @@ export interface HistoryListItem {
   durationMs: number;
   nodeCount: number;
   successCount: number;
+  logPreview?: string;
 }
 
 const SYSCTL_CONTENT = `net.ipv6.conf.all.disable_ipv6 = 1
@@ -492,6 +493,31 @@ export class ScriptsService implements OnModuleInit {
   async getHistoryEntry(id: string): Promise<HistoryEntry | null> {
     const history = await this.loadHistory();
     return history.find(e => e.id === id) ?? null;
+  }
+
+  async getHistoryByScript(scriptId: string, page = 1, limit = 10): Promise<{ data: HistoryListItem[]; total: number }> {
+    const history = await this.loadHistory();
+    const filtered = history.filter(e => e.scriptId === scriptId);
+    const total = filtered.length;
+    const start = (page - 1) * limit;
+    const data = filtered.slice(start, start + limit).map(e => {
+      const allLogs = e.nodeResults.flatMap(r => r.logs);
+      const meaningful = allLogs.filter(l => !l.startsWith('[SSH]') && !l.startsWith('[AUTO]'));
+      const logPreview = (meaningful[meaningful.length - 1] || allLogs[allLogs.length - 1] || '').slice(0, 120);
+      return {
+        id: e.id,
+        scriptId: e.scriptId,
+        scriptName: e.scriptName,
+        status: e.status,
+        startedAt: e.startedAt,
+        finishedAt: e.finishedAt,
+        durationMs: e.durationMs,
+        nodeCount: e.nodeResults.length,
+        successCount: e.nodeResults.filter(r => r.status === 'success').length,
+        logPreview,
+      };
+    });
+    return { data, total };
   }
 
   async clearHistory(): Promise<void> {
