@@ -155,6 +155,15 @@ export class ScriptsController {
     return this.scriptsService.getHistory(Number(page) || 1, Number(limit) || 20);
   }
 
+  @Get('history/by-script/:scriptId')
+  async getHistoryByScript(
+    @Param('scriptId') scriptId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.scriptsService.getHistoryByScript(scriptId, Number(page) || 1, Number(limit) || 10);
+  }
+
   @Get('history/:id')
   async getHistoryEntry(@Param('id') id: string) {
     const entry = await this.scriptsService.getHistoryEntry(id);
