@@ -397,10 +397,10 @@ if grep -q "certbot/certs" "$COMPOSE_FILE"; then
   echo "Монтирование уже настроено"
 else
   cat > /tmp/_rwm_add_vol.py << 'PYEOF'
-import re, sys
+import sys
 
 path = sys.argv[1]
-new_vol = "      - '/opt/certbot/certs:/etc/letsencrypt:ro'\\n"
+cert_line = "      - '/opt/certbot/certs:/etc/letsencrypt:ro'\\n"
 
 with open(path, 'r') as f:
     lines = f.readlines()
@@ -409,42 +409,51 @@ if any('certbot/certs' in l for l in lines):
     print('Already present')
     sys.exit(0)
 
-result = list(lines)
-in_vol = False
-insert_after = -1
-
+# Find indented volumes: section (service-level, not top-level)
+vol_idx = None
 for i, line in enumerate(lines):
     s = line.strip()
-    if re.match(r'\\s+volumes\\s*:', line):
-        in_vol = True
-    elif in_vol:
-        if s.startswith('-'):
-            insert_after = i
-        elif s and not s.startswith('#') and not s.startswith('-'):
-            in_vol = False
+    if s == 'volumes:' and line[0] in (' ', '\\t'):
+        vol_idx = i
+        break
 
-if insert_after >= 0:
-    result.insert(insert_after + 1, new_vol)
-    with open(path, 'w') as f:
-        f.writelines(result)
-    print('Том добавлен')
+if vol_idx is not None:
+    # Insert after last existing volume entry
+    insert_at = vol_idx + 1
+    for i in range(vol_idx + 1, len(lines)):
+        s = lines[i].strip()
+        if s.startswith('-'):
+            insert_at = i + 1
+        elif s and not s.startswith('#') and not s.startswith('-'):
+            break
+    lines.insert(insert_at, cert_line)
 else:
-    for i, line in enumerate(lines):
-        if re.match(r'\\s+volumes\\s*:', line):
-            result.insert(i + 1, new_vol)
-            with open(path, 'w') as f:
-                f.writelines(result)
-            print('Том добавлен')
-            sys.exit(0)
-    print('[ERROR] Секция volumes не найдена')
-    sys.exit(1)
+    # No volumes section — create it at end of file
+    if lines and not lines[-1].endswith('\\n'):
+        lines[-1] += '\\n'
+    lines.append('    volumes:\\n')
+    lines.append(cert_line)
+
+with open(path, 'w') as f:
+    f.writelines(lines)
+print('Том добавлен')
 PYEOF
 
   if command -v python3 &>/dev/null; then
     python3 /tmp/_rwm_add_vol.py "$COMPOSE_FILE"
+    if [ $? -ne 0 ]; then
+      echo "[ERROR] Не удалось изменить $COMPOSE_FILE"
+      rm -f /tmp/_rwm_add_vol.py
+      exit 1
+    fi
   else
-    sed -i "/^\\s*volumes:/a\\\\      - '/opt/certbot/certs:/etc/letsencrypt:ro'" "$COMPOSE_FILE"
-    echo "Том добавлен (sed)"
+    # Fallback: если нет python3 — добавляем volumes секцию в конец
+    if grep -qE '^[[:space:]]+volumes:' "$COMPOSE_FILE"; then
+      sed -i "/^[[:space:]]*volumes:/a\\\\      - '/opt/certbot/certs:/etc/letsencrypt:ro'" "$COMPOSE_FILE"
+    else
+      printf '    volumes:\\n      - '"'"'/opt/certbot/certs:/etc/letsencrypt:ro'"'"'\\n' >> "$COMPOSE_FILE"
+    fi
+    echo "Том добавлен (sed/printf)"
   fi
   rm -f /tmp/_rwm_add_vol.py
 fi
