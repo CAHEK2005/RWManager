@@ -1,12 +1,14 @@
 import {
   Controller, Get, Post, Body, Patch, Delete, Param, Query,
-  HttpException, HttpStatus, Logger,
+  HttpException, HttpStatus, Logger, Res,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Setting } from './entities/setting.entity';
+import { Domain } from '../domains/entities/domain.entity';
 import * as net from 'net';
 import * as dns from 'dns/promises';
+import type { Response } from 'express';
 import { COUNTRIES } from './countries';
 import { RemnavaveService } from '../remnawave/remnawave.service';
 import { RotationService, ManagedProfile } from '../rotation/rotation.service';
@@ -19,6 +21,8 @@ export class SettingsController {
   constructor(
     @InjectRepository(Setting)
     private settingsRepo: Repository<Setting>,
+    @InjectRepository(Domain)
+    private domainRepo: Repository<Domain>,
     private remnavaveService: RemnavaveService,
     private rotationService: RotationService,
     private telegramService: TelegramService,
@@ -387,6 +391,65 @@ export class SettingsController {
 
     for (const [key, value] of Object.entries(settings)) {
       await this.settingsRepo.save({ key, value });
+    }
+    return { success: true };
+  }
+
+  // ── Backup / Restore ─────────────────────────────────────────────────────────
+
+  // Keys that should NOT be included in backup (sensitive data)
+  private readonly BACKUP_EXCLUDED_KEYS = new Set([
+    'secrets',
+    'telegram_bot_token',
+    'remnawave_api_key',
+  ]);
+
+  @Get('backup')
+  async backup(@Res() res: Response) {
+    const allSettings = await this.settingsRepo.find();
+    const settingsObj: Record<string, string> = {};
+    for (const s of allSettings) {
+      if (!this.BACKUP_EXCLUDED_KEYS.has(s.key)) {
+        settingsObj[s.key] = s.value;
+      }
+    }
+    const domains = await this.domainRepo.find();
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      settings: settingsObj,
+      domains: domains.map(d => ({ name: d.name, isEnabled: d.isEnabled })),
+    };
+    const json = JSON.stringify(payload, null, 2);
+    const filename = `rwmanager-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(json);
+  }
+
+  @Post('restore')
+  async restore(@Body() body: any) {
+    if (!body || body.version !== 1) {
+      throw new HttpException('Некорректный формат бэкапа', HttpStatus.BAD_REQUEST);
+    }
+    const { settings, domains } = body;
+    if (settings && typeof settings === 'object') {
+      for (const [key, value] of Object.entries(settings)) {
+        if (!this.BACKUP_EXCLUDED_KEYS.has(key) && typeof value === 'string') {
+          await this.settingsRepo.save({ key, value });
+        }
+      }
+    }
+    if (Array.isArray(domains)) {
+      for (const d of domains) {
+        const domainName = d.name ?? d.domain;
+        if (typeof domainName === 'string' && domainName.trim()) {
+          const existing = await this.domainRepo.findOne({ where: { name: domainName.trim() } });
+          if (!existing) {
+            await this.domainRepo.save({ name: domainName.trim(), isEnabled: d.isEnabled ?? true });
+          }
+        }
+      }
     }
     return { success: true };
   }

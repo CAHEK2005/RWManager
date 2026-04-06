@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Setting } from '../settings/entities/setting.entity';
 import { RemnavaveService } from '../remnawave/remnawave.service';
 import { ScriptsService } from '../scripts/scripts.service';
+import { SYSCTL_CONTENT } from '../config/constants';
 
 export interface InstallNodeDto {
   name: string;
@@ -29,47 +30,6 @@ interface Job {
   nodeUuid?: string;
 }
 
-const SYSCTL_CONTENT = `net.ipv6.conf.all.disable_ipv6 = 1
-net.ipv6.conf.default.disable_ipv6 = 1
-net.ipv6.conf.lo.disable_ipv6 = 1
-net.ipv4.ip_forward = 1
-net.ipv4.conf.all.send_redirects = 0
-net.ipv4.conf.default.send_redirects = 0
-net.ipv4.conf.all.accept_redirects = 0
-net.ipv4.conf.default.accept_redirects = 0
-net.ipv4.conf.all.accept_source_route = 0
-net.ipv4.conf.default.accept_source_route = 0
-net.ipv4.conf.all.rp_filter = 2
-net.ipv4.conf.default.rp_filter = 2
-net.ipv4.conf.all.log_martians = 1
-net.ipv4.conf.default.log_martians = 1
-net.ipv4.icmp_echo_ignore_broadcasts = 1
-net.ipv4.icmp_ratelimit = 100
-net.ipv4.icmp_ratemask = 88089
-net.ipv4.icmp_ignore_bogus_error_responses = 1
-net.ipv4.tcp_syncookies = 1
-net.ipv4.tcp_timestamps = 1
-net.ipv4.tcp_fin_timeout = 20
-net.ipv4.tcp_fastopen = 1
-net.ipv4.tcp_max_syn_backlog = 8192
-net.ipv4.tcp_ecn = 1
-net.ipv4.tcp_sack = 1
-net.ipv4.tcp_keepalive_time = 600
-net.ipv4.tcp_keepalive_intvl = 60
-net.ipv4.tcp_keepalive_probes = 5
-net.ipv4.tcp_rmem = 4096 87380 16777216
-net.ipv4.tcp_wmem = 4096 65536 16777216
-net.core.somaxconn = 4096
-net.core.netdev_max_backlog = 5000
-net.core.rmem_max = 16777216
-net.core.wmem_max = 16777216
-net.core.default_qdisc = fq
-net.ipv4.tcp_congestion_control = bbr
-kernel.yama.ptrace_scope = 1
-kernel.randomize_va_space = 2
-fs.suid_dumpable = 0
-vm.swappiness = 10
-fs.file-max = 2097152`;
 
 @Injectable()
 export class NodesService {
@@ -174,6 +134,9 @@ export class NodesService {
       .catch((err) => {
         job.logs.push(`[FATAL] ${err?.message || String(err)}`);
         job.status = 'error';
+      })
+      .finally(() => {
+        setTimeout(() => this.jobs.delete(jobId), 3_600_000);
       });
 
     return { jobId, nodeUuid };

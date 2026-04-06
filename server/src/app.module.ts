@@ -19,6 +19,7 @@ import { TelegramModule } from './telegram/telegram.module';
 import { ScriptsModule } from './scripts/scripts.module';
 import { TerminalModule } from './terminal/terminal.module';
 import { SecretsModule } from './secrets/secrets.module';
+import { HealthModule } from './health/health.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { APP_GUARD } from '@nestjs/core';
 
@@ -51,6 +52,7 @@ import { APP_GUARD } from '@nestjs/core';
     ScriptsModule,
     TerminalModule,
     SecretsModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [

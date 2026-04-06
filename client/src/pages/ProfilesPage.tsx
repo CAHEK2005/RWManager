@@ -177,6 +177,7 @@ export default function ProfilesPage() {
   const [nodes, setNodes] = useState<RwNode[]>([]);
   const [hosts, setHosts] = useState<RwHost[]>([]);
   const [profileTab, setProfileTab] = useState(0);
+  const [profileSearch, setProfileSearch] = useState('');
 
   // Dialogs
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -704,6 +705,16 @@ export default function ProfilesPage() {
       <Grid container spacing={3}>
         {/* Profile cards */}
         <Grid size={{ xs: 12, md: selectedProfile ? 4 : 12 }}>
+          {profiles.length > 0 && (
+            <TextField
+              size="small"
+              placeholder="Поиск по названию профиля..."
+              value={profileSearch}
+              onChange={e => setProfileSearch(e.target.value)}
+              sx={{ mb: 2, maxWidth: 320 }}
+              slotProps={{ input: { sx: { fontSize: 14 } } }}
+            />
+          )}
           {profiles.length === 0 && (
             <Paper sx={{ p: 4, textAlign: 'center' }}>
               <Typography color="textSecondary">
@@ -712,7 +723,7 @@ export default function ProfilesPage() {
             </Paper>
           )}
           <Stack spacing={2}>
-            {profiles.map(p => (
+            {profiles.filter(p => !profileSearch || p.name.toLowerCase().includes(profileSearch.toLowerCase())).map(p => (
               <Paper
                 key={p.uuid}
                 onClick={() => handleSelectProfile(p)}

@@ -462,6 +462,10 @@ export default function ScriptsPage() {
   const [scripts, setScripts] = useState<Script[]>([]);
   const [rwNodes, setRwNodes] = useState<RwNode[]>([]);
 
+  // Search/filter
+  const [nodeSearch, setNodeSearch] = useState('');
+  const [scriptSearch, setScriptSearch] = useState('');
+
   // Snackbar
   const { msg, showMsg, closeMsg } = useAlert();
 
@@ -1196,7 +1200,7 @@ export default function ScriptsPage() {
     <Box>
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>Скрипты</Typography>
-        <Typography variant="body2" color="text.secondary">SSH-ноды, bash-скрипты и хранилище секретов</Typography>
+        <Typography variant="body2" color="text.secondary">Ноды, bash-скрипты и хранилище секретов</Typography>
       </Box>
 
       <Paper>
@@ -1213,7 +1217,7 @@ export default function ScriptsPage() {
             <Box>
               <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ mb: 2, gap: 1 }}>
                 <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>SSH-ноды</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Ноды</Typography>
                   <Typography variant="caption" color="text.secondary">Серверы для выполнения скриптов</Typography>
                 </Box>
                 <Stack direction="row" spacing={1}>
@@ -1225,6 +1229,17 @@ export default function ScriptsPage() {
                   </Button>
                 </Stack>
               </Stack>
+
+              {sshNodes.length > 0 && (
+                <TextField
+                  size="small"
+                  placeholder="Поиск по имени или IP..."
+                  value={nodeSearch}
+                  onChange={e => setNodeSearch(e.target.value)}
+                  sx={{ mb: 2, maxWidth: 320 }}
+                  slotProps={{ input: { sx: { fontSize: 14 } } }}
+                />
+              )}
 
               {sshNodes.length === 0 ? (
                 <Alert severity="info">
@@ -1246,7 +1261,7 @@ export default function ScriptsPage() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {sshNodes.map(node => {
+                    {sshNodes.filter(n => !nodeSearch || n.name.toLowerCase().includes(nodeSearch.toLowerCase()) || n.ip.includes(nodeSearch)).map(node => {
                       const rw = rwNodes.find(r => r.uuid === node.rwNodeUuid);
                       return (
                         <TableRow key={node.id} hover>
@@ -1348,8 +1363,17 @@ export default function ScriptsPage() {
 
               <Divider sx={{ mb: 2 }} />
 
+              <TextField
+                size="small"
+                placeholder="Поиск по названию скрипта..."
+                value={scriptSearch}
+                onChange={e => setScriptSearch(e.target.value)}
+                sx={{ mb: 2, maxWidth: 320 }}
+                slotProps={{ input: { sx: { fontSize: 14 } } }}
+              />
+
               <Stack spacing={2}>
-                {scripts.map(s => (
+                {scripts.filter(s => !scriptSearch || s.name.toLowerCase().includes(scriptSearch.toLowerCase())).map(s => (
                   <Paper key={s.id} variant="outlined" sx={{ p: 2 }}>
                     <Stack direction="row" alignItems="flex-start" spacing={2}>
                       <Box sx={{ flex: 1 }}>
@@ -2032,9 +2056,19 @@ export default function ScriptsPage() {
               )}
 
               <Divider sx={{ mb: 2 }} />
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Выберите ноды для запуска:
-              </Typography>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                <Typography variant="subtitle2">
+                  Выберите ноды для запуска:
+                </Typography>
+                <Stack direction="row" spacing={0.5}>
+                  <Button size="small" variant="text" onClick={() => setSelectedNodeIds(sshNodes.map(n => n.id))}>
+                    Выбрать все
+                  </Button>
+                  <Button size="small" variant="text" color="inherit" onClick={() => setSelectedNodeIds([])}>
+                    Снять всё
+                  </Button>
+                </Stack>
+              </Stack>
               {categories.length > 0 && (
                 <Stack direction="row" spacing={0.5} flexWrap="wrap" alignItems="center" sx={{ mb: 1 }}>
                   <Typography variant="caption" color="textSecondary">Категория:</Typography>

@@ -6,6 +6,7 @@ import DomainsPage from './pages/DomainsPage';
 import NodesPage from './pages/NodesPage';
 import DashboardPage from './pages/DashboardPage';
 import ScriptsPage from './pages/ScriptsPage';
+import HistoryPage from './pages/HistoryPage';
 import TerminalPopupPage from './pages/TerminalPopupPage';
 import LoginPage from './pages/LoginPage';
 import { ThemeProvider } from './ThemeContext';
@@ -38,6 +39,7 @@ function App() {
               <Route path="settings" element={<SettingsPage />} />
               <Route path="domains" element={<DomainsPage />} />
               <Route path="scripts" element={<ScriptsPage />} />
+              <Route path="history" element={<HistoryPage />} />
             </Route>
             <Route path="/terminal-popup" element={
               new URLSearchParams(window.location.search).get('ticket')

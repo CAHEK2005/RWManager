@@ -176,7 +176,12 @@ export class RotationService implements OnModuleInit {
       if (!p.rotationEnabled) continue;
       if (!this.isDue(p)) continue;
 
-      const result = await this.performRotation(p);
+      const globalUsedPorts = new Set<number>(
+        profiles
+          .filter((_, j) => j !== i)
+          .flatMap(other => (other.inboundsConfig || []).map((c: any) => c.port).filter(Number.isInteger)),
+      );
+      const result = await this.performRotation(p, globalUsedPorts);
       updatedProfiles[i] = {
         ...p,
         lastRotationTimestamp: result.success ? Date.now() : p.lastRotationTimestamp,
@@ -232,8 +237,9 @@ export class RotationService implements OnModuleInit {
     const get = (t: string) => parts.find(x => x.type === t)?.value || '';
     const currentTime = `${get('hour')}:${get('minute')}`;
     const currentDate = `${get('year')}-${get('month')}-${get('day')}`;
-    const localDate = new Date(now.toLocaleString('en-US', { timeZone: tz }));
-    const currentDayOfWeek = localDate.getDay();
+    const currentDayOfWeek = new Date(Date.UTC(
+      parseInt(get('year')), parseInt(get('month')) - 1, parseInt(get('day')),
+    )).getUTCDay();
     if (!p.rotationScheduleDays.includes(currentDayOfWeek)) return false;
     if (currentTime !== p.rotationScheduleTime) return false;
     if (!p.lastRotationTimestamp) return true;
@@ -265,7 +271,7 @@ export class RotationService implements OnModuleInit {
     return { success: true, message: `Ротация выполнена: ${successCount}/${profiles.length}` };
   }
 
-  async performRotation(profile: ManagedProfile): Promise<{ success: boolean; message: string }> {
+  async performRotation(profile: ManagedProfile, globalUsedPorts?: Set<number>): Promise<{ success: boolean; message: string }> {
     try {
       this.logger.log(`Запуск ротации профиля: ${profile.name} (${profile.uuid})`);
 
@@ -290,7 +296,7 @@ export class RotationService implements OnModuleInit {
         domains = await this.domainRepo.find({ where: { isEnabled: true } });
       }
       const generatedInbounds: any[] = [];
-      const usedPorts = new Set<number>();
+      const usedPorts = new Set<number>(globalUsedPorts || []);
       const excludedPorts = new Set<number>(profile.excludedPorts || []);
       const rotNonce = Date.now().toString(36);
 
@@ -328,6 +334,9 @@ export class RotationService implements OnModuleInit {
             break;
           case 'trojan-tcp-reality':
             inbound = this.inboundBuilder.buildTrojanRealityTcp({ port, uuid, sni, ...keys });
+            break;
+          case 'vmess-tcp':
+            inbound = this.inboundBuilder.buildVmessTcp({ port, uuid });
             break;
           default:
             this.logger.warn(`Неизвестный тип инбаунда: ${type}`);

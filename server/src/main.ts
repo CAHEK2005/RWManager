@@ -12,8 +12,9 @@ async function bootstrap() {
   const authService = app.get(AuthService);
   await authService.seedAdmin();
 
+  const corsOrigins = process.env.CORS_ORIGIN?.split(',').filter(Boolean);
   app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(',') ?? 'http://localhost:5173',
+    origin: corsOrigins?.length ? corsOrigins : 'http://localhost:5173',
     credentials: true,
   });
 

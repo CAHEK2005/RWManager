@@ -43,6 +43,31 @@ export class ScriptsController {
     }
   }
 
+  // ── Categories ───────────────────────────────────────────────────────────────
+
+  @Get('categories')
+  getCategories() {
+    return this.scriptsService.getCategories();
+  }
+
+  @Post('categories')
+  async addCategory(@Body() body: { name: string }) {
+    try {
+      return await this.scriptsService.upsertCategory(body.name);
+    } catch (e) {
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Delete('categories/:name')
+  async deleteCategory(@Param('name') name: string) {
+    try {
+      return await this.scriptsService.deleteCategory(decodeURIComponent(name));
+    } catch (e) {
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
   // ── Scripts ──────────────────────────────────────────────────────────────────
 
   @Get('scripts')
@@ -99,12 +124,64 @@ export class ScriptsController {
       url = `https://raw.githubusercontent.com/${ghMatch[1]}/${ghMatch[2]}`;
     }
 
+    // SSRF protection: block requests to private/loopback addresses
     try {
-      const res = await fetch(url);
+      const parsed = new URL(url);
+      const hostname = parsed.hostname.toLowerCase();
+      const privatePatterns = [
+        /^localhost$/,
+        /^127\./,
+        /^10\./,
+        /^172\.(1[6-9]|2\d|3[01])\./,
+        /^192\.168\./,
+        /^169\.254\./,
+        /^::1$/,
+        /^fc00:/,
+        /^fe80:/,
+      ];
+      if (privatePatterns.some(p => p.test(hostname))) {
+        throw new HttpException('Запрос к внутренним адресам запрещён', HttpStatus.FORBIDDEN);
+      }
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        throw new HttpException('Разрешены только HTTP/HTTPS URL', HttpStatus.BAD_REQUEST);
+      }
+    } catch (e) {
+      if (e instanceof HttpException) throw e;
+      throw new HttpException('Некорректный URL', HttpStatus.BAD_REQUEST);
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10_000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const content = await res.text();
+      // Limit response size to 1MB
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('Нет тела ответа');
+      const chunks: Uint8Array[] = [];
+      let totalSize = 0;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        totalSize += value.length;
+        if (totalSize > 1_048_576) {
+          reader.cancel();
+          throw new Error('Файл превышает 1MB');
+        }
+        chunks.push(value);
+      }
+      const content = new TextDecoder().decode(
+        chunks.reduce((acc, chunk) => {
+          const merged = new Uint8Array(acc.length + chunk.length);
+          merged.set(acc);
+          merged.set(chunk, acc.length);
+          return merged;
+        }, new Uint8Array(0)),
+      );
       return { content, resolvedUrl: url };
     } catch (e) {
+      if (e instanceof HttpException) throw e;
       throw new HttpException(`Не удалось загрузить: ${e.message}`, HttpStatus.BAD_REQUEST);
     }
   }

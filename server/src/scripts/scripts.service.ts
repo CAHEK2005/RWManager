@@ -5,6 +5,8 @@ import { Client } from 'ssh2';
 import { v4 as uuidv4 } from 'uuid';
 import { Setting } from '../settings/entities/setting.entity';
 import type { InstallNodeDto } from '../nodes/nodes.service';
+import { SYSCTL_CONTENT } from '../config/constants';
+import { TelegramService } from '../telegram/telegram.service';
 
 export interface SshNode {
   id: string;
@@ -73,47 +75,6 @@ export interface HistoryListItem {
   logPreview?: string;
 }
 
-const SYSCTL_CONTENT = `net.ipv6.conf.all.disable_ipv6 = 1
-net.ipv6.conf.default.disable_ipv6 = 1
-net.ipv6.conf.lo.disable_ipv6 = 1
-net.ipv4.ip_forward = 1
-net.ipv4.conf.all.send_redirects = 0
-net.ipv4.conf.default.send_redirects = 0
-net.ipv4.conf.all.accept_redirects = 0
-net.ipv4.conf.default.accept_redirects = 0
-net.ipv4.conf.all.accept_source_route = 0
-net.ipv4.conf.default.accept_source_route = 0
-net.ipv4.conf.all.rp_filter = 2
-net.ipv4.conf.default.rp_filter = 2
-net.ipv4.conf.all.log_martians = 1
-net.ipv4.conf.default.log_martians = 1
-net.ipv4.icmp_echo_ignore_broadcasts = 1
-net.ipv4.icmp_ratelimit = 100
-net.ipv4.icmp_ratemask = 88089
-net.ipv4.icmp_ignore_bogus_error_responses = 1
-net.ipv4.tcp_syncookies = 1
-net.ipv4.tcp_timestamps = 1
-net.ipv4.tcp_fin_timeout = 20
-net.ipv4.tcp_fastopen = 1
-net.ipv4.tcp_max_syn_backlog = 8192
-net.ipv4.tcp_ecn = 1
-net.ipv4.tcp_sack = 1
-net.ipv4.tcp_keepalive_time = 600
-net.ipv4.tcp_keepalive_intvl = 60
-net.ipv4.tcp_keepalive_probes = 5
-net.ipv4.tcp_rmem = 4096 87380 16777216
-net.ipv4.tcp_wmem = 4096 65536 16777216
-net.core.somaxconn = 4096
-net.core.netdev_max_backlog = 5000
-net.core.rmem_max = 16777216
-net.core.wmem_max = 16777216
-net.core.default_qdisc = fq
-net.ipv4.tcp_congestion_control = bbr
-kernel.yama.ptrace_scope = 1
-kernel.randomize_va_space = 2
-fs.suid_dumpable = 0
-vm.swappiness = 10
-fs.file-max = 2097152`;
 
 const WARP_SETUP_SCRIPT = `PROXY_PORT="{{ warp_proxy_port | SOCKS5-порт WARP (по умолчанию 40000) }}"
 PROXY_PORT="\${PROXY_PORT:-40000}"
@@ -298,6 +259,57 @@ sshd -t || { echo "[ERROR] Конфигурация SSH невалидна, пе
 systemctl restart sshd 2>/dev/null || service ssh restart
 echo "Готово: ключ добавлен, вход по паролю отключён"`,
   },
+  {
+    id: 'builtin-health-check',
+    name: 'Проверка состояния ноды',
+    description: 'Показывает статус контейнера, открытые порты, загрузку CPU/RAM и использование диска',
+    isBuiltIn: true,
+    content: `echo "=== Контейнеры Docker ==="
+docker ps --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}" 2>/dev/null || echo "Docker недоступен"
+
+echo ""
+echo "=== Открытые порты ==="
+ss -tlnp 2>/dev/null | head -20
+
+echo ""
+echo "=== Нагрузка CPU / RAM ==="
+top -bn1 | head -8
+
+echo ""
+echo "=== Использование диска ==="
+df -h /
+
+echo ""
+echo "=== Последние ошибки в логах ноды ==="
+docker logs --tail=20 remnanode 2>&1 | grep -iE "(error|fatal|panic)" | tail -10 || echo "Ошибок не найдено"`,
+  },
+  {
+    id: 'builtin-xray-logs',
+    name: 'Логи ноды',
+    description: 'Выводит последние 100 строк логов контейнера remnanode',
+    isBuiltIn: true,
+    content: `docker logs --tail=100 remnanode 2>&1`,
+  },
+  {
+    id: 'builtin-docker-cleanup',
+    name: 'Очистка Docker',
+    description: 'Удаляет неиспользуемые образы, остановленные контейнеры и анонимные тома. Освобождает место на диске.',
+    isBuiltIn: true,
+    content: `echo "=== До очистки ==="
+df -h /
+docker system df 2>/dev/null
+
+echo ""
+echo "=== Очистка ==="
+docker system prune -f
+docker volume prune -f
+
+echo ""
+echo "=== После очистки ==="
+df -h /
+docker system df 2>/dev/null
+echo "Готово"`,
+  },
 ];
 
 @Injectable()
@@ -308,6 +320,7 @@ export class ScriptsService implements OnModuleInit {
   constructor(
     @InjectRepository(Setting)
     private settingRepo: Repository<Setting>,
+    private telegramService: TelegramService,
   ) {}
 
   async onModuleInit() {
@@ -384,6 +397,36 @@ export class ScriptsService implements OnModuleInit {
     await this.saveSetting('ssh_nodes', JSON.stringify(nodes.filter(n => n.id !== id)));
   }
 
+  async getCategories(): Promise<string[]> {
+    const raw = await this.settingRepo.findOne({ where: { key: 'ssh_node_categories' } });
+    try { return JSON.parse(raw?.value || '[]'); } catch { return []; }
+  }
+
+  async upsertCategory(name: string): Promise<string[]> {
+    const cats = await this.getCategories();
+    const trimmed = name.trim();
+    if (!trimmed) throw new Error('Название категории не может быть пустым');
+    if (!cats.includes(trimmed)) {
+      cats.push(trimmed);
+      await this.saveSetting('ssh_node_categories', JSON.stringify(cats));
+    }
+    return cats;
+  }
+
+  async deleteCategory(name: string): Promise<string[]> {
+    const cats = await this.getCategories();
+    const updated = cats.filter(c => c !== name);
+    await this.saveSetting('ssh_node_categories', JSON.stringify(updated));
+    // Remove category from all nodes
+    const nodes = await this.loadSshNodes();
+    const updatedNodes = nodes.map(n => ({
+      ...n,
+      categoryIds: (n.categoryIds || []).filter(c => c !== name),
+    }));
+    await this.saveSetting('ssh_nodes', JSON.stringify(updatedNodes));
+    return updated;
+  }
+
   async addSshNodeFromInstall(dto: InstallNodeDto, rwNodeUuid: string, name: string): Promise<void> {
     const node: SshNode = {
       id: uuidv4(),
@@ -399,7 +442,7 @@ export class ScriptsService implements OnModuleInit {
     const nodes = await this.loadSshNodes();
     nodes.push(node);
     await this.saveSetting('ssh_nodes', JSON.stringify(nodes));
-    this.logger.log(`SSH-нода сохранена после установки: ${name} (${dto.ip})`);
+    this.logger.log(`Нода сохранена после установки: ${name} (${dto.ip})`);
   }
 
   // ── Scripts ──────────────────────────────────────────────────────────────────
@@ -596,6 +639,13 @@ export class ScriptsService implements OnModuleInit {
           logs: r.logs,
         })),
       });
+      const successCount = job.results.filter(r => r.status === 'success').length;
+      this.telegramService.notifyScriptExecution(
+        script.name,
+        job.status as 'success' | 'error',
+        successCount,
+        job.results.length,
+      ).catch(() => {});
       setTimeout(() => this.jobs.delete(jobId), 3_600_000);
     });
 

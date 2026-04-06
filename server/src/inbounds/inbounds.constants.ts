@@ -3,6 +3,7 @@ export const CONNECTION_TYPES = [
   'vless-xhttp-reality',
   'vless-grpc-reality',
   'vless-ws',
+  'vmess-tcp',
   'shadowsocks-tcp',
   'trojan-tcp-reality',
 ] as const;

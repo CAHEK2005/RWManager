@@ -27,6 +27,10 @@ export default function SettingsPage() {
   const [tgTopicId, setTgTopicId] = useState('');
   const [tgOnError, setTgOnError] = useState(true);
   const [tgOnSuccess, setTgOnSuccess] = useState(false);
+  const [tgOnScriptError, setTgOnScriptError] = useState(false);
+
+  const [healthEnabled, setHealthEnabled] = useState(false);
+  const [healthInterval, setHealthInterval] = useState('5');
 
   const { msg, showMsg, closeMsg } = useAlert();
 
@@ -59,6 +63,9 @@ export default function SettingsPage() {
       if (data.telegram_topic_id) setTgTopicId(data.telegram_topic_id);
       if (data.telegram_notify_on_error !== undefined) setTgOnError(data.telegram_notify_on_error === 'true');
       if (data.telegram_notify_on_success !== undefined) setTgOnSuccess(data.telegram_notify_on_success === 'true');
+      if (data.telegram_notify_on_script_error !== undefined) setTgOnScriptError(data.telegram_notify_on_script_error === 'true');
+      if (data.health_check_enabled !== undefined) setHealthEnabled(data.health_check_enabled === 'true');
+      if (data.health_check_interval) setHealthInterval(data.health_check_interval);
     }).catch(console.error);
   }, []);
 
@@ -99,6 +106,9 @@ export default function SettingsPage() {
         telegram_topic_id: tgTopicId.trim(),
         telegram_notify_on_error: String(tgOnError),
         telegram_notify_on_success: String(tgOnSuccess),
+        telegram_notify_on_script_error: String(tgOnScriptError),
+        health_check_enabled: String(healthEnabled),
+        health_check_interval: healthInterval,
       });
       showMsg('success', 'Настройки Telegram сохранены');
     } catch {
@@ -196,6 +206,54 @@ export default function SettingsPage() {
             <Stack direction="row" justifyContent="flex-end" sx={{ mt: 3 }}>
               <Button variant="contained" onClick={handleSaveAdmin}>Сохранить</Button>
             </Stack>
+
+            <Box sx={{ mt: 4, pt: 3, borderTop: 1, borderColor: 'divider' }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>Резервное копирование</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Экспорт и импорт конфигурации (профили, ноды, домены, скрипты). Секреты и API-ключи не включаются.
+              </Typography>
+              <Stack direction="row" spacing={1.5}>
+                <Button
+                  variant="outlined"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch('/api/settings/backup', {
+                        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+                      });
+                      if (!res.ok) throw new Error('Ошибка');
+                      const blob = await res.blob();
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = res.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'backup.json';
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    } catch { alert('Ошибка при скачивании бэкапа'); }
+                  }}
+                >
+                  Скачать бэкап
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  component="label"
+                >
+                  Восстановить из файла
+                  <input type="file" accept=".json" hidden onChange={async e => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const text = await file.text();
+                      const body = JSON.parse(text);
+                      const { default: api } = await import('../api');
+                      await api.post('/settings/restore', body);
+                      alert('Конфигурация успешно восстановлена. Перезагрузите страницу.');
+                    } catch { alert('Ошибка: некорректный файл бэкапа'); }
+                    e.target.value = '';
+                  }} />
+                </Button>
+              </Stack>
+            </Box>
           </Box>
         </TabPanel>
 
@@ -230,6 +288,7 @@ export default function SettingsPage() {
                 helperText="ID топика в супергруппе (message_thread_id)"
               />
               <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>Ротация</Typography>
                 <FormControlLabel
                   control={<Switch checked={tgOnError} onChange={e => setTgOnError(e.target.checked)} />}
                   label="Уведомлять об ошибках ротации"
@@ -238,6 +297,31 @@ export default function SettingsPage() {
                   control={<Switch checked={tgOnSuccess} onChange={e => setTgOnSuccess(e.target.checked)} />}
                   label="Уведомлять об успешных ротациях"
                 />
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>Скрипты</Typography>
+                <FormControlLabel
+                  control={<Switch checked={tgOnScriptError} onChange={e => setTgOnScriptError(e.target.checked)} />}
+                  label="Уведомлять об ошибках выполнения скриптов"
+                />
+              </Box>
+              <Box sx={{ pt: 1, borderTop: 1, borderColor: 'divider' }}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>Мониторинг нод</Typography>
+                <FormControlLabel
+                  control={<Switch checked={healthEnabled} onChange={e => setHealthEnabled(e.target.checked)} />}
+                  label="Уведомлять при недоступности ноды"
+                />
+                {healthEnabled && (
+                  <TextField
+                    size="small"
+                    label="Интервал проверки (минуты)"
+                    type="number"
+                    value={healthInterval}
+                    onChange={e => setHealthInterval(e.target.value)}
+                    slotProps={{ htmlInput: { min: 1, max: 60 } }}
+                    sx={{ mt: 1, maxWidth: 220 }}
+                  />
+                )}
               </Box>
             </Stack>
             <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ mt: 3 }}>

@@ -131,12 +131,23 @@ function NodeStatus({ node }: { node: RwNode }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
+interface NodeHealth {
+  nodeId: string;
+  nodeName: string;
+  ip: string;
+  port: number;
+  online: boolean;
+  lastCheck: string;
+  lastOnline: string | null;
+}
+
 export default function DashboardPage() {
   const [profiles, setProfiles] = useState<ManagedProfile[]>([]);
   const [nodes, setNodes] = useState<RwNode[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [domainsCount, setDomainsCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [healthStatus, setHealthStatus] = useState<NodeHealth[]>([]);
   const { msg, showMsg, closeMsg } = useAlert();
   const [rotating, setRotating] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -144,16 +155,23 @@ export default function DashboardPage() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [profRes, nodeRes, histRes, domRes] = await Promise.allSettled([
+      const [profRes, nodeRes, histRes, domRes, healthRes] = await Promise.allSettled([
         api.get('/settings/profiles/managed'),
         api.get('/nodes'),
         api.get('/rotation/history'),
         api.get('/domains?page=1&limit=1'),
+        api.get('/health/status'),
       ]);
       if (profRes.status === 'fulfilled') setProfiles(profRes.value.data || []);
+      else console.warn('Не удалось загрузить профили:', profRes.reason);
       if (nodeRes.status === 'fulfilled') setNodes(nodeRes.value.data || []);
+      else console.warn('Не удалось загрузить ноды:', nodeRes.reason);
       if (histRes.status === 'fulfilled') setHistory((histRes.value.data || []).slice(0, 10));
+      else console.warn('Не удалось загрузить историю:', histRes.reason);
       if (domRes.status === 'fulfilled') setDomainsCount(domRes.value.data?.total ?? null);
+      else console.warn('Не удалось загрузить домены:', domRes.reason);
+      if (healthRes.status === 'fulfilled') setHealthStatus(healthRes.value.data || []);
+      else console.warn('Не удалось загрузить health-статус:', healthRes.reason);
     } finally {
       setLoading(false);
     }
@@ -437,6 +455,48 @@ export default function DashboardPage() {
                   </TableCell>
                   <TableCell>
                     <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{h.message}</Typography>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Paper>
+      )}
+
+      {/* Health Status */}
+      {healthStatus.length > 0 && (
+        <Paper variant="outlined" sx={{ mb: 3 }}>
+          <Box sx={{ px: 2, pt: 2, pb: 1 }}>
+            <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'text.secondary', mb: 1 }}>
+              МОНИТОРИНГ НОД
+            </Typography>
+          </Box>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Нода</TableCell>
+                <TableCell>IP</TableCell>
+                <TableCell>Статус</TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Последняя проверка</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {healthStatus.map(h => (
+                <TableRow key={h.nodeId}>
+                  <TableCell>{h.nodeName}</TableCell>
+                  <TableCell><Typography sx={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>{h.ip}:{h.port}</Typography></TableCell>
+                  <TableCell>
+                    <Chip
+                      label={h.online ? 'Онлайн' : 'Офлайн'}
+                      size="small"
+                      color={h.online ? 'success' : 'error'}
+                      variant="outlined"
+                    />
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                      {h.lastCheck ? new Date(h.lastCheck).toLocaleTimeString('ru-RU') : '—'}
+                    </Typography>
                   </TableCell>
                 </TableRow>
               ))}

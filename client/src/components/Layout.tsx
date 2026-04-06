@@ -7,7 +7,7 @@ import ConfirmDialog from './ConfirmDialog';
 import {
   Layers, Dns, Settings, Storage, Dashboard, Terminal,
   Brightness7, Brightness4, BrightnessAuto, Logout, Menu as MenuIcon,
-  HelpOutline,
+  HelpOutline, History,
 } from '@mui/icons-material';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useThemeContext } from '../ThemeContext';
@@ -21,6 +21,7 @@ const menuItems = [
   { text: 'Ноды',       icon: <Storage sx={{ fontSize: 17 }} />,    path: '/nodes' },
   { text: 'Домены',     icon: <Dns sx={{ fontSize: 17 }} />,        path: '/domains' },
   { text: 'Скрипты',    icon: <Terminal sx={{ fontSize: 17 }} />,   path: '/scripts' },
+  { text: 'История',    icon: <History sx={{ fontSize: 17 }} />,    path: '/history' },
   { text: 'Настройки',  icon: <Settings sx={{ fontSize: 17 }} />,   path: '/settings' },
 ];
 

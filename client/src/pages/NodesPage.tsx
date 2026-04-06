@@ -201,7 +201,11 @@ export default function NodesPage() {
           if (pollRef.current) clearInterval(pollRef.current);
           loadNodes();
         }
-      } catch { if (pollRef.current) clearInterval(pollRef.current); }
+      } catch {
+        if (pollRef.current) clearInterval(pollRef.current);
+        setJobStatus('error');
+        setJobLogs(prev => [...prev, '[ERROR] Потеряно соединение с сервером']);
+      }
     }, 2000);
   };
 

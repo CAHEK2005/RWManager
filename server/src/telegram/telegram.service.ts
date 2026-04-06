@@ -18,6 +18,7 @@ export class TelegramService {
     topicId: string;
     notifyOnError: boolean;
     notifyOnSuccess: boolean;
+    notifyOnScriptError: boolean;
   }> {
     const rows = await this.settingRepo.find({
       where: [
@@ -26,6 +27,7 @@ export class TelegramService {
         { key: 'telegram_topic_id' },
         { key: 'telegram_notify_on_error' },
         { key: 'telegram_notify_on_success' },
+        { key: 'telegram_notify_on_script_error' },
       ],
     });
     const get = (k: string) => rows.find((r) => r.key === k)?.value || '';
@@ -35,6 +37,7 @@ export class TelegramService {
       topicId: get('telegram_topic_id'),
       notifyOnError: get('telegram_notify_on_error') === 'true',
       notifyOnSuccess: get('telegram_notify_on_success') === 'true',
+      notifyOnScriptError: get('telegram_notify_on_script_error') === 'true',
     };
   }
 
@@ -72,6 +75,20 @@ export class TelegramService {
 
     const icon = status === 'success' ? '✅' : '❌';
     const text = `${icon} <b>Ротация профиля</b>\n<b>${profileName}</b>\n${message}`;
+    await this.sendMessage(text);
+  }
+
+  async notifyScriptExecution(
+    scriptName: string,
+    status: 'success' | 'error',
+    successCount: number,
+    totalCount: number,
+  ): Promise<void> {
+    const { notifyOnScriptError } = await this.getConfig();
+    if (!notifyOnScriptError) return;
+    if (status === 'success') return;
+
+    const text = `❌ <b>Выполнение скрипта</b>\n<b>${scriptName}</b>\n${successCount}/${totalCount} нод успешно`;
     await this.sendMessage(text);
   }
 }
