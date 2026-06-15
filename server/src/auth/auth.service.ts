@@ -20,8 +20,12 @@ export class AuthService {
   async validateUser(login: string, pass: string): Promise<any> {
     this.logger.log('Login attempt received');
 
-    const dbLogin = await this.settingsRepo.findOne({ where: { key: 'admin_login' } });
-    const dbPass = await this.settingsRepo.findOne({ where: { key: 'admin_password' } });
+    const dbLogin = await this.settingsRepo.findOne({
+      where: { key: 'admin_login' },
+    });
+    const dbPass = await this.settingsRepo.findOne({
+      where: { key: 'admin_password' },
+    });
 
     if (!dbLogin || !dbPass) {
       this.logger.error('Admin credentials not found in database');
@@ -29,7 +33,7 @@ export class AuthService {
     }
 
     const loginMatch = login === dbLogin.value;
-    const isMatch = loginMatch && await bcrypt.compare(pass, dbPass.value);
+    const isMatch = loginMatch && (await bcrypt.compare(pass, dbPass.value));
 
     if (isMatch) {
       this.logger.log('Login successful');
@@ -49,7 +53,9 @@ export class AuthService {
 
   async changePassword(newPass: string) {
     const hash = await bcrypt.hash(newPass, 10);
-    let setting = await this.settingsRepo.findOne({ where: { key: 'admin_password' } });
+    let setting = await this.settingsRepo.findOne({
+      where: { key: 'admin_password' },
+    });
     if (!setting) {
       setting = this.settingsRepo.create({ key: 'admin_password' });
     }
@@ -59,39 +65,54 @@ export class AuthService {
   }
 
   async updateAdminProfile(login: string, password?: string) {
-    let loginSetting = await this.settingsRepo.findOne({ where: { key: 'admin_login' } });
-    if (!loginSetting) loginSetting = this.settingsRepo.create({ key: 'admin_login' });
-    
+    let loginSetting = await this.settingsRepo.findOne({
+      where: { key: 'admin_login' },
+    });
+    if (!loginSetting)
+      loginSetting = this.settingsRepo.create({ key: 'admin_login' });
+
     loginSetting.value = login;
     await this.settingsRepo.save(loginSetting);
 
     if (password && password.trim().length > 0) {
       const hash = await bcrypt.hash(password, 10);
-      let passSetting = await this.settingsRepo.findOne({ where: { key: 'admin_password' } });
-      if (!passSetting) passSetting = this.settingsRepo.create({ key: 'admin_password' });
-      
+      let passSetting = await this.settingsRepo.findOne({
+        where: { key: 'admin_password' },
+      });
+      if (!passSetting)
+        passSetting = this.settingsRepo.create({ key: 'admin_password' });
+
       passSetting.value = hash;
       await this.settingsRepo.save(passSetting);
     }
-    
+
     this.logger.log('Admin profile updated');
   }
 
   async seedAdmin() {
-    const login = await this.settingsRepo.findOne({ where: { key: 'admin_login' } });
-    
+    const login = await this.settingsRepo.findOne({
+      where: { key: 'admin_login' },
+    });
+
     if (!login) {
       this.logger.log('Инициализация администратора...');
       const envLogin = this.configService.get<string>('ADMIN_LOGIN') || 'admin';
-      const envPass = this.configService.get<string>('ADMIN_PASSWORD') || 'admin';
-      
-      const loginSetting = this.settingsRepo.create({ key: 'admin_login', value: envLogin });
+      const envPass =
+        this.configService.get<string>('ADMIN_PASSWORD') || 'admin';
+
+      const loginSetting = this.settingsRepo.create({
+        key: 'admin_login',
+        value: envLogin,
+      });
       await this.settingsRepo.save(loginSetting);
 
       const hash = await bcrypt.hash(envPass, 10);
-      const passSetting = this.settingsRepo.create({ key: 'admin_password', value: hash });
+      const passSetting = this.settingsRepo.create({
+        key: 'admin_password',
+        value: hash,
+      });
       await this.settingsRepo.save(passSetting);
-      
+
       this.logger.log('Администратор успешно создан.');
     } else {
       this.logger.log('Администратор уже существует в базе.');

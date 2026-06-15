@@ -159,7 +159,12 @@ export default function DomainsPage() {
               <TableRow key={d.id}>
                 <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{d.name}</TableCell>
                 <TableCell align="right">
-                  <IconButton size="small" onClick={() => handleDelete(d.id, d.name)} sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}>
+                  <IconButton
+                    size="small"
+                    aria-label={`Удалить домен ${d.name}`}
+                    onClick={() => handleDelete(d.id, d.name)}
+                    sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}
+                  >
                     <Delete sx={{ fontSize: 16 }} />
                   </IconButton>
                 </TableCell>

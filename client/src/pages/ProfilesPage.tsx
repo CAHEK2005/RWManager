@@ -4,7 +4,7 @@ import {
   TextField, Select, MenuItem, Menu, FormControl, InputLabel, Switch, FormControlLabel,
   Dialog, DialogTitle, DialogContent, DialogActions, Checkbox,
   Tabs, Tab, Snackbar, Alert, useTheme, useMediaQuery, Grid, Divider,
-  CircularProgress, FormHelperText, List, ListItem, ListItemText,
+  CircularProgress, List, ListItem, ListItemText,
 } from '@mui/material';
 import {
   Add, Delete, PlayArrow, PauseCircleFilled, Warning, Check, Refresh,
@@ -16,6 +16,15 @@ import { useAlert } from '../hooks/useAlert';
 import { getErrorMessage } from '../utils/error';
 import UrlImportDialog from '../components/UrlImportDialog';
 import ConfirmDialog from '../components/ConfirmDialog';
+import {
+  DEFAULT_HOST_TEMPLATE,
+  HOST_TEMPLATE_REMARK_MAX_LENGTH,
+  HOST_TEMPLATE_VARIABLES,
+  type HostTemplateMode,
+  renderHostTemplate,
+  resolveProfileHostTemplate,
+  validateHostTemplate,
+} from '../utils/hostTemplate';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -43,6 +52,7 @@ interface ManagedProfile {
   applyToNode: boolean;
   hostMappings: HostMapping[];
   hostTemplate: string;
+  hostTemplateMode?: HostTemplateMode;
   rotationEnabled: boolean;
   rotationMode: 'interval' | 'schedule' | 'days-of-week';
   rotationInterval: number;
@@ -67,6 +77,7 @@ const CONNECTION_TYPES = [
   'vless-xhttp-reality',
   'vless-grpc-reality',
   'vless-ws',
+  'vmess-tcp',
   'shadowsocks-tcp',
   'trojan-tcp-reality',
 ] as const;
@@ -202,7 +213,9 @@ export default function ProfilesPage() {
   const [localInbounds, setLocalInbounds] = useState<InboundConfigItem[]>([]);
   const [localNodeUuid, setLocalNodeUuid] = useState('');
   const [localApplyToNode, setLocalApplyToNode] = useState(false);
-  const [localTemplate, setLocalTemplate] = useState('{countryCode} {nodeName} - {inboundType}');
+  const [defaultHostTemplate, setDefaultHostTemplate] = useState(DEFAULT_HOST_TEMPLATE);
+  const [localTemplate, setLocalTemplate] = useState(DEFAULT_HOST_TEMPLATE);
+  const [localTemplateMode, setLocalTemplateMode] = useState<HostTemplateMode>('inherit');
   const [localHostIndexStart, setLocalHostIndexStart] = useState(1);
   const [localHostMappings, setLocalHostMappings] = useState<HostMapping[]>([]);
   const [sniData, setSniData] = useState<{ tag: string; sni: string; protocol: string; port: number | null }[]>([]);
@@ -262,6 +275,15 @@ export default function ProfilesPage() {
     } catch { setHosts([]); }
   }, []);
 
+  const loadHostTemplate = useCallback(async () => {
+    try {
+      const { data } = await api.get('/settings/host-template');
+      setDefaultHostTemplate(data.template || DEFAULT_HOST_TEMPLATE);
+    } catch {
+      setDefaultHostTemplate(DEFAULT_HOST_TEMPLATE);
+    }
+  }, []);
+
   const loadSni = useCallback(async (profileUuid: string) => {
     try {
       const { data } = await api.get(`/settings/profiles/managed/${profileUuid}/hosts-with-sni`);
@@ -274,7 +296,8 @@ export default function ProfilesPage() {
     loadRwProfiles();
     loadNodes();
     loadHosts();
-  }, []);
+    loadHostTemplate();
+  }, [loadHostTemplate, loadHosts, loadNodes, loadProfiles, loadRwProfiles]);
 
   // Sync local state when selectedProfile changes
   useEffect(() => {
@@ -284,7 +307,8 @@ export default function ProfilesPage() {
     setExcludedPortInput('');
     setLocalNodeUuid(selectedProfile.nodeUuid || '');
     setLocalApplyToNode(selectedProfile.applyToNode ?? false);
-    setLocalTemplate(selectedProfile.hostTemplate || '{countryCode} {nodeName} - {inboundType}');
+    setLocalTemplate(selectedProfile.hostTemplate || DEFAULT_HOST_TEMPLATE);
+    setLocalTemplateMode(selectedProfile.hostTemplateMode || 'inherit');
     setLocalHostIndexStart(selectedProfile.hostIndexStart ?? 1);
     setLocalHostMappings(selectedProfile.hostMappings || []);
     loadSni(selectedProfile.uuid);
@@ -296,7 +320,7 @@ export default function ProfilesPage() {
     setLocalScheduleDays(selectedProfile.rotationScheduleDays || []);
     setLocalProfileDomains(selectedProfile.profileDomains || []);
     setDomainInput('');
-  }, [selectedProfile?.uuid]);
+  }, [loadSni, selectedProfile]);
 
   // ── Profile state helpers ─────────────────────────────────────────────────
 
@@ -502,28 +526,76 @@ export default function ProfilesPage() {
     const countryFlag = countryCodeToFlag(countryCode);
     const nodeName = node?.name || '';
     const nodeAddress = node?.address || '';
+    const activeTemplate = resolveProfileHostTemplate(localTemplateMode, localTemplate, defaultHostTemplate);
     for (let i = 0; i < localInbounds.length; i++) {
       const inboundType = localInbounds[i].type;
-      const remark = localTemplate
-        .replace('{countryFlag}', countryFlag)
-        .replace('{countryCode}', countryCode)
-        .replace('{nodeName}', nodeName)
-        .replace('{nodeAddress}', nodeAddress)
-        .replace('{inboundType}', inboundType)
-        .replace('{index}', String(localHostIndexStart + i));
-      if (remark.length > 40) return true;
+      const remark = renderHostTemplate(activeTemplate, {
+        countryFlag,
+        countryCode,
+        nodeName,
+        nodeAddress,
+        inboundType,
+        index: localHostIndexStart + i,
+      }, 999);
+      if (remark.length > HOST_TEMPLATE_REMARK_MAX_LENGTH) return true;
     }
     return false;
+  };
+
+  const hostTemplateError = localTemplateMode === 'custom' ? validateHostTemplate(localTemplate) : null;
+  const selectedTemplateNode = nodes.find(n => n.uuid === localNodeUuid);
+  const selectedTemplateCountryCode = selectedTemplateNode?.countryCode || '';
+  const activeHostTemplate = resolveProfileHostTemplate(localTemplateMode, localTemplate, defaultHostTemplate);
+  const templatePreviewFull = renderHostTemplate(activeHostTemplate, {
+    countryFlag: countryCodeToFlag(selectedTemplateCountryCode),
+    countryCode: selectedTemplateCountryCode,
+    nodeName: selectedTemplateNode?.name || 'Node-01',
+    nodeAddress: selectedTemplateNode?.address || '203.0.113.10',
+    inboundType: localInbounds[0]?.type || 'vless-tcp-reality',
+    index: localHostIndexStart,
+  }, 999);
+  const templatePreview = templatePreviewFull.slice(0, HOST_TEMPLATE_REMARK_MAX_LENGTH);
+
+  const handleSaveHostTemplate = async () => {
+    if (!selectedProfile) return;
+    if (hostTemplateError) {
+      showMsg('error', hostTemplateError);
+      return;
+    }
+    try {
+      await api.patch(`/settings/profiles/managed/${selectedProfile.uuid}`, {
+        hostTemplate: localTemplate,
+        hostTemplateMode: localTemplateMode,
+        hostIndexStart: localHostIndexStart,
+      });
+      updateProfileInState(selectedProfile.uuid, {
+        hostTemplate: localTemplate,
+        hostTemplateMode: localTemplateMode,
+        hostIndexStart: localHostIndexStart,
+      });
+      showMsg('success', 'Шаблон профиля сохранён');
+    } catch (e: unknown) {
+      showMsg('error', getErrorMessage(e));
+    }
   };
 
   const handleCreateHosts = async () => {
     if (!selectedProfile) return;
     try {
       // Save template and index start first
-      await api.patch(`/settings/profiles/managed/${selectedProfile.uuid}`, { hostTemplate: localTemplate, hostIndexStart: localHostIndexStart });
+      await api.patch(`/settings/profiles/managed/${selectedProfile.uuid}`, {
+        hostTemplate: localTemplate,
+        hostTemplateMode: localTemplateMode,
+        hostIndexStart: localHostIndexStart,
+      });
       const { data } = await api.post(`/settings/profiles/managed/${selectedProfile.uuid}/hosts/create`);
       setLocalHostMappings(data.mappings || []);
-      updateProfileInState(selectedProfile.uuid, { hostMappings: data.mappings || [], hostTemplate: localTemplate });
+      updateProfileInState(selectedProfile.uuid, {
+        hostMappings: data.mappings || [],
+        hostTemplate: localTemplate,
+        hostTemplateMode: localTemplateMode,
+        hostIndexStart: localHostIndexStart,
+      });
       showMsg('success', `Создано хостов: ${data.created}`);
     } catch (e: unknown) {
       showMsg('error', getErrorMessage(e));
@@ -809,7 +881,11 @@ export default function ProfilesPage() {
                   >
                     Ротировать
                   </Button>
-                  <IconButton size="small" onClick={e => { e.stopPropagation(); setCardMenuAnchor({ el: e.currentTarget, uuid: p.uuid }); }}>
+                  <IconButton
+                    size="small"
+                    aria-label={`Действия профиля ${p.name}`}
+                    onClick={e => { e.stopPropagation(); setCardMenuAnchor({ el: e.currentTarget, uuid: p.uuid }); }}
+                  >
                     <MoreVert sx={{ fontSize: 16 }} />
                   </IconButton>
                 </Box>
@@ -826,7 +902,7 @@ export default function ProfilesPage() {
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         >
-          <MenuItem onClick={e => {
+          <MenuItem onClick={() => {
             const uuid = cardMenuAnchor?.uuid;
             setCardMenuAnchor(null);
             if (uuid) {
@@ -937,7 +1013,12 @@ export default function ProfilesPage() {
                                       </Typography>
                                     </Tooltip>
                                     <Tooltip title="Скопировать SNI">
-                                      <IconButton size="small" sx={{ p: 0.2 }} onClick={() => navigator.clipboard.writeText(sniEntry.sni)}>
+                                      <IconButton
+                                        size="small"
+                                        aria-label={`Скопировать SNI ${sniEntry.sni}`}
+                                        sx={{ p: 0.2 }}
+                                        onClick={() => navigator.clipboard.writeText(sniEntry.sni)}
+                                      >
                                         <ContentCopy sx={{ fontSize: 12 }} />
                                       </IconButton>
                                     </Tooltip>
@@ -975,7 +1056,7 @@ export default function ProfilesPage() {
                             />
 
                             <Tooltip title="Удалить">
-                              <IconButton color="error" onClick={() => removeInbound(idx)} sx={{ mt: 0.5 }}>
+                              <IconButton color="error" aria-label={`Удалить inbound ${idx + 1}`} onClick={() => removeInbound(idx)} sx={{ mt: 0.5 }}>
                                 <Delete />
                               </IconButton>
                             </Tooltip>
@@ -1071,25 +1152,72 @@ export default function ProfilesPage() {
                     <Divider sx={{ mb: 2 }} />
 
                     <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
-                      <Typography variant="subtitle1" gutterBottom>Создать хосты по шаблону</Typography>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ mb: 2, gap: 1 }}>
+                        <Box>
+                          <Typography variant="subtitle1">Создать хосты по шаблону</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Шаблон применяется при создании хостов и при последующих ротациях.
+                          </Typography>
+                        </Box>
+                        <Chip
+                          size="small"
+                          color={localTemplateMode === 'inherit' ? 'info' : 'warning'}
+                          variant="outlined"
+                          label={localTemplateMode === 'inherit' ? 'Наследует глобальный' : 'Переопределён'}
+                        />
+                      </Stack>
+
+                      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ mb: 1.5 }}>
+                        <FormControl size="small" sx={{ minWidth: { xs: '100%', md: 220 } }}>
+                          <InputLabel>Режим шаблона</InputLabel>
+                          <Select
+                            value={localTemplateMode}
+                            label="Режим шаблона"
+                            onChange={(e: SelectChangeEvent) => setLocalTemplateMode(e.target.value as HostTemplateMode)}
+                          >
+                            <MenuItem value="inherit">Наследовать глобальный</MenuItem>
+                            <MenuItem value="custom">Переопределить в профиле</MenuItem>
+                          </Select>
+                        </FormControl>
+                        <TextField
+                          size="small"
+                          label="Начальный индекс {index}"
+                          type="number"
+                          value={localHostIndexStart}
+                          onChange={e => setLocalHostIndexStart(Math.max(1, parseInt(e.target.value) || 1))}
+                          slotProps={{ htmlInput: { min: 1 } }}
+                          sx={{ width: { xs: '100%', md: 220 } }}
+                        />
+                      </Stack>
+
                       <TextField
                         fullWidth
+                        multiline
+                        minRows={2}
                         size="small"
-                        label="Шаблон имени хоста"
-                        value={localTemplate}
+                        label={localTemplateMode === 'inherit' ? 'Глобальный шаблон' : 'Шаблон профиля'}
+                        value={localTemplateMode === 'inherit' ? defaultHostTemplate : localTemplate}
                         onChange={e => setLocalTemplate(e.target.value)}
-                        helperText="Переменные: {countryFlag} {countryCode} {nodeName} {nodeAddress} {inboundType} {index}"
+                        disabled={localTemplateMode === 'inherit'}
+                        error={Boolean(hostTemplateError)}
+                        helperText={hostTemplateError || 'Переключите режим на “Переопределить”, чтобы изменить шаблон только для этого профиля.'}
                         sx={{ mb: 1 }}
                       />
-                      <TextField
-                        size="small"
-                        label="Начальный индекс {index}"
-                        type="number"
-                        value={localHostIndexStart}
-                        onChange={e => setLocalHostIndexStart(Math.max(1, parseInt(e.target.value) || 1))}
-                        inputProps={{ min: 1 }}
-                        sx={{ mb: 1, width: 200 }}
-                      />
+
+                      {localTemplateMode === 'custom' && (
+                        <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ mb: 1 }}>
+                          {HOST_TEMPLATE_VARIABLES.map(v => (
+                            <Chip key={v} size="small" label={`{${v}}`} onClick={() => setLocalTemplate(t => `${t}{${v}}`)} />
+                          ))}
+                        </Stack>
+                      )}
+
+                      <Alert severity={templatePreviewFull.length > HOST_TEMPLATE_REMARK_MAX_LENGTH ? 'warning' : 'info'} sx={{ mb: 1 }}>
+                        Preview: <strong>{templatePreview || '—'}</strong>{' '}
+                        <Typography component="span" variant="caption">
+                          ({Math.min(templatePreviewFull.length, HOST_TEMPLATE_REMARK_MAX_LENGTH)} / {HOST_TEMPLATE_REMARK_MAX_LENGTH})
+                        </Typography>
+                      </Alert>
                       {checkTemplateWarning() && (
                         <Alert severity="warning" sx={{ mb: 1 }}>
                           Имя хоста с текущими значениями превысит 40 символов и будет обрезано.
@@ -1100,13 +1228,18 @@ export default function ProfilesPage() {
                           Сначала добавьте инбаунды на вкладке "Инбаунды" и запустите ротацию.
                         </Alert>
                       )}
-                      <Button
-                        variant="contained"
-                        onClick={handleCreateHosts}
-                        disabled={!localNodeUuid || localInbounds.length === 0}
-                      >
-                        Создать хосты
-                      </Button>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="flex-end">
+                        <Button variant="outlined" onClick={handleSaveHostTemplate} disabled={Boolean(hostTemplateError)}>
+                          Сохранить шаблон
+                        </Button>
+                        <Button
+                          variant="contained"
+                          onClick={handleCreateHosts}
+                          disabled={!localNodeUuid || localInbounds.length === 0 || Boolean(hostTemplateError)}
+                        >
+                          Создать хосты
+                        </Button>
+                      </Stack>
                     </Paper>
 
                     <Paper variant="outlined" sx={{ p: 2 }}>
@@ -1443,7 +1576,7 @@ export default function ProfilesPage() {
                           <ListItem
                             key={d}
                             secondaryAction={
-                              <IconButton edge="end" size="small" onClick={() => handleRemoveDomain(d)}>
+                              <IconButton edge="end" size="small" aria-label={`Удалить домен ${d}`} onClick={() => handleRemoveDomain(d)}>
                                 <Delete fontSize="small" />
                               </IconButton>
                             }

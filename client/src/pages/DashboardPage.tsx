@@ -148,6 +148,7 @@ export default function DashboardPage() {
   const [domainsCount, setDomainsCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [healthStatus, setHealthStatus] = useState<NodeHealth[]>([]);
+  const [healthError, setHealthError] = useState('');
   const { msg, showMsg, closeMsg } = useAlert();
   const [rotating, setRotating] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -170,8 +171,13 @@ export default function DashboardPage() {
       else console.warn('Не удалось загрузить историю:', histRes.reason);
       if (domRes.status === 'fulfilled') setDomainsCount(domRes.value.data?.total ?? null);
       else console.warn('Не удалось загрузить домены:', domRes.reason);
-      if (healthRes.status === 'fulfilled') setHealthStatus(healthRes.value.data || []);
-      else console.warn('Не удалось загрузить health-статус:', healthRes.reason);
+      if (healthRes.status === 'fulfilled') {
+        setHealthStatus(healthRes.value.data || []);
+        setHealthError('');
+      } else {
+        console.warn('Не удалось загрузить health-статус:', healthRes.reason);
+        setHealthError(getErrorMessage(healthRes.reason));
+      }
     } finally {
       setLoading(false);
     }
@@ -281,6 +287,12 @@ export default function DashboardPage() {
           accent="#f59e0b"
         />
       </Box>
+
+      {healthError && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          Health status недоступен: {healthError}
+        </Alert>
+      )}
 
       {/* Tables row */}
       <Box sx={{

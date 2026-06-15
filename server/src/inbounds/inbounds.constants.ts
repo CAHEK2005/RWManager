@@ -8,4 +8,4 @@ export const CONNECTION_TYPES = [
   'trojan-tcp-reality',
 ] as const;
 
-export type ConnectionType = typeof CONNECTION_TYPES[number];
+export type ConnectionType = (typeof CONNECTION_TYPES)[number];

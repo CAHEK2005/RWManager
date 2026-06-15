@@ -1,8 +1,16 @@
 import {
-  Controller, Get, Post, Patch, Delete,
-  Body, Param, HttpException, HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { SecretsService } from './secrets.service';
+import { CreateSecretDto, UpdateSecretDto } from './secrets.dto';
 
 @Controller('secrets')
 export class SecretsController {
@@ -16,20 +24,24 @@ export class SecretsController {
   @Get(':id/value')
   async getValue(@Param('id') id: string) {
     const value = await this.secretsService.getValue(id);
-    if (value === null) throw new HttpException('Secret not found', HttpStatus.NOT_FOUND);
+    if (value === null)
+      throw new HttpException('Secret not found', HttpStatus.NOT_FOUND);
     return { value };
   }
 
   @Post()
-  create(@Body() body: { name: string; type: string; value: string; description?: string }) {
+  create(@Body() body: CreateSecretDto) {
     if (!body.name?.trim() || !body.value?.trim()) {
-      throw new HttpException('name and value required', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'name and value required',
+        HttpStatus.BAD_REQUEST,
+      );
     }
-    return this.secretsService.create(body as any);
+    return this.secretsService.create(body);
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() body: any) {
+  async update(@Param('id') id: string, @Body() body: UpdateSecretDto) {
     try {
       await this.secretsService.update(id, body);
     } catch {

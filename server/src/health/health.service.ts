@@ -31,26 +31,39 @@ export class HealthService {
     private scriptsService: ScriptsService,
   ) {}
 
-  private async getSettings(): Promise<{ enabled: boolean; intervalMin: number }> {
+  private async getSettings(): Promise<{
+    enabled: boolean;
+    intervalMin: number;
+  }> {
     const rows = await this.settingRepo.find({
       where: [
         { key: 'health_check_enabled' },
         { key: 'health_check_interval' },
       ],
     });
-    const get = (k: string) => rows.find(r => r.key === k)?.value || '';
+    const get = (k: string) => rows.find((r) => r.key === k)?.value || '';
     return {
       enabled: get('health_check_enabled') === 'true',
       intervalMin: parseInt(get('health_check_interval') || '5', 10),
     };
   }
 
-  private tcpPing(ip: string, port: number, timeoutMs = 5000): Promise<boolean> {
-    return new Promise(resolve => {
+  private tcpPing(
+    ip: string,
+    port: number,
+    timeoutMs = 5000,
+  ): Promise<boolean> {
+    return new Promise((resolve) => {
       const socket = new net.Socket();
       socket.setTimeout(timeoutMs);
-      socket.on('connect', () => { socket.destroy(); resolve(true); });
-      socket.on('timeout', () => { socket.destroy(); resolve(false); });
+      socket.on('connect', () => {
+        socket.destroy();
+        resolve(true);
+      });
+      socket.on('timeout', () => {
+        socket.destroy();
+        resolve(false);
+      });
       socket.on('error', () => resolve(false));
       socket.connect(port, ip);
     });
@@ -63,7 +76,9 @@ export class HealthService {
 
     const now = Date.now();
     const lastRunKey = '_health_last_run';
-    const lastRunEntry = await this.settingRepo.findOne({ where: { key: lastRunKey } });
+    const lastRunEntry = await this.settingRepo.findOne({
+      where: { key: lastRunKey },
+    });
     const lastRun = parseInt(lastRunEntry?.value || '0', 10);
     if (now - lastRun < intervalMin * 60 * 1000) return;
     await this.settingRepo.save({ key: lastRunKey, value: String(now) });
@@ -91,9 +106,11 @@ export class HealthService {
         const cooldown = 30 * 60 * 1000;
         if (now - lastNotif >= cooldown) {
           this.lastNotified.set(node.id, now);
-          this.telegramService.sendMessage(
-            `⚠️ <b>Нода недоступна</b>\n<b>${node.name}</b> (${node.ip}:${node.sshPort || 22})\nПоследняя проверка: ${nowIso}`,
-          ).catch(() => {});
+          this.telegramService
+            .sendMessage(
+              `⚠️ <b>Нода недоступна</b>\n<b>${node.name}</b> (${node.ip}:${node.sshPort || 22})\nПоследняя проверка: ${nowIso}`,
+            )
+            .catch(() => {});
         }
       } else {
         this.lastNotified.delete(node.id);

@@ -1,17 +1,25 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { ScriptsService } from '../scripts/scripts.service';
 import * as WebSocket from 'ws';
 import { Client } from 'ssh2';
 import * as http from 'http';
-import { v4 as uuidv4 } from 'uuid';
+import { randomId } from '../common/random-id';
 
 @Injectable()
 export class TerminalService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TerminalService.name);
   private wss: WebSocket.Server;
-  private readonly tickets = new Map<string, { nodeId: string; expiresAt: number }>();
+  private readonly tickets = new Map<
+    string,
+    { nodeId: string; expiresAt: number }
+  >();
 
   constructor(
     private httpAdapterHost: HttpAdapterHost,
@@ -20,9 +28,15 @@ export class TerminalService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    const httpServer: http.Server = this.httpAdapterHost.httpAdapter.getHttpServer();
-    this.wss = new WebSocket.Server({ server: httpServer, path: '/api/terminal' });
-    this.wss.on('connection', (ws, req) => this.handleConnection(ws as any, req));
+    const httpServer: http.Server =
+      this.httpAdapterHost.httpAdapter.getHttpServer();
+    this.wss = new WebSocket.Server({
+      server: httpServer,
+      path: '/api/terminal',
+    });
+    this.wss.on('connection', (ws, req) => {
+      void this.handleConnection(ws as WebSocket.WebSocket, req);
+    });
     this.logger.log('WebSocket terminal server started at /api/terminal');
 
     // Cleanup expired tickets every minute to prevent memory leak
@@ -41,15 +55,18 @@ export class TerminalService implements OnModuleInit, OnModuleDestroy {
   // ── Ticket API ────────────────────────────────────────────────────────────────
 
   createTicket(nodeId: string): string {
-    const ticket = uuidv4();
+    const ticket = randomId();
     this.tickets.set(ticket, { nodeId, expiresAt: Date.now() + 60_000 });
     return ticket;
   }
 
   // ── WebSocket handler ─────────────────────────────────────────────────────────
 
-  private async handleConnection(ws: WebSocket.WebSocket, req: http.IncomingMessage) {
-    const params = new URL(req.url!, 'http://x').searchParams;
+  private async handleConnection(
+    ws: WebSocket.WebSocket,
+    req: http.IncomingMessage,
+  ) {
+    const params = new URL(req.url, 'http://x').searchParams;
     const cols = parseInt(params.get('cols') ?? '80', 10);
     const rows = parseInt(params.get('rows') ?? '24', 10);
 
@@ -80,8 +97,8 @@ export class TerminalService implements OnModuleInit, OnModuleDestroy {
     }
 
     // Find node
-    const nodes = await this.scriptsService.getSshNodes();
-    const node = nodes.find(n => n.id === resolvedNodeId);
+    const node =
+      await this.scriptsService.getSshNodeForConnection(resolvedNodeId);
     if (!node) {
       this.logger.warn(`Terminal: node not found: ${resolvedNodeId}`);
       ws.close(1008, 'Node not found');
@@ -93,49 +110,59 @@ export class TerminalService implements OnModuleInit, OnModuleDestroy {
     const conn = new Client();
 
     conn.on('ready', () => {
-      conn.shell({ term: 'xterm-256color', cols, rows } as any, (err, stream) => {
-        if (err) {
-          ws.send(`\r\n[ERROR] ${err.message}\r\n`);
-          ws.close(1011);
-          conn.end();
-          return;
-        }
-
-        // SSH data → WebSocket
-        stream.on('data', (data: Buffer) => {
-          if (ws.readyState === WebSocket.OPEN) ws.send(data);
-        });
-
-        stream.stderr.on('data', (data: Buffer) => {
-          if (ws.readyState === WebSocket.OPEN) ws.send(data);
-        });
-
-        // WebSocket data → SSH
-        ws.on('message', (msg: Buffer | string) => {
-          const text = msg.toString();
-          if (text.startsWith('{')) {
-            try {
-              const parsed = JSON.parse(text);
-              if (parsed.type === 'ping') return;                            // heartbeat — ignore
-              if (parsed.type === 'resize' && parsed.cols && parsed.rows) { // PTY resize
-                (stream as any).setWindow(parsed.rows, parsed.cols, 0, 0);
-                return;
-              }
-            } catch {
-              // not JSON, send as-is
-            }
+      conn.shell(
+        { term: 'xterm-256color', cols, rows } as any,
+        (err, stream) => {
+          if (err) {
+            ws.send(`\r\n[ERROR] ${err.message}\r\n`);
+            ws.close(1011);
+            conn.end();
+            return;
           }
-          stream.write(msg);
-        });
 
-        stream.on('close', () => {
-          conn.end();
-          if (ws.readyState === WebSocket.OPEN) ws.close();
-        });
+          // SSH data → WebSocket
+          stream.on('data', (data: Buffer) => {
+            if (ws.readyState === WebSocket.OPEN) ws.send(data);
+          });
 
-        ws.on('close', () => { stream.end(); conn.end(); });
-        ws.on('error', () => { stream.end(); conn.end(); });
-      });
+          stream.stderr.on('data', (data: Buffer) => {
+            if (ws.readyState === WebSocket.OPEN) ws.send(data);
+          });
+
+          // WebSocket data → SSH
+          ws.on('message', (msg: Buffer | string) => {
+            const text = msg.toString();
+            if (text.startsWith('{')) {
+              try {
+                const parsed = JSON.parse(text);
+                if (parsed.type === 'ping') return; // heartbeat — ignore
+                if (parsed.type === 'resize' && parsed.cols && parsed.rows) {
+                  // PTY resize
+                  (stream as any).setWindow(parsed.rows, parsed.cols, 0, 0);
+                  return;
+                }
+              } catch {
+                // not JSON, send as-is
+              }
+            }
+            stream.write(msg);
+          });
+
+          stream.on('close', () => {
+            conn.end();
+            if (ws.readyState === WebSocket.OPEN) ws.close();
+          });
+
+          ws.on('close', () => {
+            stream.end();
+            conn.end();
+          });
+          ws.on('error', () => {
+            stream.end();
+            conn.end();
+          });
+        },
+      );
     });
 
     conn.on('error', (err) => {
@@ -151,7 +178,7 @@ export class TerminalService implements OnModuleInit, OnModuleDestroy {
       port: node.sshPort || 22,
       username: node.sshUser || 'root',
       readyTimeout: 30000,
-      keepaliveInterval: 30000,  // SSH keepalive — prevents idle disconnect
+      keepaliveInterval: 30000, // SSH keepalive — prevents idle disconnect
       keepaliveCountMax: 3,
     };
     if (node.authType === 'key' && node.sshKey) {

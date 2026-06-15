@@ -88,16 +88,13 @@ function NodeStatusDot({ node }: { node: RwNode }) {
   </Box>;
 }
 
-function NodeRowMenu({ node, onRestart, onToggle, onDelete }: {
-  node: RwNode;
-  onRestart: () => void;
-  onToggle: () => void;
+function NodeRowMenu({ onDelete }: {
   onDelete: () => void;
 }) {
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
   return (
     <>
-      <Tooltip title="Ещё"><IconButton size="small" onClick={e => setAnchor(e.currentTarget)}><MoreVert sx={{ fontSize: 16 }} /></IconButton></Tooltip>
+      <Tooltip title="Ещё"><IconButton size="small" aria-label="Действия ноды" onClick={e => setAnchor(e.currentTarget)}><MoreVert sx={{ fontSize: 16 }} /></IconButton></Tooltip>
       <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
@@ -346,13 +343,14 @@ export default function NodesPage() {
                   <TableCell align="right">
                     <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                       <Tooltip title="Перезапустить">
-                        <IconButton size="small" onClick={() => handleAction(() => api.post(`/nodes/${node.uuid}/restart`).then(() => {}))}>
+                        <IconButton size="small" aria-label="Перезапустить ноду" onClick={() => handleAction(() => api.post(`/nodes/${node.uuid}/restart`).then(() => {}))}>
                           <Refresh sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title={node.isDisabled ? 'Включить' : 'Отключить'}>
                         <IconButton
                           size="small"
+                          aria-label={node.isDisabled ? 'Включить ноду' : 'Отключить ноду'}
                           color={node.isDisabled ? 'default' : 'primary'}
                           onClick={() => handleAction(() => (node.isDisabled
                             ? api.post(`/nodes/${node.uuid}/enable`)
@@ -363,12 +361,6 @@ export default function NodesPage() {
                         </IconButton>
                       </Tooltip>
                       <NodeRowMenu
-                        node={node}
-                        onRestart={() => handleAction(() => api.post(`/nodes/${node.uuid}/restart`).then(() => {}))}
-                        onToggle={() => handleAction(() => (node.isDisabled
-                          ? api.post(`/nodes/${node.uuid}/enable`)
-                          : api.post(`/nodes/${node.uuid}/disable`)
-                        ).then(() => {}))}
                         onDelete={() => askDelete(
                           'Удалить ноду',
                           `Удалить ноду "${node.name}" из Remnawave?`,
@@ -428,7 +420,7 @@ export default function NodesPage() {
                 value={sshPassword} onChange={e => setSshPassword(e.target.value)}
                 slotProps={{ input: { endAdornment: secrets.length > 0 ? (
                   <Tooltip title="Вставить из секретов">
-                    <IconButton size="small" edge="end" onClick={() => openSecretPicker(setSshPassword)}>
+                    <IconButton size="small" edge="end" aria-label="Вставить пароль из секретов" onClick={() => openSecretPicker(setSshPassword)}>
                       <LockOpen fontSize="small" />
                     </IconButton>
                   </Tooltip>
@@ -441,7 +433,7 @@ export default function NodesPage() {
                   <Stack direction="row" spacing={0.5}>
                     {secrets.length > 0 && (
                       <Tooltip title="Вставить из секретов">
-                        <IconButton size="small" onClick={() => openSecretPicker(setSshKey)}><LockOpen fontSize="small" /></IconButton>
+                        <IconButton size="small" aria-label="Вставить SSH-ключ из секретов" onClick={() => openSecretPicker(setSshKey)}><LockOpen fontSize="small" /></IconButton>
                       </Tooltip>
                     )}
                     <Button size="small" variant="outlined" onClick={() => fileInputRef.current?.click()}>Загрузить файл</Button>

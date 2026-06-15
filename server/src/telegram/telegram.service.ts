@@ -50,15 +50,22 @@ export class TelegramService {
     const { token, chatId, topicId } = await this.getConfig();
     if (!token || !chatId) return;
 
-    const body: Record<string, any> = { chat_id: chatId, text, parse_mode: 'HTML' };
+    const body: Record<string, any> = {
+      chat_id: chatId,
+      text,
+      parse_mode: 'HTML',
+    };
     if (topicId) body.message_thread_id = parseInt(topicId, 10);
 
     try {
-      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+      const res = await fetch(
+        `https://api.telegram.org/bot${token}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        },
+      );
       if (!res.ok) {
         const err = await res.text();
         this.logger.warn(`Telegram sendMessage failed: ${res.status} ${err}`);
@@ -68,7 +75,11 @@ export class TelegramService {
     }
   }
 
-  async notifyRotation(profileName: string, status: 'success' | 'error', message: string): Promise<void> {
+  async notifyRotation(
+    profileName: string,
+    status: 'success' | 'error',
+    message: string,
+  ): Promise<void> {
     const { notifyOnError, notifyOnSuccess } = await this.getConfig();
     if (status === 'error' && !notifyOnError) return;
     if (status === 'success' && !notifyOnSuccess) return;

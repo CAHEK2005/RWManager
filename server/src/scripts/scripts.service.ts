@@ -2,22 +2,27 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Client } from 'ssh2';
-import { v4 as uuidv4 } from 'uuid';
 import { Setting } from '../settings/entities/setting.entity';
 import type { InstallNodeDto } from '../nodes/nodes.service';
 import { SYSCTL_CONTENT } from '../config/constants';
 import { TelegramService } from '../telegram/telegram.service';
+import { randomId } from '../common/random-id';
+import { SecretsService } from '../secrets/secrets.service';
 
 export interface SshNode {
   id: string;
   rwNodeUuid?: string;
   name: string;
   ip: string;
-  sshPort: number;
-  sshUser: string;
+  sshPort?: number;
+  sshUser?: string;
   authType: 'password' | 'key';
   password?: string;
   sshKey?: string;
+  passwordSecretId?: string;
+  sshKeySecretId?: string;
+  hasPassword?: boolean;
+  hasSshKey?: boolean;
   categoryIds?: string[];
 }
 
@@ -75,7 +80,6 @@ export interface HistoryListItem {
   logPreview?: string;
 }
 
-
 const WARP_SETUP_SCRIPT = `PROXY_PORT="{{ warp_proxy_port | SOCKS5-порт WARP (по умолчанию 40000) }}"
 PROXY_PORT="\${PROXY_PORT:-40000}"
 
@@ -88,7 +92,7 @@ echo "[2/5] Добавление репозитория Cloudflare WARP..."
 curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg \\
   | gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
 
-echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ \$(lsb_release -cs) main" \\
+echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" \\
   | tee /etc/apt/sources.list.d/cloudflare-client.list > /dev/null
 
 # ── 3. Установка пакета ───────────────────────────────────────────────────────
@@ -105,9 +109,9 @@ sleep 3
 # ── 5. Регистрация, режим proxy, подключение ──────────────────────────────────
 echo "[5/5] Регистрация и подключение..."
 
-WARP_STATUS=\$(warp-cli status 2>&1 || true)
+WARP_STATUS=$(warp-cli status 2>&1 || true)
 
-if echo "\$WARP_STATUS" | grep -qi "Registration Missing"; then
+if echo "$WARP_STATUS" | grep -qi "Registration Missing"; then
   echo "  Регистрация новой учётной записи..."
   warp-cli registration new
   sleep 2
@@ -117,9 +121,9 @@ fi
 
 warp-cli mode proxy
 
-if [ "\$PROXY_PORT" != "40000" ]; then
-  echo "  Устанавливаем порт прокси: \$PROXY_PORT"
-  warp-cli proxy port "\$PROXY_PORT"
+if [ "$PROXY_PORT" != "40000" ]; then
+  echo "  Устанавливаем порт прокси: $PROXY_PORT"
+  warp-cli proxy port "$PROXY_PORT"
 fi
 
 warp-cli connect
@@ -161,7 +165,8 @@ const BUILT_IN_SCRIPTS: Script[] = [
   {
     id: 'builtin-optimize-network',
     name: 'Оптимизация сети',
-    description: 'Применяет sysctl-параметры для оптимизации TCP/BBR и отключения IPv6',
+    description:
+      'Применяет sysctl-параметры для оптимизации TCP/BBR и отключения IPv6',
     isBuiltIn: true,
     content: `tee /etc/sysctl.d/99-vpn.conf << 'SYSCTL_EOF'
 ${SYSCTL_CONTENT}
@@ -171,7 +176,8 @@ sysctl -p /etc/sysctl.d/99-vpn.conf`,
   {
     id: 'builtin-update-node',
     name: 'Обновление ноды',
-    description: 'Скачивает последний образ Remnawave Node и перезапускает контейнер',
+    description:
+      'Скачивает последний образ Remnawave Node и перезапускает контейнер',
     isBuiltIn: true,
     content: `[ -d /opt/remnanode ] || { echo "[ERROR] /opt/remnanode не найден"; exit 1; }
 cd /opt/remnanode && docker compose pull && docker compose up -d`,
@@ -194,7 +200,8 @@ cd /opt/remnanode && docker compose up -d --force-recreate`,
   {
     id: 'builtin-setup-warp',
     name: 'Установка WARP',
-    description: 'Устанавливает Cloudflare WARP, регистрирует учётную запись и настраивает SOCKS5-прокси на указанном порту (по умолчанию 40000)',
+    description:
+      'Устанавливает Cloudflare WARP, регистрирует учётную запись и настраивает SOCKS5-прокси на указанном порту (по умолчанию 40000)',
     isBuiltIn: true,
     content: WARP_SETUP_SCRIPT,
   },
@@ -208,14 +215,16 @@ cd /opt/remnanode && docker compose up -d --force-recreate`,
   {
     id: 'builtin-uninstall-warp',
     name: 'Удаление WARP',
-    description: 'Отключает, удаляет регистрацию и деинсталлирует Cloudflare WARP',
+    description:
+      'Отключает, удаляет регистрацию и деинсталлирует Cloudflare WARP',
     isBuiltIn: true,
     content: WARP_UNINSTALL_SCRIPT,
   },
   {
     id: 'builtin-setup-ssh-key',
     name: 'Настройка SSH-ключа',
-    description: 'Добавляет публичный SSH-ключ и отключает вход по паролю. Перед запуском потребуется ввести публичный ключ.',
+    description:
+      'Добавляет публичный SSH-ключ и отключает вход по паролю. Перед запуском потребуется ввести публичный ключ.',
     isBuiltIn: true,
     content: `PUBLIC_KEY="{{ ssh_public_key | Публичный SSH-ключ (ssh-ed25519 AAAA... или ssh-rsa AAAA...) }}"
 
@@ -262,7 +271,8 @@ echo "Готово: ключ добавлен, вход по паролю отк
   {
     id: 'builtin-health-check',
     name: 'Проверка состояния ноды',
-    description: 'Показывает статус контейнера, открытые порты, загрузку CPU/RAM и использование диска',
+    description:
+      'Показывает статус контейнера, открытые порты, загрузку CPU/RAM и использование диска',
     isBuiltIn: true,
     content: `echo "=== Контейнеры Docker ==="
 docker ps --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}" 2>/dev/null || echo "Docker недоступен"
@@ -293,7 +303,8 @@ docker logs --tail=20 remnanode 2>&1 | grep -iE "(error|fatal|panic)" | tail -10
   {
     id: 'builtin-docker-cleanup',
     name: 'Очистка Docker',
-    description: 'Удаляет неиспользуемые образы, остановленные контейнеры и анонимные тома. Освобождает место на диске.',
+    description:
+      'Удаляет неиспользуемые образы, остановленные контейнеры и анонимные тома. Освобождает место на диске.',
     isBuiltIn: true,
     content: `echo "=== До очистки ==="
 df -h /
@@ -321,6 +332,7 @@ export class ScriptsService implements OnModuleInit {
     @InjectRepository(Setting)
     private settingRepo: Repository<Setting>,
     private telegramService: TelegramService,
+    private secretsService: SecretsService,
   ) {}
 
   async onModuleInit() {
@@ -331,15 +343,17 @@ export class ScriptsService implements OnModuleInit {
     const scripts = await this.loadScripts();
     let changed = false;
     for (const builtin of BUILT_IN_SCRIPTS) {
-      const idx = scripts.findIndex(s => s.id === builtin.id);
+      const idx = scripts.findIndex((s) => s.id === builtin.id);
       if (idx < 0) {
         scripts.push(builtin);
         changed = true;
-      } else if (!scripts[idx].isModified && !scripts[idx].isHidden && (
-        scripts[idx].content !== builtin.content ||
-        scripts[idx].name !== builtin.name ||
-        scripts[idx].description !== builtin.description
-      )) {
+      } else if (
+        !scripts[idx].isModified &&
+        !scripts[idx].isHidden &&
+        (scripts[idx].content !== builtin.content ||
+          scripts[idx].name !== builtin.name ||
+          scripts[idx].description !== builtin.description)
+      ) {
         scripts[idx] = { ...builtin }; // обновляем только немодифицированные встроенные скрипты
         changed = true;
       }
@@ -349,10 +363,18 @@ export class ScriptsService implements OnModuleInit {
     }
   }
 
-  private substituteVariables(content: string, variables: Record<string, string>): string {
-    return content.replace(/\{\{\s*(\w+)(?:\s*\|[^}]*)?\s*\}\}/g, (_, name: string) => {
-      return Object.prototype.hasOwnProperty.call(variables, name) ? variables[name] : `{{ ${name} }}`;
-    });
+  private substituteVariables(
+    content: string,
+    variables: Record<string, string>,
+  ): string {
+    return content.replace(
+      /\{\{\s*(\w+)(?:\s*\|[^}]*)?\s*\}\}/g,
+      (_, name: string) => {
+        return Object.prototype.hasOwnProperty.call(variables, name)
+          ? variables[name]
+          : `{{ ${name} }}`;
+      },
+    );
   }
 
   private maskSecrets(text: string, mask: string[]): string {
@@ -373,33 +395,114 @@ export class ScriptsService implements OnModuleInit {
   // ── SSH Nodes ────────────────────────────────────────────────────────────────
 
   async getSshNodes(): Promise<SshNode[]> {
+    const nodes = await this.loadStoredSshNodes();
+    return nodes.map((node) => this.redactSshNode(node));
+  }
+
+  private async loadStoredSshNodes(): Promise<SshNode[]> {
     const raw = await this.settingRepo.findOne({ where: { key: 'ssh_nodes' } });
-    try { return JSON.parse(raw?.value || '[]'); } catch { return []; }
+    try {
+      return JSON.parse(raw?.value || '[]');
+    } catch {
+      return [];
+    }
   }
 
-  private async loadSshNodes(): Promise<SshNode[]> {
-    return this.getSshNodes();
+  private redactSshNode(node: SshNode): SshNode {
+    const { password, sshKey, passwordSecretId, sshKeySecretId, ...rest } =
+      node;
+    return {
+      ...rest,
+      hasPassword: Boolean(password || passwordSecretId),
+      hasSshKey: Boolean(sshKey || sshKeySecretId),
+    };
   }
 
-  async upsertSshNode(node: Omit<SshNode, 'id'> & { id?: string }): Promise<SshNode> {
-    const nodes = await this.loadSshNodes();
-    const id = node.id || uuidv4();
-    const saved: SshNode = { ...node, id } as SshNode;
-    const idx = nodes.findIndex(n => n.id === id);
+  private async resolveSshNodeSecrets(node: SshNode): Promise<SshNode> {
+    const resolved = { ...node };
+    if (!resolved.password && resolved.passwordSecretId) {
+      resolved.password =
+        (await this.secretsService.getValue(resolved.passwordSecretId)) ?? '';
+    }
+    if (!resolved.sshKey && resolved.sshKeySecretId) {
+      resolved.sshKey =
+        (await this.secretsService.getValue(resolved.sshKeySecretId)) ?? '';
+    }
+    return resolved;
+  }
+
+  private async loadSshNodesForExecution(): Promise<SshNode[]> {
+    const nodes = await this.loadStoredSshNodes();
+    return Promise.all(nodes.map((node) => this.resolveSshNodeSecrets(node)));
+  }
+
+  async getSshNodeForConnection(id: string): Promise<SshNode | null> {
+    const nodes = await this.loadSshNodesForExecution();
+    return nodes.find((node) => node.id === id) ?? null;
+  }
+
+  private async saveSshCredentialSecret(
+    existingSecretId: string | undefined,
+    name: string,
+    type: 'password' | 'ssh-key',
+    value: string | undefined,
+  ): Promise<string | undefined> {
+    if (!value?.trim()) return existingSecretId;
+    if (existingSecretId) {
+      await this.secretsService.update(existingSecretId, { name, type, value });
+      return existingSecretId;
+    }
+    const secret = await this.secretsService.create({ name, type, value });
+    return secret.id;
+  }
+
+  async upsertSshNode(
+    node: Omit<SshNode, 'id'> & { id?: string },
+  ): Promise<SshNode> {
+    const nodes = await this.loadStoredSshNodes();
+    const id = node.id || randomId();
+    const existing = nodes.find((n) => n.id === id);
+    const saved: SshNode = { ...existing, ...node, id } as SshNode;
+    saved.passwordSecretId = await this.saveSshCredentialSecret(
+      existing?.passwordSecretId,
+      `${saved.name} SSH password`,
+      'password',
+      node.password,
+    );
+    saved.sshKeySecretId = await this.saveSshCredentialSecret(
+      existing?.sshKeySecretId,
+      `${saved.name} SSH key`,
+      'ssh-key',
+      node.sshKey,
+    );
+    delete saved.password;
+    delete saved.sshKey;
+    delete saved.hasPassword;
+    delete saved.hasSshKey;
+    const idx = nodes.findIndex((n) => n.id === id);
     if (idx >= 0) nodes[idx] = saved;
     else nodes.push(saved);
     await this.saveSetting('ssh_nodes', JSON.stringify(nodes));
-    return saved;
+    return this.redactSshNode(saved);
   }
 
   async deleteSshNode(id: string): Promise<void> {
-    const nodes = await this.loadSshNodes();
-    await this.saveSetting('ssh_nodes', JSON.stringify(nodes.filter(n => n.id !== id)));
+    const nodes = await this.loadStoredSshNodes();
+    await this.saveSetting(
+      'ssh_nodes',
+      JSON.stringify(nodes.filter((n) => n.id !== id)),
+    );
   }
 
   async getCategories(): Promise<string[]> {
-    const raw = await this.settingRepo.findOne({ where: { key: 'ssh_node_categories' } });
-    try { return JSON.parse(raw?.value || '[]'); } catch { return []; }
+    const raw = await this.settingRepo.findOne({
+      where: { key: 'ssh_node_categories' },
+    });
+    try {
+      return JSON.parse(raw?.value || '[]');
+    } catch {
+      return [];
+    }
   }
 
   async upsertCategory(name: string): Promise<string[]> {
@@ -415,21 +518,25 @@ export class ScriptsService implements OnModuleInit {
 
   async deleteCategory(name: string): Promise<string[]> {
     const cats = await this.getCategories();
-    const updated = cats.filter(c => c !== name);
+    const updated = cats.filter((c) => c !== name);
     await this.saveSetting('ssh_node_categories', JSON.stringify(updated));
     // Remove category from all nodes
-    const nodes = await this.loadSshNodes();
-    const updatedNodes = nodes.map(n => ({
+    const nodes = await this.loadStoredSshNodes();
+    const updatedNodes = nodes.map((n) => ({
       ...n,
-      categoryIds: (n.categoryIds || []).filter(c => c !== name),
+      categoryIds: (n.categoryIds || []).filter((c) => c !== name),
     }));
     await this.saveSetting('ssh_nodes', JSON.stringify(updatedNodes));
     return updated;
   }
 
-  async addSshNodeFromInstall(dto: InstallNodeDto, rwNodeUuid: string, name: string): Promise<void> {
+  async addSshNodeFromInstall(
+    dto: InstallNodeDto,
+    rwNodeUuid: string,
+    name: string,
+  ): Promise<void> {
     const node: SshNode = {
-      id: uuidv4(),
+      id: randomId(),
       rwNodeUuid,
       name,
       ip: dto.ip,
@@ -439,9 +546,7 @@ export class ScriptsService implements OnModuleInit {
       password: dto.password,
       sshKey: dto.sshKey,
     };
-    const nodes = await this.loadSshNodes();
-    nodes.push(node);
-    await this.saveSetting('ssh_nodes', JSON.stringify(nodes));
+    await this.upsertSshNode(node);
     this.logger.log(`Нода сохранена после установки: ${name} (${dto.ip})`);
   }
 
@@ -449,22 +554,33 @@ export class ScriptsService implements OnModuleInit {
 
   private async loadScripts(): Promise<Script[]> {
     const raw = await this.settingRepo.findOne({ where: { key: 'scripts' } });
-    try { return JSON.parse(raw?.value || '[]'); } catch { return []; }
+    try {
+      return JSON.parse(raw?.value || '[]');
+    } catch {
+      return [];
+    }
   }
 
   async getScripts(): Promise<Script[]> {
     const scripts = await this.loadScripts();
-    return scripts.filter(s => !s.isHidden);
+    return scripts.filter((s) => !s.isHidden);
   }
 
-  async upsertScript(script: Omit<Script, 'id' | 'isBuiltIn'> & { id?: string }): Promise<Script> {
+  async upsertScript(
+    script: Omit<Script, 'id' | 'isBuiltIn'> & { id?: string },
+  ): Promise<Script> {
     const scripts = await this.loadScripts();
-    const id = script.id || uuidv4();
-    const idx = scripts.findIndex(s => s.id === id);
+    const id = script.id || randomId();
+    const idx = scripts.findIndex((s) => s.id === id);
     let saved: Script;
     if (idx >= 0) {
       const existing = scripts[idx];
-      saved = { ...existing, name: script.name, description: script.description, content: script.content };
+      saved = {
+        ...existing,
+        name: script.name,
+        description: script.description,
+        content: script.content,
+      };
       if (existing.isBuiltIn) saved.isModified = true;
       scripts[idx] = saved;
     } else {
@@ -477,20 +593,24 @@ export class ScriptsService implements OnModuleInit {
 
   async deleteScript(id: string): Promise<void> {
     const scripts = await this.loadScripts();
-    const script = scripts.find(s => s.id === id);
+    const script = scripts.find((s) => s.id === id);
     if (script?.isBuiltIn) {
       script.isHidden = true;
       await this.saveSetting('scripts', JSON.stringify(scripts));
       return;
     }
-    await this.saveSetting('scripts', JSON.stringify(scripts.filter(s => s.id !== id)));
+    await this.saveSetting(
+      'scripts',
+      JSON.stringify(scripts.filter((s) => s.id !== id)),
+    );
   }
 
   async revertScript(id: string): Promise<Script> {
-    const original = BUILT_IN_SCRIPTS.find(s => s.id === id);
-    if (!original) throw new Error('Скрипт не является встроенным или не найден');
+    const original = BUILT_IN_SCRIPTS.find((s) => s.id === id);
+    if (!original)
+      throw new Error('Скрипт не является встроенным или не найден');
     const scripts = await this.loadScripts();
-    const idx = scripts.findIndex(s => s.id === id);
+    const idx = scripts.findIndex((s) => s.id === id);
     if (idx < 0) throw new Error('Скрипт не найден');
     const reverted: Script = { ...original };
     scripts[idx] = reverted;
@@ -501,66 +621,85 @@ export class ScriptsService implements OnModuleInit {
   // ── History ──────────────────────────────────────────────────────────────────
 
   private async loadHistory(): Promise<HistoryEntry[]> {
-    const raw = await this.settingRepo.findOne({ where: { key: 'script_history' } });
-    try { return JSON.parse(raw?.value || '[]'); } catch { return []; }
+    const raw = await this.settingRepo.findOne({
+      where: { key: 'script_history' },
+    });
+    try {
+      return JSON.parse(raw?.value || '[]');
+    } catch {
+      return [];
+    }
   }
 
   private async appendHistory(entry: HistoryEntry): Promise<void> {
     try {
       const history = await this.loadHistory();
       history.unshift(entry);
-      await this.saveSetting('script_history', JSON.stringify(history.slice(0, 100)));
+      await this.saveSetting(
+        'script_history',
+        JSON.stringify(history.slice(0, 100)),
+      );
     } catch (e) {
       this.logger.error('Ошибка сохранения истории:', e);
     }
   }
 
-  async getHistory(page = 1, limit = 20): Promise<{ data: HistoryListItem[]; total: number }> {
+  async getHistory(
+    page = 1,
+    limit = 20,
+  ): Promise<{ data: HistoryListItem[]; total: number }> {
     const history = await this.loadHistory();
     const total = history.length;
     const start = (page - 1) * limit;
-    const data = history.slice(start, start + limit).map(e => ({
-      id: e.id,
-      scriptId: e.scriptId,
-      scriptName: e.scriptName,
-      status: e.status,
-      startedAt: e.startedAt,
-      finishedAt: e.finishedAt,
-      durationMs: e.durationMs,
-      nodeCount: e.nodeResults.length,
-      successCount: e.nodeResults.filter(r => r.status === 'success').length,
-    }));
+    const data = history
+      .slice(start, start + limit)
+      .map((e) => this.toHistoryListItem(e));
     return { data, total };
   }
 
   async getHistoryEntry(id: string): Promise<HistoryEntry | null> {
     const history = await this.loadHistory();
-    return history.find(e => e.id === id) ?? null;
+    return history.find((e) => e.id === id) ?? null;
   }
 
-  async getHistoryByScript(scriptId: string, page = 1, limit = 10): Promise<{ data: HistoryListItem[]; total: number }> {
+  async getHistoryByScript(
+    scriptId: string,
+    page = 1,
+    limit = 10,
+  ): Promise<{ data: HistoryListItem[]; total: number }> {
     const history = await this.loadHistory();
-    const filtered = history.filter(e => e.scriptId === scriptId);
+    const filtered = history.filter((e) => e.scriptId === scriptId);
     const total = filtered.length;
     const start = (page - 1) * limit;
-    const data = filtered.slice(start, start + limit).map(e => {
-      const allLogs = e.nodeResults.flatMap(r => r.logs);
-      const meaningful = allLogs.filter(l => !l.startsWith('[SSH]') && !l.startsWith('[AUTO]'));
-      const logPreview = (meaningful[meaningful.length - 1] || allLogs[allLogs.length - 1] || '').slice(0, 120);
-      return {
-        id: e.id,
-        scriptId: e.scriptId,
-        scriptName: e.scriptName,
-        status: e.status,
-        startedAt: e.startedAt,
-        finishedAt: e.finishedAt,
-        durationMs: e.durationMs,
-        nodeCount: e.nodeResults.length,
-        successCount: e.nodeResults.filter(r => r.status === 'success').length,
-        logPreview,
-      };
-    });
+    const data = filtered
+      .slice(start, start + limit)
+      .map((e) => this.toHistoryListItem(e));
     return { data, total };
+  }
+
+  private toHistoryListItem(entry: HistoryEntry): HistoryListItem {
+    const allLogs = entry.nodeResults.flatMap((r) => r.logs);
+    const meaningful = allLogs.filter(
+      (l) => !l.startsWith('[SSH]') && !l.startsWith('[AUTO]'),
+    );
+    const logPreview = (
+      meaningful[meaningful.length - 1] ||
+      allLogs[allLogs.length - 1] ||
+      ''
+    ).slice(0, 120);
+    return {
+      id: entry.id,
+      scriptId: entry.scriptId,
+      scriptName: entry.scriptName,
+      status: entry.status,
+      startedAt: entry.startedAt,
+      finishedAt: entry.finishedAt,
+      durationMs: entry.durationMs,
+      nodeCount: entry.nodeResults.length,
+      successCount: entry.nodeResults.filter((r) => r.status === 'success')
+        .length,
+      logPreview,
+    };
   }
 
   async clearHistory(): Promise<void> {
@@ -576,24 +715,24 @@ export class ScriptsService implements OnModuleInit {
     variablesPerNode?: Record<string, Record<string, string>>,
   ): Promise<{ jobId: string }> {
     const scripts = await this.loadScripts();
-    const script = scripts.find(s => s.id === scriptId);
+    const script = scripts.find((s) => s.id === scriptId);
     if (!script) throw new Error('Скрипт не найден');
 
-    const nodes = await this.loadSshNodes();
-    const targetNodes = nodes.filter(n => nodeIds.includes(n.id));
+    const nodes = await this.loadSshNodesForExecution();
+    const targetNodes = nodes.filter((n) => nodeIds.includes(n.id));
     if (!targetNodes.length) throw new Error('Не выбрано ни одной ноды');
 
     const sensitiveValues = [
       ...Object.values(variables || {}),
-      ...Object.values(variablesPerNode || {}).flatMap(v => Object.values(v)),
-    ].filter(v => v.length > 3);
+      ...Object.values(variablesPerNode || {}).flatMap((v) => Object.values(v)),
+    ].filter((v) => v.length > 3);
 
-    const jobId = uuidv4();
+    const jobId = randomId();
     const startedAt = new Date().toISOString();
     const job: ScriptJob = {
       scriptName: script.name,
       status: 'running',
-      results: targetNodes.map(n => ({
+      results: targetNodes.map((n) => ({
         nodeId: n.id,
         nodeName: n.name,
         logs: [],
@@ -606,48 +745,64 @@ export class ScriptsService implements OnModuleInit {
     const promises = targetNodes.map(async (node, idx) => {
       const result = job.results[idx];
       const nodeVars = variablesPerNode?.[node.id] ?? variables ?? {};
-      const content = Object.keys(nodeVars).length > 0
-        ? this.substituteVariables(script.content, nodeVars)
-        : script.content;
+      const content =
+        Object.keys(nodeVars).length > 0
+          ? this.substituteVariables(script.content, nodeVars)
+          : script.content;
       try {
         await this.runScriptOnNode(node, content, result, sensitiveValues);
         result.status = 'success';
       } catch (e) {
-        result.logs.push(this.maskSecrets(`[ERROR] ${e?.message || String(e)}`, sensitiveValues));
+        result.logs.push(
+          this.maskSecrets(
+            `[ERROR] ${e?.message || String(e)}`,
+            sensitiveValues,
+          ),
+        );
         result.status = 'error';
       }
     });
 
-    Promise.all(promises).then(() => {
-      job.status = job.results.every(r => r.status === 'success') ? 'success' : 'error';
-    }).catch(() => {
-      job.status = 'error';
-    }).finally(async () => {
-      const finishedAt = new Date().toISOString();
-      await this.appendHistory({
-        id: jobId,
-        scriptId,
-        scriptName: script.name,
-        status: job.status as 'success' | 'error',
-        startedAt,
-        finishedAt,
-        durationMs: new Date(finishedAt).getTime() - new Date(startedAt).getTime(),
-        nodeResults: job.results.map(r => ({
-          nodeId: r.nodeId,
-          nodeName: r.nodeName,
-          status: r.status as 'success' | 'error',
-          logs: r.logs,
-        })),
+    Promise.all(promises)
+      .then(() => {
+        job.status = job.results.every((r) => r.status === 'success')
+          ? 'success'
+          : 'error';
+      })
+      .catch(() => {
+        job.status = 'error';
+      })
+      .finally(async () => {
+        const finishedAt = new Date().toISOString();
+        await this.appendHistory({
+          id: jobId,
+          scriptId,
+          scriptName: script.name,
+          status: job.status as 'success' | 'error',
+          startedAt,
+          finishedAt,
+          durationMs:
+            new Date(finishedAt).getTime() - new Date(startedAt).getTime(),
+          nodeResults: job.results.map((r) => ({
+            nodeId: r.nodeId,
+            nodeName: r.nodeName,
+            status: r.status as 'success' | 'error',
+            logs: r.logs,
+          })),
+        });
+        const successCount = job.results.filter(
+          (r) => r.status === 'success',
+        ).length;
+        this.telegramService
+          .notifyScriptExecution(
+            script.name,
+            job.status as 'success' | 'error',
+            successCount,
+            job.results.length,
+          )
+          .catch(() => {});
+        setTimeout(() => this.jobs.delete(jobId), 3_600_000);
       });
-      const successCount = job.results.filter(r => r.status === 'success').length;
-      this.telegramService.notifyScriptExecution(
-        script.name,
-        job.status as 'success' | 'error',
-        successCount,
-        job.results.length,
-      ).catch(() => {});
-      setTimeout(() => this.jobs.delete(jobId), 3_600_000);
-    });
 
     return { jobId };
   }
@@ -656,35 +811,40 @@ export class ScriptsService implements OnModuleInit {
     scriptIds: string[],
     nodeIds: string[],
     variablesPerScript: Record<string, Record<string, string>>,
-    variablesPerScriptPerNode?: Record<string, Record<string, Record<string, string>>>,
+    variablesPerScriptPerNode?: Record<
+      string,
+      Record<string, Record<string, string>>
+    >,
   ): Promise<{ jobId: string }> {
     if (!scriptIds.length) throw new Error('Список скриптов пуст');
 
     const scripts = await this.loadScripts();
-    const resolvedScripts = scriptIds.map(id => {
-      const s = scripts.find(sc => sc.id === id);
+    const resolvedScripts = scriptIds.map((id) => {
+      const s = scripts.find((sc) => sc.id === id);
       if (!s) throw new Error(`Скрипт не найден: ${id}`);
       return s;
     });
 
-    const nodes = await this.loadSshNodes();
-    const targetNodes = nodes.filter(n => nodeIds.includes(n.id));
+    const nodes = await this.loadSshNodesForExecution();
+    const targetNodes = nodes.filter((n) => nodeIds.includes(n.id));
     if (!targetNodes.length) throw new Error('Не выбрано ни одной ноды');
 
     const sensitiveValues = [
-      ...Object.values(variablesPerScript).flatMap(vars => Object.values(vars)),
+      ...Object.values(variablesPerScript).flatMap((vars) =>
+        Object.values(vars),
+      ),
       ...Object.values(variablesPerScriptPerNode || {})
-        .flatMap(perNode => Object.values(perNode))
-        .flatMap(vars => Object.values(vars)),
-    ].filter(v => v.length > 3);
+        .flatMap((perNode) => Object.values(perNode))
+        .flatMap((vars) => Object.values(vars)),
+    ].filter((v) => v.length > 3);
 
-    const jobId = uuidv4();
+    const jobId = randomId();
     const startedAt = new Date().toISOString();
-    const scriptName = resolvedScripts.map(s => s.name).join(' → ');
+    const scriptName = resolvedScripts.map((s) => s.name).join(' → ');
     const job: ScriptJob = {
       scriptName,
       status: 'running',
-      results: targetNodes.map(n => ({
+      results: targetNodes.map((n) => ({
         nodeId: n.id,
         nodeName: n.name,
         logs: [],
@@ -697,19 +857,26 @@ export class ScriptsService implements OnModuleInit {
       const result = job.results[idx];
       for (let i = 0; i < resolvedScripts.length; i++) {
         const script = resolvedScripts[i];
-        const vars = variablesPerScriptPerNode?.[script.id]?.[node.id]
-          ?? variablesPerScript[script.id]
-          ?? {};
-        const content = Object.keys(vars).length > 0
-          ? this.substituteVariables(script.content, vars)
-          : script.content;
+        const vars =
+          variablesPerScriptPerNode?.[script.id]?.[node.id] ??
+          variablesPerScript[script.id] ??
+          {};
+        const content =
+          Object.keys(vars).length > 0
+            ? this.substituteVariables(script.content, vars)
+            : script.content;
 
         result.logs.push(`=== Скрипт ${i + 1}: ${script.name} ===`);
 
         try {
           await this.runScriptOnNode(node, content, result, sensitiveValues);
         } catch (e) {
-          result.logs.push(this.maskSecrets(`[ERROR] ${e?.message || String(e)}`, sensitiveValues));
+          result.logs.push(
+            this.maskSecrets(
+              `[ERROR] ${e?.message || String(e)}`,
+              sensitiveValues,
+            ),
+          );
           result.status = 'error';
           return;
         }
@@ -717,29 +884,35 @@ export class ScriptsService implements OnModuleInit {
       result.status = 'success';
     });
 
-    Promise.all(nodePromises).then(() => {
-      job.status = job.results.every(r => r.status === 'success') ? 'success' : 'error';
-    }).catch(() => {
-      job.status = 'error';
-    }).finally(async () => {
-      const finishedAt = new Date().toISOString();
-      await this.appendHistory({
-        id: jobId,
-        scriptId: scriptIds.join(','),
-        scriptName,
-        status: job.status as 'success' | 'error',
-        startedAt,
-        finishedAt,
-        durationMs: new Date(finishedAt).getTime() - new Date(startedAt).getTime(),
-        nodeResults: job.results.map(r => ({
-          nodeId: r.nodeId,
-          nodeName: r.nodeName,
-          status: r.status as 'success' | 'error',
-          logs: r.logs,
-        })),
+    Promise.all(nodePromises)
+      .then(() => {
+        job.status = job.results.every((r) => r.status === 'success')
+          ? 'success'
+          : 'error';
+      })
+      .catch(() => {
+        job.status = 'error';
+      })
+      .finally(async () => {
+        const finishedAt = new Date().toISOString();
+        await this.appendHistory({
+          id: jobId,
+          scriptId: scriptIds.join(','),
+          scriptName,
+          status: job.status as 'success' | 'error',
+          startedAt,
+          finishedAt,
+          durationMs:
+            new Date(finishedAt).getTime() - new Date(startedAt).getTime(),
+          nodeResults: job.results.map((r) => ({
+            nodeId: r.nodeId,
+            nodeName: r.nodeName,
+            status: r.status as 'success' | 'error',
+            logs: r.logs,
+          })),
+        });
+        setTimeout(() => this.jobs.delete(jobId), 3_600_000);
       });
-      setTimeout(() => this.jobs.delete(jobId), 3_600_000);
-    });
 
     return { jobId };
   }
@@ -753,53 +926,77 @@ export class ScriptsService implements OnModuleInit {
     return text.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '').replace(/\r/g, '');
   }
 
-  private runScriptOnNode(node: SshNode, content: string, result: NodeResult, mask: string[]): Promise<void> {
+  private runScriptOnNode(
+    node: SshNode,
+    content: string,
+    result: NodeResult,
+    mask: string[],
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       const conn = new Client();
 
       conn.on('ready', () => {
         const useSudo = node.sshUser && node.sshUser !== 'root';
-        result.logs.push(useSudo ? '[SSH] Подключено (sudo)' : '[SSH] Подключено');
+        result.logs.push(
+          useSudo ? '[SSH] Подключено (sudo)' : '[SSH] Подключено',
+        );
         const cmd = useSudo
           ? `sudo bash -e << 'SCRIPT_EOF'\n${content}\nSCRIPT_EOF`
           : `bash -e << 'SCRIPT_EOF'\n${content}\nSCRIPT_EOF`;
 
         // Allocate a PTY so interactive programs (e.g. warp-cli) see a real terminal
-        conn.exec(cmd, { pty: { term: 'xterm', cols: 200, rows: 50 } }, (err, stream) => {
-          if (err) {
-            result.logs.push(this.maskSecrets(`[ERROR] ${err.message}`, mask));
-            conn.end();
-            return reject(err);
-          }
-
-          stream.on('data', (data: Buffer) => {
-            const text = this.stripAnsi(data.toString());
-            // Auto-respond 'y' to common y/n confirmation prompts (e.g. ToS acceptance)
-            if (/\[y\/n\]|\[Y\/N\]|\[yes\/no\]/i.test(text)) {
-              stream.write('y\n');
-              result.logs.push('[AUTO] Отправлен ответ "y" на запрос подтверждения');
+        conn.exec(
+          cmd,
+          { pty: { term: 'xterm', cols: 200, rows: 50 } },
+          (err, stream) => {
+            if (err) {
+              result.logs.push(
+                this.maskSecrets(`[ERROR] ${err.message}`, mask),
+              );
+              conn.end();
+              return reject(err);
             }
-            text.split('\n').filter(l => l.trim())
-              .forEach(l => result.logs.push(this.maskSecrets(l, mask)));
-          });
 
-          // With PTY, stderr is merged into stdout — keep handler for non-PTY compat
-          stream.stderr.on('data', (data: Buffer) => {
-            this.stripAnsi(data.toString()).split('\n').filter(Boolean)
-              .forEach(l => result.logs.push(this.maskSecrets(`[stderr] ${l}`, mask)));
-          });
+            stream.on('data', (data: Buffer) => {
+              const text = this.stripAnsi(data.toString());
+              // Auto-respond 'y' to common y/n confirmation prompts (e.g. ToS acceptance)
+              if (/\[y\/n\]|\[Y\/N\]|\[yes\/no\]/i.test(text)) {
+                stream.write('y\n');
+                result.logs.push(
+                  '[AUTO] Отправлен ответ "y" на запрос подтверждения',
+                );
+              }
+              text
+                .split('\n')
+                .filter((l) => l.trim())
+                .forEach((l) => result.logs.push(this.maskSecrets(l, mask)));
+            });
 
-          stream.on('close', (code: number) => {
-            conn.end();
-            if (code !== 0) return reject(new Error(`Скрипт завершился с кодом ${code}`));
-            result.logs.push('[SSH] Выполнено успешно');
-            resolve();
-          });
-        });
+            // With PTY, stderr is merged into stdout — keep handler for non-PTY compat
+            stream.stderr.on('data', (data: Buffer) => {
+              this.stripAnsi(data.toString())
+                .split('\n')
+                .filter(Boolean)
+                .forEach((l) =>
+                  result.logs.push(this.maskSecrets(`[stderr] ${l}`, mask)),
+                );
+            });
+
+            stream.on('close', (code: number) => {
+              conn.end();
+              if (code !== 0)
+                return reject(new Error(`Скрипт завершился с кодом ${code}`));
+              result.logs.push('[SSH] Выполнено успешно');
+              resolve();
+            });
+          },
+        );
       });
 
       conn.on('error', (err) => {
-        result.logs.push(this.maskSecrets(`[SSH] Ошибка подключения: ${err.message}`, mask));
+        result.logs.push(
+          this.maskSecrets(`[SSH] Ошибка подключения: ${err.message}`, mask),
+        );
         reject(err);
       });
 

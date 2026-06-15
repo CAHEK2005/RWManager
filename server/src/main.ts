@@ -18,19 +18,21 @@ async function bootstrap() {
     credentials: true,
   });
 
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
   app.setGlobalPrefix('api', {
     exclude: [
       { path: 'bus/:uuid', method: RequestMethod.GET },
       { path: 'bus/:uuid/:tunnelId', method: RequestMethod.GET },
-    ]
+    ],
   });
-  
+
   await app.listen(3000);
 }
 bootstrap();

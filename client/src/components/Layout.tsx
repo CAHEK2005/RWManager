@@ -10,8 +10,8 @@ import {
   HelpOutline, History,
 } from '@mui/icons-material';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { useThemeContext } from '../ThemeContext';
-import { useAuth } from '../auth/AuthContext';
+import { useThemeContext } from '../useThemeContext';
+import { useAuth } from '../auth/useAuth';
 import { SIDEBAR_WIDTH, sidebarTokens as s } from '../theme';
 import HelpDialog from './HelpDialog';
 
@@ -137,18 +137,18 @@ export default function Layout() {
       {/* Bottom actions */}
       <Box sx={{ px: 1.5, py: 1.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
         <Tooltip title="Справка" placement="top">
-          <IconButton size="small" onClick={() => setHelpOpen(true)} sx={{ color: s.text, '&:hover': { color: s.textActive, bgcolor: s.bgHover } }}>
+          <IconButton size="small" aria-label="Открыть справку" onClick={() => setHelpOpen(true)} sx={{ color: s.text, '&:hover': { color: s.textActive, bgcolor: s.bgHover } }}>
             <HelpOutline sx={{ fontSize: 16 }} />
           </IconButton>
         </Tooltip>
         <Tooltip title="Переключить тему" placement="top">
-          <IconButton size="small" onClick={toggleColorMode} sx={{ color: s.text, '&:hover': { color: s.textActive, bgcolor: s.bgHover } }}>
+          <IconButton size="small" aria-label="Переключить тему" onClick={toggleColorMode} sx={{ color: s.text, '&:hover': { color: s.textActive, bgcolor: s.bgHover } }}>
             {getThemeIcon()}
           </IconButton>
         </Tooltip>
         <Box sx={{ flex: 1 }} />
         <Tooltip title="Выйти" placement="top">
-          <IconButton size="small" onClick={handleLogout} sx={{ color: s.text, '&:hover': { color: '#ef4444', bgcolor: 'rgba(239,68,68,0.08)' } }}>
+          <IconButton size="small" aria-label="Выйти" onClick={handleLogout} sx={{ color: s.text, '&:hover': { color: '#ef4444', bgcolor: 'rgba(239,68,68,0.08)' } }}>
             <Logout sx={{ fontSize: 16 }} />
           </IconButton>
         </Tooltip>
@@ -174,16 +174,16 @@ export default function Layout() {
             zIndex: theme.zIndex.drawer + 1,
           }}>
             <Toolbar sx={{ minHeight: '48px !important', px: 2, paddingTop: 'env(safe-area-inset-top)' }}>
-              <IconButton edge="start" onClick={() => setMobileOpen(true)} sx={{ color: s.textActive, mr: 1 }}>
+              <IconButton edge="start" aria-label="Открыть навигацию" onClick={() => setMobileOpen(true)} sx={{ color: s.textActive, mr: 1 }}>
                 <MenuIcon sx={{ fontSize: 20 }} />
               </IconButton>
               <Typography sx={{ color: s.textActive, fontWeight: 600, fontSize: '0.9rem', flex: 1 }}>
                 RWManager
               </Typography>
-              <IconButton size="small" onClick={toggleColorMode} sx={{ color: s.text }}>
+              <IconButton size="small" aria-label="Переключить тему" onClick={toggleColorMode} sx={{ color: s.text }}>
                 {getThemeIcon()}
               </IconButton>
-              <IconButton size="small" onClick={handleLogout} sx={{ color: s.text }}>
+              <IconButton size="small" aria-label="Выйти" onClick={handleLogout} sx={{ color: s.text }}>
                 <Logout sx={{ fontSize: 16 }} />
               </IconButton>
             </Toolbar>

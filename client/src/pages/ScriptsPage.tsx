@@ -89,6 +89,35 @@ interface HistoryListItem {
   durationMs: number;
   nodeCount: number;
   successCount: number;
+  logPreview?: string;
+}
+
+interface ExecuteScriptPayload {
+  scriptId: string;
+  nodeIds: string[];
+  variables?: Record<string, string>;
+  variablesPerNode?: Record<string, Record<string, string>>;
+}
+
+interface ExecuteSequencePayload {
+  scriptIds: string[];
+  nodeIds: string[];
+  variablesPerScript: Record<string, Record<string, string>>;
+  variablesPerScriptPerNode?: Record<string, Record<string, Record<string, string>>>;
+}
+
+interface SecretPayload {
+  name: string;
+  type: Secret['type'];
+  description?: string;
+  value?: string;
+}
+
+interface SecretFormState {
+  name: string;
+  type: Secret['type'];
+  value: string;
+  description: string;
 }
 
 interface HistoryNodeResult {
@@ -247,7 +276,8 @@ function TerminalWindow({
     });
     observer.observe(container);
 
-    instanceRef.current.set(session.id, { xterm: term, ws, fit: fitAddon, observer });
+    const instances = instanceRef.current;
+    instances.set(session.id, { xterm: term, ws, fit: fitAddon, observer });
 
     return () => {
       clearTimeout(initTimer);
@@ -255,7 +285,7 @@ function TerminalWindow({
       observer.disconnect();
       ws.close();
       term.dispose();
-      instanceRef.current.delete(session.id);
+      instances.delete(session.id);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.id]);
@@ -340,7 +370,7 @@ function TerminalWindow({
             <Typography sx={{ color: '#e0e0e0', flex: 1, fontSize: '0.875rem', fontWeight: 500 }}>
               {session.nodeName}
             </Typography>
-            <IconButton size="small" onClick={() => onClose(session.id)} sx={{ color: '#9e9e9e' }}>
+            <IconButton size="small" aria-label="Закрыть терминал" onClick={() => onClose(session.id)} sx={{ color: '#9e9e9e' }}>
               <Close sx={{ fontSize: 20 }} />
             </IconButton>
           </Box>
@@ -386,17 +416,22 @@ function TerminalWindow({
           {session.nodeName}
         </Typography>
         <Tooltip title="Открыть в отдельном окне">
-          <IconButton size="small" onClick={handlePopup} sx={{ color: '#9e9e9e', p: 0.3 }}>
+          <IconButton size="small" aria-label="Открыть терминал в отдельном окне" onClick={handlePopup} sx={{ color: '#9e9e9e', p: 0.3 }}>
             <OpenInNew sx={{ fontSize: 15 }} />
           </IconButton>
         </Tooltip>
         <Tooltip title={session.minimized ? 'Развернуть' : 'Свернуть'}>
-          <IconButton size="small" onClick={() => onMinimizeToggle(session.id)} sx={{ color: '#9e9e9e', p: 0.3 }}>
+          <IconButton
+            size="small"
+            aria-label={session.minimized ? 'Развернуть терминал' : 'Свернуть терминал'}
+            onClick={() => onMinimizeToggle(session.id)}
+            sx={{ color: '#9e9e9e', p: 0.3 }}
+          >
             {session.minimized ? <CropSquare sx={{ fontSize: 15 }} /> : <Remove sx={{ fontSize: 15 }} />}
           </IconButton>
         </Tooltip>
         <Tooltip title="Закрыть">
-          <IconButton size="small" onClick={() => onClose(session.id)} sx={{ color: '#9e9e9e', p: 0.3 }}>
+          <IconButton size="small" aria-label="Закрыть терминал" onClick={() => onClose(session.id)} sx={{ color: '#9e9e9e', p: 0.3 }}>
             <Close sx={{ fontSize: 15 }} />
           </IconButton>
         </Tooltip>
@@ -479,7 +514,8 @@ export default function ScriptsPage() {
   const toggleExpand = (id: string) =>
     setExpandedScripts(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
 
@@ -507,7 +543,7 @@ export default function ScriptsPage() {
   const [secrets, setSecrets] = useState<Secret[]>([]);
   const [secretDialog, setSecretDialog] = useState(false);
   const [secretEditId, setSecretEditId] = useState<string | null>(null);
-  const [secretForm, setSecretForm] = useState({ name: '', type: 'password', value: '', description: '' });
+  const [secretForm, setSecretForm] = useState<SecretFormState>({ name: '', type: 'password', value: '', description: '' });
   // Universal secret picker dialog
   const [secretPickerOpen, setSecretPickerOpen] = useState(false);
   const [secretPickerCallback, setSecretPickerCallback] = useState<((v: string) => void) | null>(null);
@@ -660,7 +696,7 @@ export default function ScriptsPage() {
     loadRwNodes();
     loadSecrets();
     loadCategories();
-  }, []);
+  }, [loadCategories, loadRwNodes, loadScripts, loadSecrets, loadSshNodes]);
 
   // ─── SSH Node handlers ────────────────────────────────────────────────────
 
@@ -927,7 +963,7 @@ export default function ScriptsPage() {
 
   useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
-  useEffect(() => { if (tab === 1) loadScriptDots(); }, [tab]);
+  useEffect(() => { if (tab === 1) loadScriptDots(); }, [loadScriptDots, tab]);
 
   const handleRunScript = async () => {
     if (!runScript || !selectedNodeIds.length) {
@@ -956,7 +992,7 @@ export default function ScriptsPage() {
     try {
       setRunLoading(true);
       setRunJob(null);
-      const payload: any = {
+      const payload: ExecuteScriptPayload = {
         scriptId: runScript.id,
         nodeIds: selectedNodeIds,
       };
@@ -1056,7 +1092,7 @@ export default function ScriptsPage() {
     try {
       setRunLoading(true);
       setRunJob(null);
-      const payload: any = {
+      const payload: ExecuteSequencePayload = {
         scriptIds: scriptQueue.map(s => s.id),
         nodeIds: queueSelectedNodeIds,
         variablesPerScript: varValuesPerScript,
@@ -1112,7 +1148,7 @@ export default function ScriptsPage() {
       return;
     }
     try {
-      const payload: any = { name: secretForm.name, type: secretForm.type, description: secretForm.description };
+      const payload: SecretPayload = { name: secretForm.name, type: secretForm.type, description: secretForm.description };
       if (secretForm.value.trim()) payload.value = secretForm.value;
       await api[secretEditId ? 'patch' : 'post'](
         secretEditId ? `/secrets/${secretEditId}` : '/secrets',
@@ -1221,7 +1257,7 @@ export default function ScriptsPage() {
                   <Typography variant="caption" color="text.secondary">Серверы для выполнения скриптов</Typography>
                 </Box>
                 <Stack direction="row" spacing={1}>
-                  <Button variant="outlined" startIcon={<Label />} size="small" onClick={() => { setCatDialog(true); setCatEditId(null); setCatForm({ name: '', color: '#1976d2' }); }}>
+                  <Button variant="outlined" startIcon={<Label />} size="small" onClick={openAddCategory}>
                     Категории
                   </Button>
                   <Button variant="contained" startIcon={<Add />} size="small" onClick={openAddNode}>
@@ -1297,17 +1333,21 @@ export default function ScriptsPage() {
                           <TableCell align="right">
                             <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                               <Tooltip title="Открыть терминал">
-                                <IconButton size="small" color="primary" onClick={() => openTerminal(node)}>
+                                <IconButton size="small" color="primary" aria-label={`Открыть терминал ${node.name}`} onClick={() => openTerminal(node)}>
                                   <Terminal sx={{ fontSize: 16 }} />
                                 </IconButton>
                               </Tooltip>
                               <Tooltip title="Изменить">
-                                <IconButton size="small" onClick={() => openEditNode(node)}>
+                                <IconButton size="small" aria-label={`Изменить ноду ${node.name}`} onClick={() => openEditNode(node)}>
                                   <Edit sx={{ fontSize: 16 }} />
                                 </IconButton>
                               </Tooltip>
                               <Tooltip title="Ещё">
-                                <IconButton size="small" onClick={e => setNodeRowMenu({ el: e.currentTarget, nodeId: node.id, nodeName: node.name })}>
+                                <IconButton
+                                  size="small"
+                                  aria-label={`Действия ноды ${node.name}`}
+                                  onClick={e => setNodeRowMenu({ el: e.currentTarget, nodeId: node.id, nodeName: node.name })}
+                                >
                                   <MoreVert sx={{ fontSize: 16 }} />
                                 </IconButton>
                               </Tooltip>
@@ -1465,24 +1505,24 @@ export default function ScriptsPage() {
                       <Stack direction="row" spacing={0.5}>
                         {s.isBuiltIn && s.isModified && (
                           <Tooltip title="Откатить к оригиналу">
-                            <IconButton size="small" onClick={() => handleRevertScript(s.id, s.name)}
+                            <IconButton size="small" aria-label={`Откатить скрипт ${s.name}`} onClick={() => handleRevertScript(s.id, s.name)}
                               sx={{ color: 'warning.main' }}>
                               <Restore sx={{ fontSize: 16 }} />
                             </IconButton>
                           </Tooltip>
                         )}
                         <Tooltip title="Клонировать">
-                          <IconButton size="small" onClick={() => handleCloneScript(s)}>
+                          <IconButton size="small" aria-label={`Клонировать скрипт ${s.name}`} onClick={() => handleCloneScript(s)}>
                             <ContentCopy sx={{ fontSize: 16 }} />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Изменить">
-                          <IconButton size="small" onClick={() => openEditScript(s)}>
+                          <IconButton size="small" aria-label={`Изменить скрипт ${s.name}`} onClick={() => openEditScript(s)}>
                             <Edit sx={{ fontSize: 16 }} />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title={s.isBuiltIn ? 'Скрыть' : 'Удалить'}>
-                          <IconButton size="small" onClick={() => handleDeleteScript(s.id, s.name, s.isBuiltIn)}
+                          <IconButton size="small" aria-label={s.isBuiltIn ? `Скрыть скрипт ${s.name}` : `Удалить скрипт ${s.name}`} onClick={() => handleDeleteScript(s.id, s.name, s.isBuiltIn)}
                             sx={{ color: 'error.main' }}>
                             <Delete sx={{ fontSize: 16 }} />
                           </IconButton>
@@ -1514,7 +1554,7 @@ export default function ScriptsPage() {
                                     <Typography variant="caption"
                                       color={item.status === 'success' ? 'text.secondary' : 'error.main'}
                                       sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                      {(item as any).logPreview || (item.status === 'success' ? 'Выполнено успешно' : 'Ошибка')}
+                                      {item.logPreview || (item.status === 'success' ? 'Выполнено успешно' : 'Ошибка')}
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
                                       {formatDuration(item.durationMs)}
@@ -1594,12 +1634,16 @@ export default function ScriptsPage() {
                         <TableCell align="right">
                           <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                             <Tooltip title="Изменить">
-                              <IconButton size="small" onClick={() => openEditSecret(s)}>
+                              <IconButton size="small" aria-label={`Изменить секрет ${s.name}`} onClick={() => openEditSecret(s)}>
                                 <Edit sx={{ fontSize: 16 }} />
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="Ещё">
-                              <IconButton size="small" onClick={e => setSecretRowMenu({ el: e.currentTarget, id: s.id, name: s.name })}>
+                              <IconButton
+                                size="small"
+                                aria-label={`Действия секрета ${s.name}`}
+                                onClick={e => setSecretRowMenu({ el: e.currentTarget, id: s.id, name: s.name })}
+                              >
                                 <MoreVert sx={{ fontSize: 16 }} />
                               </IconButton>
                             </Tooltip>
@@ -1694,7 +1738,12 @@ export default function ScriptsPage() {
                 onChange={e => setNodeForm(p => ({ ...p, password: e.target.value }))}
                 slotProps={{ input: { endAdornment: secrets.length > 0 ? (
                   <Tooltip title="Вставить из секретов">
-                    <IconButton size="small" edge="end" onClick={() => openSecretPicker(v => setNodeForm(p => ({ ...p, password: v })))}>
+                    <IconButton
+                      size="small"
+                      edge="end"
+                      aria-label="Вставить пароль ноды из секретов"
+                      onClick={() => openSecretPicker(v => setNodeForm(p => ({ ...p, password: v })))}
+                    >
                       <LockOpen fontSize="small" />
                     </IconButton>
                   </Tooltip>
@@ -1722,7 +1771,11 @@ export default function ScriptsPage() {
                   <Stack direction="row" spacing={0.5} alignItems="center">
                     {secrets.length > 0 && (
                       <Tooltip title="Вставить из секретов">
-                        <IconButton size="small" onClick={() => openSecretPicker(v => setNodeForm(p => ({ ...p, sshKey: v })))}>
+                        <IconButton
+                          size="small"
+                          aria-label="Вставить SSH-ключ ноды из секретов"
+                          onClick={() => openSecretPicker(v => setNodeForm(p => ({ ...p, sshKey: v })))}
+                        >
                           <LockOpen fontSize="small" />
                         </IconButton>
                       </Tooltip>
@@ -1796,8 +1849,8 @@ export default function ScriptsPage() {
               <Stack key={cat.id} direction="row" spacing={1} alignItems="center">
                 <Box sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: cat.color, flexShrink: 0 }} />
                 <Typography variant="body2" sx={{ flex: 1 }}>{cat.name}</Typography>
-                <IconButton size="small" onClick={() => openEditCategory(cat)}><Edit fontSize="small" /></IconButton>
-                <IconButton size="small" color="error" onClick={() => handleDeleteCategory(cat.id, cat.name)}><Delete fontSize="small" /></IconButton>
+                <IconButton size="small" aria-label={`Изменить категорию ${cat.name}`} onClick={() => openEditCategory(cat)}><Edit fontSize="small" /></IconButton>
+                <IconButton size="small" color="error" aria-label={`Удалить категорию ${cat.name}`} onClick={() => handleDeleteCategory(cat.id, cat.name)}><Delete fontSize="small" /></IconButton>
               </Stack>
             ))}
             <Divider sx={{ my: 1 }} />
@@ -2013,7 +2066,10 @@ export default function ScriptsPage() {
                             style: { fontFamily: 'monospace', fontSize: '0.85rem' },
                             endAdornment: secrets.length > 0 ? (
                               <Tooltip title="Вставить из секретов">
-                                <IconButton size="small" edge="end"
+                                <IconButton
+                                  size="small"
+                                  edge="end"
+                                  aria-label={`Вставить значение ${v.label} из секретов`}
                                   onClick={() => openSecretPicker(val => setVarValues(prev => ({ ...prev, [v.name]: val })))}>
                                   <LockOpen fontSize="small" />
                                 </IconButton>
@@ -2139,7 +2195,10 @@ export default function ScriptsPage() {
                                       style: { fontFamily: 'monospace', fontSize: '0.85rem' },
                                       endAdornment: secrets.length > 0 ? (
                                         <Tooltip title="Вставить из секретов">
-                                          <IconButton size="small" edge="end"
+                                          <IconButton
+                                            size="small"
+                                            edge="end"
+                                            aria-label={`Вставить значение ${v.label} для ${node.name} из секретов`}
                                             onClick={e => { e.stopPropagation(); openSecretPicker(val => setVarValuesPerNode(prev => ({ ...prev, [node.id]: { ...prev[node.id], [v.name]: val } }))); }}>
                                             <LockOpen fontSize="small" />
                                           </IconButton>
@@ -2235,10 +2294,10 @@ export default function ScriptsPage() {
                   <Paper key={i} variant="outlined" sx={{ p: 1.5 }}>
                     <Stack direction="row" spacing={1} alignItems="flex-start">
                       <Stack direction="column" sx={{ flexShrink: 0 }}>
-                        <IconButton size="small" disabled={i === 0} onClick={() => moveQueueItem(i, 'up')}>
+                        <IconButton size="small" aria-label={`Поднять скрипт ${s.name} в очереди`} disabled={i === 0} onClick={() => moveQueueItem(i, 'up')}>
                           <KeyboardArrowUp fontSize="small" />
                         </IconButton>
-                        <IconButton size="small" disabled={i === scriptQueue.length - 1} onClick={() => moveQueueItem(i, 'down')}>
+                        <IconButton size="small" aria-label={`Опустить скрипт ${s.name} в очереди`} disabled={i === scriptQueue.length - 1} onClick={() => moveQueueItem(i, 'down')}>
                           <KeyboardArrowDown fontSize="small" />
                         </IconButton>
                       </Stack>
@@ -2266,7 +2325,10 @@ export default function ScriptsPage() {
                                     style: { fontFamily: 'monospace', fontSize: '0.85rem' },
                                     endAdornment: secrets.length > 0 ? (
                                       <Tooltip title="Вставить из секретов">
-                                        <IconButton size="small" edge="end"
+                                        <IconButton
+                                          size="small"
+                                          edge="end"
+                                          aria-label={`Вставить значение ${v.label} для скрипта ${s.name} из секретов`}
                                           onClick={() => openSecretPicker(val => setVarValuesPerScript(prev => ({
                                             ...prev,
                                             [s.id]: { ...prev[s.id], [v.name]: val },
@@ -2282,7 +2344,7 @@ export default function ScriptsPage() {
                           </Stack>
                         )}
                       </Box>
-                      <IconButton size="small" color="error" onClick={() => removeFromQueue(i)}>
+                      <IconButton size="small" color="error" aria-label={`Удалить скрипт ${s.name} из очереди`} onClick={() => removeFromQueue(i)}>
                         <Delete fontSize="small" />
                       </IconButton>
                     </Stack>
@@ -2405,7 +2467,10 @@ export default function ScriptsPage() {
                                               style: { fontFamily: 'monospace', fontSize: '0.85rem' },
                                               endAdornment: secrets.length > 0 ? (
                                                 <Tooltip title="Вставить из секретов">
-                                                  <IconButton size="small" edge="end"
+                                                  <IconButton
+                                                    size="small"
+                                                    edge="end"
+                                                    aria-label={`Вставить значение ${v.label} для ${node.name} из секретов`}
                                                     onClick={e => { e.stopPropagation(); openSecretPicker(val => setVarValuesPerScriptPerNode(prev => ({ ...prev, [s.id]: { ...prev[s.id], [node.id]: { ...prev[s.id]?.[node.id], [v.name]: val } } }))); }}>
                                                     <LockOpen fontSize="small" />
                                                   </IconButton>

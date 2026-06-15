@@ -2,13 +2,28 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { v4 as uuidv4 } from 'uuid';
 
 import { Domain } from '../domains/entities/domain.entity';
 import { Setting } from '../settings/entities/setting.entity';
 import { RemnavaveService } from '../remnawave/remnawave.service';
 import { InboundBuilderService } from '../inbounds/inbound-builder.service';
 import { TelegramService } from '../telegram/telegram.service';
+import { randomId } from '../common/random-id';
+import {
+  pickRandomPort,
+  resolveInboundPort,
+  validateRequiredSni,
+} from './rotation-validation';
+import {
+  countryCodeToFlag,
+  DEFAULT_HOST_TEMPLATE,
+  HOST_TEMPLATE_SETTING_KEY,
+  HostTemplateMode,
+  inferHostTemplateMode,
+  renderHostRemark,
+  resolveActiveHostTemplate,
+  validateHostTemplate,
+} from '../settings/host-template';
 
 export interface RotationHistoryEntry {
   id: string;
@@ -28,7 +43,8 @@ export interface ManagedProfile {
   nodeAddress: string;
   applyToNode: boolean;
   hostMappings: { tag: string; hostUuid: string }[];
-  hostTemplate: string;
+  hostTemplate?: string;
+  hostTemplateMode?: HostTemplateMode;
   rotationEnabled: boolean;
   rotationMode: 'interval' | 'schedule' | 'days-of-week';
   rotationInterval: number;
@@ -59,17 +75,23 @@ export class RotationService implements OnModuleInit {
   }
 
   private async initDefaultSettings() {
+    await this.ensureDefaultHostTemplate();
+
     const key = 'managed_profiles';
     let existing = await this.settingRepo.findOne({ where: { key } });
     if (!existing) {
       this.logger.log(`Инициализация настройки: ${key} = []`);
-      await this.settingRepo.save(this.settingRepo.create({ key, value: '[]' }));
+      await this.settingRepo.save(
+        this.settingRepo.create({ key, value: '[]' }),
+      );
       existing = await this.settingRepo.findOne({ where: { key } });
     }
 
     // Миграция: если managed_profiles == '[]' и remnawave_profile_uuid задан
     if (existing?.value === '[]') {
-      const profileUuidSetting = await this.settingRepo.findOne({ where: { key: 'remnawave_profile_uuid' } });
+      const profileUuidSetting = await this.settingRepo.findOne({
+        where: { key: 'remnawave_profile_uuid' },
+      });
       if (profileUuidSetting?.value) {
         const getKey = async (k: string): Promise<string> => {
           const s = await this.settingRepo.findOne({ where: { key: k } });
@@ -78,21 +100,33 @@ export class RotationService implements OnModuleInit {
 
         let inboundsConfig: any[] = [];
         try {
-          inboundsConfig = JSON.parse((await getKey('inbounds_config')) || '[]');
-        } catch { /* ignore */ }
+          inboundsConfig = JSON.parse(
+            (await getKey('inbounds_config')) || '[]',
+          );
+        } catch {
+          /* ignore */
+        }
 
         let hostMappings: { tag: string; hostUuid: string }[] = [];
         try {
-          const oldMappings = JSON.parse((await getKey('host_mappings')) || '[]');
+          const oldMappings = JSON.parse(
+            (await getKey('host_mappings')) || '[]',
+          );
           if (oldMappings.length > 0 && inboundsConfig.length > 0) {
             hostMappings = oldMappings
-              .filter((m: any) => m.inboundIndex !== undefined && inboundsConfig[m.inboundIndex])
+              .filter(
+                (m: any) =>
+                  m.inboundIndex !== undefined &&
+                  inboundsConfig[m.inboundIndex],
+              )
               .map((m: any) => ({
                 tag: `${inboundsConfig[m.inboundIndex].type}-rwm`,
                 hostUuid: m.hostUuid,
               }));
           }
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
 
         const migrated: ManagedProfile = {
           uuid: profileUuidSetting.value,
@@ -103,7 +137,8 @@ export class RotationService implements OnModuleInit {
           nodeAddress: await getKey('remnawave_node_address'),
           applyToNode: false,
           hostMappings,
-          hostTemplate: '{countryCode} {nodeName} - {inboundType}',
+          hostTemplate: DEFAULT_HOST_TEMPLATE,
+          hostTemplateMode: 'inherit',
           rotationEnabled: true,
           rotationMode: 'interval',
           rotationInterval: 1440,
@@ -115,7 +150,9 @@ export class RotationService implements OnModuleInit {
         };
 
         await this.saveSetting('managed_profiles', JSON.stringify([migrated]));
-        this.logger.log(`Миграция: создан профиль Default из старых настроек (uuid=${migrated.uuid})`);
+        this.logger.log(
+          `Миграция: создан профиль Default из старых настроек (uuid=${migrated.uuid})`,
+        );
       }
     } else {
       // Миграция: добавить tagSuffix к инбаундам без него
@@ -127,6 +164,14 @@ export class RotationService implements OnModuleInit {
       }
       let migrated = false;
       for (const p of profiles) {
+        if (!p.hostTemplateMode) {
+          p.hostTemplateMode = inferHostTemplateMode(p);
+          migrated = true;
+        }
+        if (!p.hostTemplate) {
+          p.hostTemplate = DEFAULT_HOST_TEMPLATE;
+          migrated = true;
+        }
         for (const cfg of p.inboundsConfig || []) {
           if (!cfg.tagSuffix && cfg.type && cfg.type !== 'custom') {
             cfg.tagSuffix = Math.random().toString(16).slice(2, 8);
@@ -136,7 +181,9 @@ export class RotationService implements OnModuleInit {
       }
       if (migrated) {
         await this.saveSetting('managed_profiles', JSON.stringify(profiles));
-        this.logger.log('Миграция: добавлен tagSuffix для инбаундов без суффикса');
+        this.logger.log(
+          'Миграция: добавлен tagSuffix для инбаундов без суффикса',
+        );
       }
       const count = profiles.length;
       this.logger.log(`Текущее количество managed_profiles: ${count}`);
@@ -150,10 +197,50 @@ export class RotationService implements OnModuleInit {
     await this.settingRepo.save(s);
   }
 
-  async loadProfiles(): Promise<ManagedProfile[]> {
-    const raw = await this.settingRepo.findOne({ where: { key: 'managed_profiles' } });
+  private async ensureDefaultHostTemplate() {
+    const existing = await this.settingRepo.findOne({
+      where: { key: HOST_TEMPLATE_SETTING_KEY },
+    });
+    if (!existing) {
+      await this.saveSetting(HOST_TEMPLATE_SETTING_KEY, DEFAULT_HOST_TEMPLATE);
+      return;
+    }
     try {
-      return JSON.parse(raw?.value || '[]');
+      validateHostTemplate(existing.value);
+    } catch {
+      await this.saveSetting(HOST_TEMPLATE_SETTING_KEY, DEFAULT_HOST_TEMPLATE);
+    }
+  }
+
+  async getDefaultHostTemplate(): Promise<string> {
+    const setting = await this.settingRepo.findOne({
+      where: { key: HOST_TEMPLATE_SETTING_KEY },
+    });
+    try {
+      return validateHostTemplate(setting?.value || DEFAULT_HOST_TEMPLATE);
+    } catch {
+      return DEFAULT_HOST_TEMPLATE;
+    }
+  }
+
+  async resolveHostTemplate(profile: ManagedProfile): Promise<string> {
+    return resolveActiveHostTemplate(
+      profile,
+      await this.getDefaultHostTemplate(),
+    );
+  }
+
+  async loadProfiles(): Promise<ManagedProfile[]> {
+    const raw = await this.settingRepo.findOne({
+      where: { key: 'managed_profiles' },
+    });
+    try {
+      const profiles = JSON.parse(raw?.value || '[]') as ManagedProfile[];
+      return profiles.map((profile) => ({
+        ...profile,
+        hostTemplate: profile.hostTemplate || DEFAULT_HOST_TEMPLATE,
+        hostTemplateMode: inferHostTemplateMode(profile),
+      }));
     } catch {
       return [];
     }
@@ -179,12 +266,18 @@ export class RotationService implements OnModuleInit {
       const globalUsedPorts = new Set<number>(
         profiles
           .filter((_, j) => j !== i)
-          .flatMap(other => (other.inboundsConfig || []).map((c: any) => c.port).filter(Number.isInteger)),
+          .flatMap((other) =>
+            (other.inboundsConfig || [])
+              .map((c: any) => c.port)
+              .filter(Number.isInteger),
+          ),
       );
       const result = await this.performRotation(p, globalUsedPorts);
       updatedProfiles[i] = {
         ...p,
-        lastRotationTimestamp: result.success ? Date.now() : p.lastRotationTimestamp,
+        lastRotationTimestamp: result.success
+          ? Date.now()
+          : p.lastRotationTimestamp,
         lastRotationStatus: result.success ? 'success' : 'error',
         lastRotationError: result.success ? '' : result.message,
       };
@@ -210,17 +303,23 @@ export class RotationService implements OnModuleInit {
     const tz = p.rotationTimezone || 'Europe/Moscow';
     const parts = new Intl.DateTimeFormat('en-CA', {
       timeZone: tz,
-      hour: '2-digit', minute: '2-digit', hour12: false,
-      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
     }).formatToParts(now);
-    const get = (t: string) => parts.find(x => x.type === t)?.value || '';
+    const get = (t: string) => parts.find((x) => x.type === t)?.value || '';
     const currentTime = `${get('hour')}:${get('minute')}`;
     const currentDate = `${get('year')}-${get('month')}-${get('day')}`;
     if (currentTime !== p.rotationScheduleTime) return false;
     if (!p.lastRotationTimestamp) return true;
     const lastDate = new Intl.DateTimeFormat('en-CA', {
       timeZone: tz,
-      year: 'numeric', month: '2-digit', day: '2-digit',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
     }).format(new Date(p.lastRotationTimestamp));
     return lastDate !== currentDate;
   }
@@ -231,21 +330,31 @@ export class RotationService implements OnModuleInit {
     const tz = p.rotationTimezone || 'Europe/Moscow';
     const parts = new Intl.DateTimeFormat('en-CA', {
       timeZone: tz,
-      hour: '2-digit', minute: '2-digit', hour12: false,
-      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
     }).formatToParts(now);
-    const get = (t: string) => parts.find(x => x.type === t)?.value || '';
+    const get = (t: string) => parts.find((x) => x.type === t)?.value || '';
     const currentTime = `${get('hour')}:${get('minute')}`;
     const currentDate = `${get('year')}-${get('month')}-${get('day')}`;
-    const currentDayOfWeek = new Date(Date.UTC(
-      parseInt(get('year')), parseInt(get('month')) - 1, parseInt(get('day')),
-    )).getUTCDay();
+    const currentDayOfWeek = new Date(
+      Date.UTC(
+        parseInt(get('year')),
+        parseInt(get('month')) - 1,
+        parseInt(get('day')),
+      ),
+    ).getUTCDay();
     if (!p.rotationScheduleDays.includes(currentDayOfWeek)) return false;
     if (currentTime !== p.rotationScheduleTime) return false;
     if (!p.lastRotationTimestamp) return true;
     const lastDate = new Intl.DateTimeFormat('en-CA', {
       timeZone: tz,
-      year: 'numeric', month: '2-digit', day: '2-digit',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
     }).format(new Date(p.lastRotationTimestamp));
     return lastDate !== currentDate;
   }
@@ -260,7 +369,9 @@ export class RotationService implements OnModuleInit {
       const result = await this.performRotation(profiles[i]);
       updated[i] = {
         ...profiles[i],
-        lastRotationTimestamp: result.success ? Date.now() : profiles[i].lastRotationTimestamp,
+        lastRotationTimestamp: result.success
+          ? Date.now()
+          : profiles[i].lastRotationTimestamp,
         lastRotationStatus: result.success ? 'success' : 'error',
         lastRotationError: result.success ? '' : result.message,
       };
@@ -268,12 +379,20 @@ export class RotationService implements OnModuleInit {
     }
 
     await this.saveProfiles(updated);
-    return { success: true, message: `Ротация выполнена: ${successCount}/${profiles.length}` };
+    return {
+      success: true,
+      message: `Ротация выполнена: ${successCount}/${profiles.length}`,
+    };
   }
 
-  async performRotation(profile: ManagedProfile, globalUsedPorts?: Set<number>): Promise<{ success: boolean; message: string }> {
+  async performRotation(
+    profile: ManagedProfile,
+    globalUsedPorts?: Set<number>,
+  ): Promise<{ success: boolean; message: string }> {
     try {
-      this.logger.log(`Запуск ротации профиля: ${profile.name} (${profile.uuid})`);
+      this.logger.log(
+        `Запуск ротации профиля: ${profile.name} (${profile.uuid})`,
+      );
 
       if (!profile.uuid) {
         return { success: false, message: 'Не задан UUID профиля' };
@@ -291,49 +410,75 @@ export class RotationService implements OnModuleInit {
 
       let domains: { name: string }[];
       if (profile.profileDomains && profile.profileDomains.length > 0) {
-        domains = profile.profileDomains.map(name => ({ name }));
+        domains = profile.profileDomains.map((name) => ({ name }));
       } else {
         domains = await this.domainRepo.find({ where: { isEnabled: true } });
       }
       const generatedInbounds: any[] = [];
       const usedPorts = new Set<number>(globalUsedPorts || []);
       const excludedPorts = new Set<number>(profile.excludedPorts || []);
-      const rotNonce = Date.now().toString(36);
 
       for (const config of profile.inboundsConfig) {
         const type = config.type;
         if (type === 'custom') continue;
 
-        const uuid = uuidv4();
+        const uuid = randomId();
         let port: number;
         if (!config.port || config.port === 'random') {
           port = this.getRandomPort(usedPorts, excludedPorts);
         } else {
-          port = typeof config.port === 'string' ? parseInt(config.port, 10) : config.port;
+          port = resolveInboundPort(config);
         }
         usedPorts.add(port);
 
-        const sni = config.sni === 'random' ? this.pickDomain(domains) : (config.sni || '');
+        const sni =
+          config.sni === 'random' ? this.pickDomain(domains) : config.sni || '';
+        validateRequiredSni(type, sni);
 
         let inbound: any;
         switch (type) {
           case 'vless-tcp-reality':
-            inbound = this.inboundBuilder.buildVlessRealityTcp({ port, uuid, sni, ...keys });
+            inbound = this.inboundBuilder.buildVlessRealityTcp({
+              port,
+              uuid,
+              sni,
+              ...keys,
+            });
             break;
           case 'vless-xhttp-reality':
-            inbound = this.inboundBuilder.buildVlessRealityXhttp({ port, uuid, sni, ...keys });
+            inbound = this.inboundBuilder.buildVlessRealityXhttp({
+              port,
+              uuid,
+              sni,
+              ...keys,
+            });
             break;
           case 'vless-grpc-reality':
-            inbound = this.inboundBuilder.buildVlessRealityGrpc({ port, uuid, sni, ...keys });
+            inbound = this.inboundBuilder.buildVlessRealityGrpc({
+              port,
+              uuid,
+              sni,
+              ...keys,
+            });
             break;
           case 'vless-ws':
-            inbound = this.inboundBuilder.buildVlessWs({ port, uuid, sni, security: config.security });
+            inbound = this.inboundBuilder.buildVlessWs({
+              port,
+              uuid,
+              sni,
+              security: config.security,
+            });
             break;
           case 'shadowsocks-tcp':
             inbound = this.inboundBuilder.buildShadowsocksTcp({ port, uuid });
             break;
           case 'trojan-tcp-reality':
-            inbound = this.inboundBuilder.buildTrojanRealityTcp({ port, uuid, sni, ...keys });
+            inbound = this.inboundBuilder.buildTrojanRealityTcp({
+              port,
+              uuid,
+              sni,
+              ...keys,
+            });
             break;
           case 'vmess-tcp':
             inbound = this.inboundBuilder.buildVmessTcp({ port, uuid });
@@ -363,9 +508,14 @@ export class RotationService implements OnModuleInit {
 
       let currentProfile: any;
       try {
-        currentProfile = await this.remnavaveService.getConfigProfile(profile.uuid);
+        currentProfile = await this.remnavaveService.getConfigProfile(
+          profile.uuid,
+        );
       } catch {
-        return { success: false, message: 'Ошибка получения профиля из Remnawave' };
+        return {
+          success: false,
+          message: 'Ошибка получения профиля из Remnawave',
+        };
       }
 
       const mergedConfig = {
@@ -378,7 +528,11 @@ export class RotationService implements OnModuleInit {
         routing: {
           rules: [
             { type: 'field', ip: ['geoip:private'], outboundTag: 'BLOCK' },
-            { type: 'field', domain: ['geosite:private'], outboundTag: 'BLOCK' },
+            {
+              type: 'field',
+              domain: ['geosite:private'],
+              outboundTag: 'BLOCK',
+            },
             { type: 'field', protocol: ['bittorrent'], outboundTag: 'BLOCK' },
           ],
         },
@@ -386,46 +540,93 @@ export class RotationService implements OnModuleInit {
 
       let updatedProfile: any;
       try {
-        updatedProfile = await this.remnavaveService.updateConfigProfile(profile.uuid, mergedConfig);
+        updatedProfile = await this.remnavaveService.updateConfigProfile(
+          profile.uuid,
+          mergedConfig,
+        );
       } catch (e) {
-        return { success: false, message: `Ошибка обновления профиля: ${e?.message}` };
+        return {
+          success: false,
+          message: `Ошибка обновления профиля: ${e?.message}`,
+        };
       }
 
       const updatedInbounds = updatedProfile?.inbounds || [];
       await this.syncHosts(profile.uuid, updatedInbounds, profile);
 
-      if (profile.applyToNode && profile.nodeUuid && updatedInbounds.length > 0) {
+      if (
+        profile.applyToNode &&
+        profile.nodeUuid &&
+        updatedInbounds.length > 0
+      ) {
         try {
-          const inboundUuids = updatedInbounds.map((i: any) => i.uuid).filter(Boolean);
+          const inboundUuids = updatedInbounds
+            .map((i: any) => i.uuid)
+            .filter(Boolean);
           if (inboundUuids.length > 0) {
-            await this.remnavaveService.applyProfileToNode(profile.nodeUuid, profile.uuid, inboundUuids);
+            await this.remnavaveService.applyProfileToNode(
+              profile.nodeUuid,
+              profile.uuid,
+              inboundUuids,
+            );
           }
         } catch (e) {
           this.logger.warn(`applyProfileToNode failed: ${e?.message}`);
         }
       }
 
-      this.logger.log(`Ротация профиля ${profile.name} завершена. Инбаундов: ${generatedInbounds.length}`);
+      this.logger.log(
+        `Ротация профиля ${profile.name} завершена. Инбаундов: ${generatedInbounds.length}`,
+      );
       const successMsg = `Ротация выполнена: ${generatedInbounds.length} инбаундов обновлено`;
-      await this.appendHistory({ id: uuidv4(), profileUuid: profile.uuid, profileName: profile.name, timestamp: Date.now(), status: 'success', message: successMsg });
-      await this.telegramService.notifyRotation(profile.name, 'success', successMsg);
+      await this.appendHistory({
+        id: randomId(),
+        profileUuid: profile.uuid,
+        profileName: profile.name,
+        timestamp: Date.now(),
+        status: 'success',
+        message: successMsg,
+      });
+      await this.telegramService.notifyRotation(
+        profile.name,
+        'success',
+        successMsg,
+      );
       return { success: true, message: successMsg };
     } catch (e) {
       const errMsg = e?.message || String(e);
-      await this.appendHistory({ id: uuidv4(), profileUuid: profile.uuid, profileName: profile.name, timestamp: Date.now(), status: 'error', message: errMsg }).catch(() => {});
-      await this.telegramService.notifyRotation(profile.name, 'error', errMsg).catch(() => {});
+      await this.appendHistory({
+        id: randomId(),
+        profileUuid: profile.uuid,
+        profileName: profile.name,
+        timestamp: Date.now(),
+        status: 'error',
+        message: errMsg,
+      }).catch(() => {});
+      await this.telegramService
+        .notifyRotation(profile.name, 'error', errMsg)
+        .catch(() => {});
       return { success: false, message: errMsg };
     }
   }
 
-  private async syncHosts(profileUuid: string, updatedInbounds: any[], profile: ManagedProfile) {
+  private async syncHosts(
+    profileUuid: string,
+    updatedInbounds: any[],
+    profile: ManagedProfile,
+  ) {
     if (!profile.hostMappings || profile.hostMappings.length === 0) {
       this.logger.warn('syncHosts: hostMappings пуст — пропускаем');
       return;
     }
 
+    const template = await this.resolveHostTemplate(profile);
+    const templateContext = await this.buildHostTemplateBaseContext(profile);
+    const startIndex = profile.hostIndexStart ?? 1;
+
     let updatedCount = 0;
-    for (const mapping of profile.hostMappings) {
+    for (let index = 0; index < profile.hostMappings.length; index++) {
+      const mapping = profile.hostMappings[index];
       const { hostUuid } = mapping;
       const tag = (mapping as any).tag as string | undefined;
       const legacyType = (mapping as any).inboundType as string | undefined;
@@ -435,21 +636,38 @@ export class RotationService implements OnModuleInit {
         : updatedInbounds.find((i: any) => i.tag?.startsWith(legacyType));
 
       if (!inbound) {
-        this.logger.warn(`syncHosts: инбаунд ${tag || legacyType} не найден — пропускаем`);
+        this.logger.warn(
+          `syncHosts: инбаунд ${tag || legacyType} не найден — пропускаем`,
+        );
         continue;
       }
 
       const port = inbound.port ?? inbound.rawInbound?.port;
+      const inboundType = (inbound.tag || tag || legacyType || '').replace(
+        /-rwm.*$/,
+        '',
+      );
+      const remark = renderHostRemark(template, {
+        ...templateContext,
+        inboundType,
+        index: startIndex + index,
+      });
       try {
         await this.remnavaveService.updateHost(hostUuid, {
-          inbound: { configProfileUuid: profileUuid, configProfileInboundUuid: inbound.uuid },
+          inbound: {
+            configProfileUuid: profileUuid,
+            configProfileInboundUuid: inbound.uuid,
+          },
+          remark,
           port,
           address: profile.nodeAddress,
           nodes: [profile.nodeUuid],
         });
         updatedCount++;
       } catch (e) {
-        this.logger.error(`syncHosts: ошибка обновления хоста ${hostUuid}: ${e?.message}`);
+        this.logger.error(
+          `syncHosts: ошибка обновления хоста ${hostUuid}: ${e?.message}`,
+        );
       }
     }
 
@@ -461,16 +679,44 @@ export class RotationService implements OnModuleInit {
     return list[Math.floor(Math.random() * list.length)].name;
   }
 
-  private getRandomPort(usedPorts: Set<number>, excludedPorts: Set<number> = new Set()): number {
-    let port: number;
-    do {
-      port = Math.floor(Math.random() * (60000 - 10000)) + 10000;
-    } while (usedPorts.has(port) || excludedPorts.has(port));
-    return port;
+  private getRandomPort(
+    usedPorts: Set<number>,
+    excludedPorts: Set<number> = new Set(),
+  ): number {
+    return pickRandomPort(usedPorts, excludedPorts);
+  }
+
+  private async buildHostTemplateBaseContext(profile: ManagedProfile) {
+    let countryCode = '';
+    let nodeName = '';
+    let nodeAddress = profile.nodeAddress || '';
+
+    if (profile.nodeUuid) {
+      try {
+        const nodes = await this.remnavaveService.getNodes();
+        const node = nodes.find((n: any) => n.uuid === profile.nodeUuid);
+        if (node) {
+          countryCode = node.countryCode || '';
+          nodeName = node.name || '';
+          nodeAddress = node.address || nodeAddress;
+        }
+      } catch (e) {
+        this.logger.warn(`Не удалось получить ноды: ${e?.message}`);
+      }
+    }
+
+    return {
+      countryFlag: countryCodeToFlag(countryCode),
+      countryCode,
+      nodeName,
+      nodeAddress,
+    };
   }
 
   async getHistory(): Promise<RotationHistoryEntry[]> {
-    const raw = await this.settingRepo.findOne({ where: { key: 'rotation_history' } });
+    const raw = await this.settingRepo.findOne({
+      where: { key: 'rotation_history' },
+    });
     try {
       return JSON.parse(raw?.value || '[]');
     } catch {

@@ -1,8 +1,30 @@
 import {
-  Controller, Get, Post, Patch, Delete,
-  Body, Param, Query, HttpException, HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { ScriptsService } from './scripts.service';
+import {
+  assertSafePublicHttpUrl,
+  fetchWithTimeout,
+  normalizeGithubBlobUrl,
+  readLimitedResponseText,
+} from '../security/url-safety';
+import {
+  CategoryDto,
+  ExecuteScriptDto,
+  ExecuteSequenceDto,
+  FetchUrlDto,
+  ScriptDto,
+  SshNodeDto,
+} from './scripts.dto';
 
 @Controller('scripts')
 export class ScriptsController {
@@ -16,7 +38,7 @@ export class ScriptsController {
   }
 
   @Post('ssh-nodes')
-  async addSshNode(@Body() body: any) {
+  async addSshNode(@Body() body: SshNodeDto) {
     try {
       return await this.scriptsService.upsertSshNode(body);
     } catch (e) {
@@ -25,7 +47,7 @@ export class ScriptsController {
   }
 
   @Patch('ssh-nodes/:id')
-  async updateSshNode(@Param('id') id: string, @Body() body: any) {
+  async updateSshNode(@Param('id') id: string, @Body() body: SshNodeDto) {
     try {
       return await this.scriptsService.upsertSshNode({ ...body, id });
     } catch (e) {
@@ -51,7 +73,7 @@ export class ScriptsController {
   }
 
   @Post('categories')
-  async addCategory(@Body() body: { name: string }) {
+  async addCategory(@Body() body: CategoryDto) {
     try {
       return await this.scriptsService.upsertCategory(body.name);
     } catch (e) {
@@ -76,7 +98,7 @@ export class ScriptsController {
   }
 
   @Post('scripts')
-  async createScript(@Body() body: any) {
+  async createScript(@Body() body: ScriptDto) {
     try {
       return await this.scriptsService.upsertScript(body);
     } catch (e) {
@@ -94,7 +116,7 @@ export class ScriptsController {
   }
 
   @Patch('scripts/:id')
-  async updateScript(@Param('id') id: string, @Body() body: any) {
+  async updateScript(@Param('id') id: string, @Body() body: ScriptDto) {
     try {
       return await this.scriptsService.upsertScript({ ...body, id });
     } catch (e) {
@@ -115,103 +137,51 @@ export class ScriptsController {
   // ── Fetch URL ────────────────────────────────────────────────────────────────
 
   @Post('fetch-url')
-  async fetchUrl(@Body() body: { url: string }) {
-    if (!body.url) throw new HttpException('URL обязателен', HttpStatus.BAD_REQUEST);
+  async fetchUrl(@Body() body: FetchUrlDto) {
+    if (!body.url)
+      throw new HttpException('URL обязателен', HttpStatus.BAD_REQUEST);
 
-    let url = body.url.trim();
-    const ghMatch = url.match(/^https?:\/\/github\.com\/([^/]+\/[^/]+)\/blob\/(.+)$/);
-    if (ghMatch) {
-      url = `https://raw.githubusercontent.com/${ghMatch[1]}/${ghMatch[2]}`;
-    }
-
-    // SSRF protection: block requests to private/loopback addresses
-    try {
-      const parsed = new URL(url);
-      const hostname = parsed.hostname.toLowerCase();
-      const privatePatterns = [
-        /^localhost$/,
-        /^127\./,
-        /^10\./,
-        /^172\.(1[6-9]|2\d|3[01])\./,
-        /^192\.168\./,
-        /^169\.254\./,
-        /^::1$/,
-        /^fc00:/,
-        /^fe80:/,
-      ];
-      if (privatePatterns.some(p => p.test(hostname))) {
-        throw new HttpException('Запрос к внутренним адресам запрещён', HttpStatus.FORBIDDEN);
-      }
-      if (!['http:', 'https:'].includes(parsed.protocol)) {
-        throw new HttpException('Разрешены только HTTP/HTTPS URL', HttpStatus.BAD_REQUEST);
-      }
-    } catch (e) {
-      if (e instanceof HttpException) throw e;
-      throw new HttpException('Некорректный URL', HttpStatus.BAD_REQUEST);
-    }
+    const url = normalizeGithubBlobUrl(body.url.trim());
+    const safeUrl = await assertSafePublicHttpUrl(url);
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10_000);
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeout);
+      const res = await fetchWithTimeout(safeUrl, {}, 10_000);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      // Limit response size to 1MB
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error('Нет тела ответа');
-      const chunks: Uint8Array[] = [];
-      let totalSize = 0;
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        totalSize += value.length;
-        if (totalSize > 1_048_576) {
-          reader.cancel();
-          throw new Error('Файл превышает 1MB');
-        }
-        chunks.push(value);
-      }
-      const content = new TextDecoder().decode(
-        chunks.reduce((acc, chunk) => {
-          const merged = new Uint8Array(acc.length + chunk.length);
-          merged.set(acc);
-          merged.set(chunk, acc.length);
-          return merged;
-        }, new Uint8Array(0)),
-      );
+      const content = await readLimitedResponseText(res, 1_048_576);
       return { content, resolvedUrl: url };
     } catch (e) {
       if (e instanceof HttpException) throw e;
-      throw new HttpException(`Не удалось загрузить: ${e.message}`, HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        `Не удалось загрузить: ${e.message}`,
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 
   // ── Execute ──────────────────────────────────────────────────────────────────
 
   @Post('execute')
-  async execute(@Body() body: {
-    scriptId: string;
-    nodeIds: string[];
-    variables?: Record<string, string>;
-    variablesPerNode?: Record<string, Record<string, string>>;
-  }) {
+  async execute(@Body() body: ExecuteScriptDto) {
     try {
-      return await this.scriptsService.executeScript(body.scriptId, body.nodeIds, body.variables, body.variablesPerNode);
+      return await this.scriptsService.executeScript(
+        body.scriptId,
+        body.nodeIds,
+        body.variables,
+        body.variablesPerNode,
+      );
     } catch (e) {
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
   }
 
   @Post('execute-sequence')
-  async executeSequence(@Body() body: {
-    scriptIds: string[];
-    nodeIds: string[];
-    variablesPerScript: Record<string, Record<string, string>>;
-    variablesPerScriptPerNode?: Record<string, Record<string, Record<string, string>>>;
-  }) {
+  async executeSequence(@Body() body: ExecuteSequenceDto) {
     try {
       return await this.scriptsService.executeSequence(
-        body.scriptIds, body.nodeIds, body.variablesPerScript ?? {}, body.variablesPerScriptPerNode,
+        body.scriptIds,
+        body.nodeIds,
+        body.variablesPerScript ?? {},
+        body.variablesPerScriptPerNode,
       );
     } catch (e) {
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
@@ -228,8 +198,14 @@ export class ScriptsController {
   // ── History ──────────────────────────────────────────────────────────────────
 
   @Get('history')
-  async getHistory(@Query('page') page?: string, @Query('limit') limit?: string) {
-    return this.scriptsService.getHistory(Number(page) || 1, Number(limit) || 20);
+  async getHistory(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.scriptsService.getHistory(
+      Number(page) || 1,
+      Number(limit) || 20,
+    );
   }
 
   @Get('history/by-script/:scriptId')
@@ -238,13 +214,18 @@ export class ScriptsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.scriptsService.getHistoryByScript(scriptId, Number(page) || 1, Number(limit) || 10);
+    return this.scriptsService.getHistoryByScript(
+      scriptId,
+      Number(page) || 1,
+      Number(limit) || 10,
+    );
   }
 
   @Get('history/:id')
   async getHistoryEntry(@Param('id') id: string) {
     const entry = await this.scriptsService.getHistoryEntry(id);
-    if (!entry) throw new HttpException('Запись не найдена', HttpStatus.NOT_FOUND);
+    if (!entry)
+      throw new HttpException('Запись не найдена', HttpStatus.NOT_FOUND);
     return entry;
   }
 

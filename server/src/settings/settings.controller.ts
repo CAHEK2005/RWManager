@@ -1,6 +1,16 @@
 import {
-  Controller, Get, Post, Body, Patch, Delete, Param, Query,
-  HttpException, HttpStatus, Logger, Res,
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Delete,
+  Param,
+  Query,
+  HttpException,
+  HttpStatus,
+  Logger,
+  Res,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -13,6 +23,30 @@ import { COUNTRIES } from './countries';
 import { RemnavaveService } from '../remnawave/remnawave.service';
 import { RotationService, ManagedProfile } from '../rotation/rotation.service';
 import { TelegramService } from '../telegram/telegram.service';
+import {
+  redactSettingsForBackup,
+  redactSettingsForResponse,
+  shouldRestoreSetting,
+} from './settings-redaction';
+import {
+  fetchWithTimeout,
+  isPrivateAddress,
+  readLimitedResponseText,
+} from '../security/url-safety';
+import {
+  AddManagedProfileDto,
+  CheckConnectionDto,
+  RenameManagedProfileDto,
+  UpdateHostTemplateDto,
+} from './settings.dto';
+import {
+  countryCodeToFlag,
+  DEFAULT_HOST_TEMPLATE,
+  HOST_TEMPLATE_SETTING_KEY,
+  HOST_TEMPLATE_VARIABLES,
+  validateHostTemplate,
+  renderHostRemark,
+} from './host-template';
 
 @Controller('settings')
 export class SettingsController {
@@ -31,7 +65,11 @@ export class SettingsController {
   @Get()
   async findAll() {
     const settings = await this.settingsRepo.find();
-    return settings.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {});
+    const settingsObj = settings.reduce<Record<string, string>>(
+      (acc, curr) => ({ ...acc, [curr.key]: curr.value }),
+      {},
+    );
+    return redactSettingsForResponse(settingsObj);
   }
 
   @Get('profiles')
@@ -52,27 +90,66 @@ export class SettingsController {
     return this.rotationService.loadProfiles();
   }
 
+  @Get('host-template')
+  async getHostTemplate() {
+    const template = await this.rotationService.getDefaultHostTemplate();
+    return {
+      template,
+      defaultTemplate: DEFAULT_HOST_TEMPLATE,
+      variables: HOST_TEMPLATE_VARIABLES,
+      maxRemarkLength: 40,
+    };
+  }
+
+  @Post('host-template')
+  async updateHostTemplate(@Body() body: UpdateHostTemplateDto) {
+    try {
+      const template = validateHostTemplate(body.template);
+      await this.settingsRepo.save({
+        key: HOST_TEMPLATE_SETTING_KEY,
+        value: template,
+      });
+      return {
+        template,
+        defaultTemplate: DEFAULT_HOST_TEMPLATE,
+        variables: HOST_TEMPLATE_VARIABLES,
+        maxRemarkLength: 40,
+      };
+    } catch (e) {
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
   @Post('profiles/managed')
-  async addManagedProfile(@Body() body: { uuid?: string; name: string; createNew?: boolean }) {
+  async addManagedProfile(@Body() body: AddManagedProfileDto) {
     const profiles = await this.rotationService.loadProfiles();
 
     let profileUuid = body.uuid;
 
     if (body.createNew) {
       try {
-        const created = await this.remnavaveService.createConfigProfile(body.name);
+        const created = await this.remnavaveService.createConfigProfile(
+          body.name,
+        );
         profileUuid = created?.uuid || created?.response?.uuid || created;
         if (!profileUuid || typeof profileUuid !== 'string') {
-          throw new HttpException('Не удалось получить UUID нового профиля', HttpStatus.BAD_REQUEST);
+          throw new HttpException(
+            'Не удалось получить UUID нового профиля',
+            HttpStatus.BAD_REQUEST,
+          );
         }
       } catch (e) {
         if (e instanceof HttpException) throw e;
-        throw new HttpException(`Ошибка создания профиля в Remnawave: ${e.message}`, HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          `Ошибка создания профиля в Remnawave: ${e.message}`,
+          HttpStatus.BAD_REQUEST,
+        );
       }
     }
 
-    if (!profileUuid) throw new HttpException('UUID профиля не указан', HttpStatus.BAD_REQUEST);
-    if (profiles.find(p => p.uuid === profileUuid)) {
+    if (!profileUuid)
+      throw new HttpException('UUID профиля не указан', HttpStatus.BAD_REQUEST);
+    if (profiles.find((p) => p.uuid === profileUuid)) {
       throw new HttpException('Профиль уже добавлен', HttpStatus.CONFLICT);
     }
 
@@ -85,7 +162,8 @@ export class SettingsController {
       nodeAddress: '',
       applyToNode: false,
       hostMappings: [],
-      hostTemplate: '{countryCode} {nodeName} - {inboundType}',
+      hostTemplate: DEFAULT_HOST_TEMPLATE,
+      hostTemplateMode: 'inherit',
       rotationEnabled: true,
       rotationMode: 'interval',
       rotationInterval: 1440,
@@ -102,17 +180,23 @@ export class SettingsController {
   }
 
   @Patch('profiles/managed/:uuid/name')
-  async renameManagedProfile(@Param('uuid') uuid: string, @Body() body: { name: string }) {
+  async renameManagedProfile(
+    @Param('uuid') uuid: string,
+    @Body() body: RenameManagedProfileDto,
+  ) {
     const profiles = await this.rotationService.loadProfiles();
-    const idx = profiles.findIndex(p => p.uuid === uuid);
-    if (idx === -1) throw new HttpException('Профиль не найден', HttpStatus.NOT_FOUND);
+    const idx = profiles.findIndex((p) => p.uuid === uuid);
+    if (idx === -1)
+      throw new HttpException('Профиль не найден', HttpStatus.NOT_FOUND);
 
     profiles[idx] = { ...profiles[idx], name: body.name };
 
     try {
       await this.remnavaveService.renameConfigProfile(uuid, body.name);
     } catch (e) {
-      this.logger.warn(`Не удалось переименовать профиль в Remnawave: ${e.message}`);
+      this.logger.warn(
+        `Не удалось переименовать профиль в Remnawave: ${e.message}`,
+      );
     }
 
     await this.rotationService.saveProfiles(profiles);
@@ -120,12 +204,45 @@ export class SettingsController {
   }
 
   @Patch('profiles/managed/:uuid')
-  async updateManagedProfile(@Param('uuid') uuid: string, @Body() body: Partial<ManagedProfile>) {
+  async updateManagedProfile(
+    @Param('uuid') uuid: string,
+    @Body() body: Partial<ManagedProfile>,
+  ) {
     const profiles = await this.rotationService.loadProfiles();
-    const idx = profiles.findIndex(p => p.uuid === uuid);
-    if (idx === -1) throw new HttpException('Профиль не найден', HttpStatus.NOT_FOUND);
+    const idx = profiles.findIndex((p) => p.uuid === uuid);
+    if (idx === -1)
+      throw new HttpException('Профиль не найден', HttpStatus.NOT_FOUND);
 
-    profiles[idx] = { ...profiles[idx], ...body, uuid };
+    const patch = { ...body };
+    if (
+      patch.hostTemplateMode &&
+      !['inherit', 'custom'].includes(patch.hostTemplateMode)
+    ) {
+      throw new HttpException(
+        'Некорректный режим шаблона хоста',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    if (patch.hostTemplate !== undefined) {
+      try {
+        patch.hostTemplate = validateHostTemplate(patch.hostTemplate);
+      } catch (e) {
+        throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+      }
+    }
+
+    const nextProfile = { ...profiles[idx], ...patch, uuid };
+    if (nextProfile.hostTemplateMode === 'custom') {
+      try {
+        nextProfile.hostTemplate = validateHostTemplate(
+          nextProfile.hostTemplate || '',
+        );
+      } catch (e) {
+        throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+      }
+    }
+
+    profiles[idx] = nextProfile;
     await this.rotationService.saveProfiles(profiles);
     return profiles[idx];
   }
@@ -136,14 +253,17 @@ export class SettingsController {
     @Query('deleteFromRemnawave') deleteFromRemnawave?: string,
   ) {
     const profiles = await this.rotationService.loadProfiles();
-    const idx = profiles.findIndex(p => p.uuid === uuid);
-    if (idx === -1) throw new HttpException('Профиль не найден', HttpStatus.NOT_FOUND);
+    const idx = profiles.findIndex((p) => p.uuid === uuid);
+    if (idx === -1)
+      throw new HttpException('Профиль не найден', HttpStatus.NOT_FOUND);
 
     if (deleteFromRemnawave === 'true') {
       try {
         await this.remnavaveService.deleteConfigProfile(uuid);
       } catch (e) {
-        this.logger.warn(`Не удалось удалить профиль из Remnawave: ${e.message}`);
+        this.logger.warn(
+          `Не удалось удалить профиль из Remnawave: ${e.message}`,
+        );
       }
     }
 
@@ -155,14 +275,17 @@ export class SettingsController {
   @Post('profiles/managed/:uuid/rotate')
   async rotateProfile(@Param('uuid') uuid: string) {
     const profiles = await this.rotationService.loadProfiles();
-    const idx = profiles.findIndex(p => p.uuid === uuid);
-    if (idx === -1) throw new HttpException('Профиль не найден', HttpStatus.NOT_FOUND);
+    const idx = profiles.findIndex((p) => p.uuid === uuid);
+    if (idx === -1)
+      throw new HttpException('Профиль не найден', HttpStatus.NOT_FOUND);
 
     const result = await this.rotationService.performRotation(profiles[idx]);
 
     profiles[idx] = {
       ...profiles[idx],
-      lastRotationTimestamp: result.success ? Date.now() : profiles[idx].lastRotationTimestamp,
+      lastRotationTimestamp: result.success
+        ? Date.now()
+        : profiles[idx].lastRotationTimestamp,
       lastRotationStatus: result.success ? 'success' : 'error',
       lastRotationError: result.success ? '' : result.message,
     };
@@ -173,23 +296,30 @@ export class SettingsController {
   @Post('profiles/managed/:uuid/hosts/create')
   async createHostsForProfile(@Param('uuid') uuid: string) {
     const profiles = await this.rotationService.loadProfiles();
-    const idx = profiles.findIndex(p => p.uuid === uuid);
-    if (idx === -1) throw new HttpException('Профиль не найден', HttpStatus.NOT_FOUND);
+    const idx = profiles.findIndex((p) => p.uuid === uuid);
+    if (idx === -1)
+      throw new HttpException('Профиль не найден', HttpStatus.NOT_FOUND);
 
     const profile = profiles[idx];
 
     let rwProfile: any;
     try {
       rwProfile = await this.remnavaveService.getConfigProfile(uuid);
-    } catch (e) {
-      throw new HttpException('Ошибка получения профиля из Remnawave', HttpStatus.BAD_REQUEST);
+    } catch {
+      throw new HttpException(
+        'Ошибка получения профиля из Remnawave',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const configInbounds: any[] = rwProfile?.config?.inbounds || [];
     const rwInbounds: any[] = rwProfile?.inbounds || [];
 
     if (configInbounds.length === 0) {
-      throw new HttpException('Сначала запустите ротацию для генерации инбаундов', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Сначала запустите ротацию для генерации инбаундов',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const tagToUuid = new Map<string, string>(
@@ -216,10 +346,8 @@ export class SettingsController {
       }
     }
 
-    const countryFlag = countryCode.length === 2
-      ? Array.from(countryCode.toUpperCase()).map(c => String.fromCodePoint(c.charCodeAt(0) - 65 + 0x1F1E6)).join('')
-      : countryCode;
-
+    const countryFlag = countryCodeToFlag(countryCode);
+    const template = await this.rotationService.resolveHostTemplate(profile);
     const startIndex = profile.hostIndexStart ?? 1;
     const newMappings: { tag: string; hostUuid: string }[] = [];
     let created = 0;
@@ -231,36 +359,45 @@ export class SettingsController {
       const inboundUuid = tagToUuid.get(inboundTag);
 
       if (!inboundUuid) {
-        this.logger.warn(`createHostsForProfile: UUID не найден для тега ${inboundTag} — пропускаем`);
+        this.logger.warn(
+          `createHostsForProfile: UUID не найден для тега ${inboundTag} — пропускаем`,
+        );
         continue;
       }
 
-      let remark = (profile.hostTemplate || '{countryCode} {nodeName} - {inboundType}')
-        .replace('{countryFlag}', countryFlag)
-        .replace('{countryCode}', countryCode)
-        .replace('{nodeName}', nodeName)
-        .replace('{nodeAddress}', nodeAddress)
-        .replace('{inboundType}', inboundType)
-        .replace('{index}', String(startIndex + i));
-
-      remark = remark.slice(0, 40);
+      const remark = renderHostRemark(template, {
+        countryFlag,
+        countryCode,
+        nodeName,
+        nodeAddress,
+        inboundType,
+        index: startIndex + i,
+      });
 
       try {
         const newHost = await this.remnavaveService.createHost({
-          inbound: { configProfileUuid: uuid, configProfileInboundUuid: inboundUuid },
+          inbound: {
+            configProfileUuid: uuid,
+            configProfileInboundUuid: inboundUuid,
+          },
           remark,
           address: nodeAddress,
           port: configInbound.port ?? 0,
           nodes: profile.nodeUuid ? [profile.nodeUuid] : undefined,
         });
 
-        const hostUuid = newHost?.uuid || newHost?.response?.uuid || (typeof newHost === 'string' ? newHost : null);
+        const hostUuid =
+          newHost?.uuid ||
+          newHost?.response?.uuid ||
+          (typeof newHost === 'string' ? newHost : null);
         if (hostUuid) {
           newMappings.push({ tag: inboundTag, hostUuid });
           created++;
         }
       } catch (e) {
-        this.logger.error(`Ошибка создания хоста для инбаунда ${inboundTag}: ${e.message}`);
+        this.logger.error(
+          `Ошибка создания хоста для инбаунда ${inboundTag}: ${e.message}`,
+        );
       }
     }
 
@@ -293,16 +430,20 @@ export class SettingsController {
   @Get('profiles/managed/:uuid/hosts-with-sni')
   async getHostsWithSni(@Param('uuid') uuid: string) {
     const profiles = await this.rotationService.loadProfiles();
-    const profile = profiles.find(p => p.uuid === uuid);
-    if (!profile) throw new HttpException('Профиль не найден', HttpStatus.NOT_FOUND);
+    const profile = profiles.find((p) => p.uuid === uuid);
+    if (!profile)
+      throw new HttpException('Профиль не найден', HttpStatus.NOT_FOUND);
 
     if (!profile.hostMappings || profile.hostMappings.length === 0) return [];
 
     let rwProfile: any;
     try {
       rwProfile = await this.remnavaveService.getConfigProfile(uuid);
-    } catch (e) {
-      throw new HttpException('Ошибка получения профиля из Remnawave', HttpStatus.BAD_REQUEST);
+    } catch {
+      throw new HttpException(
+        'Ошибка получения профиля из Remnawave',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const configInbounds: any[] = rwProfile?.config?.inbounds || [];
@@ -326,7 +467,13 @@ export class SettingsController {
         }
       }
 
-      return { tag: mapping.tag, hostUuid: mapping.hostUuid, sni, protocol, port };
+      return {
+        tag: mapping.tag,
+        hostUuid: mapping.hostUuid,
+        sni,
+        protocol,
+        port,
+      };
     });
 
     return result;
@@ -338,13 +485,18 @@ export class SettingsController {
     if (!configured) {
       throw new HttpException('Telegram не настроен', HttpStatus.BAD_REQUEST);
     }
-    await this.telegramService.sendMessage('✅ <b>RWManager</b>\nТестовое сообщение — уведомления работают!');
+    await this.telegramService.sendMessage(
+      '✅ <b>RWManager</b>\nТестовое сообщение — уведомления работают!',
+    );
     return { success: true };
   }
 
   @Post('check')
-  async checkConnection(@Body() body: { remnawave_url: string; remnawave_api_key: string }) {
-    const success = await this.remnavaveService.checkConnection(body.remnawave_url, body.remnawave_api_key);
+  async checkConnection(@Body() body: CheckConnectionDto) {
+    const success = await this.remnavaveService.checkConnection(
+      body.remnawave_url,
+      body.remnawave_api_key,
+    );
     return { success };
   }
 
@@ -363,14 +515,19 @@ export class SettingsController {
           address = parsed.hostname;
         }
 
-        if (address && address !== '127.0.0.1' && address !== 'localhost') {
+        if (address && !isPrivateAddress(address)) {
           try {
-            const geoRes = await fetch(`http://ip-api.com/json/${address}`);
-            const geoData: any = await geoRes.json();
+            const geoRes = await fetchWithTimeout(
+              `http://ip-api.com/json/${address}`,
+              {},
+              5_000,
+            );
+            const geoText = await readLimitedResponseText(geoRes, 65_536);
+            const geoData: any = JSON.parse(geoText);
 
             if (geoData.status === 'success') {
               const countryCode = geoData.countryCode;
-              const countryInfo = COUNTRIES.find(c => c.code === countryCode);
+              const countryInfo = COUNTRIES.find((c) => c.code === countryCode);
 
               if (countryInfo) {
                 settings['remnawave_geo_country'] = countryInfo.name;
@@ -384,8 +541,10 @@ export class SettingsController {
             console.error(`GeoIP error: ${geoError.message}`);
           }
         }
-      } catch (e) {
-        console.warn(`Could not parse remnawave_url: ${settings.remnawave_url}`);
+      } catch {
+        console.warn(
+          `Could not parse remnawave_url: ${settings.remnawave_url}`,
+        );
       }
     }
 
@@ -397,28 +556,19 @@ export class SettingsController {
 
   // ── Backup / Restore ─────────────────────────────────────────────────────────
 
-  // Keys that should NOT be included in backup (sensitive data)
-  private readonly BACKUP_EXCLUDED_KEYS = new Set([
-    'secrets',
-    'telegram_bot_token',
-    'remnawave_api_key',
-  ]);
-
   @Get('backup')
   async backup(@Res() res: Response) {
     const allSettings = await this.settingsRepo.find();
     const settingsObj: Record<string, string> = {};
     for (const s of allSettings) {
-      if (!this.BACKUP_EXCLUDED_KEYS.has(s.key)) {
-        settingsObj[s.key] = s.value;
-      }
+      settingsObj[s.key] = s.value;
     }
     const domains = await this.domainRepo.find();
     const payload = {
       version: 1,
       exportedAt: new Date().toISOString(),
-      settings: settingsObj,
-      domains: domains.map(d => ({ name: d.name, isEnabled: d.isEnabled })),
+      settings: redactSettingsForBackup(settingsObj),
+      domains: domains.map((d) => ({ name: d.name, isEnabled: d.isEnabled })),
     };
     const json = JSON.stringify(payload, null, 2);
     const filename = `rwmanager-backup-${new Date().toISOString().slice(0, 10)}.json`;
@@ -430,12 +580,15 @@ export class SettingsController {
   @Post('restore')
   async restore(@Body() body: any) {
     if (!body || body.version !== 1) {
-      throw new HttpException('Некорректный формат бэкапа', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Некорректный формат бэкапа',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     const { settings, domains } = body;
     if (settings && typeof settings === 'object') {
       for (const [key, value] of Object.entries(settings)) {
-        if (!this.BACKUP_EXCLUDED_KEYS.has(key) && typeof value === 'string') {
+        if (shouldRestoreSetting(key) && typeof value === 'string') {
           await this.settingsRepo.save({ key, value });
         }
       }
@@ -444,9 +597,14 @@ export class SettingsController {
       for (const d of domains) {
         const domainName = d.name ?? d.domain;
         if (typeof domainName === 'string' && domainName.trim()) {
-          const existing = await this.domainRepo.findOne({ where: { name: domainName.trim() } });
+          const existing = await this.domainRepo.findOne({
+            where: { name: domainName.trim() },
+          });
           if (!existing) {
-            await this.domainRepo.save({ name: domainName.trim(), isEnabled: d.isEnabled ?? true });
+            await this.domainRepo.save({
+              name: domainName.trim(),
+              isEnabled: d.isEnabled ?? true,
+            });
           }
         }
       }

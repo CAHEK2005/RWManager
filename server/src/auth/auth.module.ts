@@ -6,6 +6,7 @@ import { Setting } from '../settings/entities/setting.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './jwt.strategy';
+import { getJwtSecret } from './jwt-secret';
 
 @Module({
   imports: [
@@ -13,15 +14,14 @@ import { JwtStrategy } from './jwt.strategy';
     PassportModule,
     JwtModule.registerAsync({
       useFactory: () => {
-        const secret = process.env.JWT_SECRET;
-        if (!secret) {
+        if (!process.env.JWT_SECRET) {
           console.warn(
             '[AuthModule] WARNING: JWT_SECRET is not set. ' +
-            'Using an insecure default key. Set JWT_SECRET in production!',
+              'Using an insecure default key. Set JWT_SECRET in production!',
           );
         }
         return {
-          secret: secret || 'INSECURE_DEFAULT_CHANGE_ME_IN_PRODUCTION',
+          secret: getJwtSecret(),
           signOptions: { expiresIn: '24h' },
         };
       },

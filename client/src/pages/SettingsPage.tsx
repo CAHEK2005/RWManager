@@ -2,11 +2,19 @@ import React, { useEffect, useState } from 'react';
 import {
   Box, TextField, Button, Typography, Paper, Snackbar, Alert,
   Stack, Tabs, Tab, Switch, FormControlLabel,
-  IconButton, MenuItem, Tooltip, Dialog, DialogTitle, DialogContent,
+  IconButton, MenuItem, Tooltip, Dialog, DialogTitle, DialogContent, Chip,
 } from '@mui/material';
 import { LockOpen, VpnKey } from '@mui/icons-material';
 import api from '../api';
 import { useAlert } from '../hooks/useAlert';
+import { getErrorMessage } from '../utils/error';
+import {
+  DEFAULT_HOST_TEMPLATE,
+  HOST_TEMPLATE_REMARK_MAX_LENGTH,
+  HOST_TEMPLATE_VARIABLES,
+  renderHostTemplate,
+  validateHostTemplate,
+} from '../utils/hostTemplate';
 
 interface TabPanelProps { children?: React.ReactNode; index: number; value: number; }
 function TabPanel({ children, value, index }: TabPanelProps) {
@@ -31,6 +39,8 @@ export default function SettingsPage() {
 
   const [healthEnabled, setHealthEnabled] = useState(false);
   const [healthInterval, setHealthInterval] = useState('5');
+  const [hostTemplate, setHostTemplate] = useState(DEFAULT_HOST_TEMPLATE);
+  const [hostTemplateSaving, setHostTemplateSaving] = useState(false);
 
   const { msg, showMsg, closeMsg } = useAlert();
 
@@ -67,6 +77,9 @@ export default function SettingsPage() {
       if (data.health_check_enabled !== undefined) setHealthEnabled(data.health_check_enabled === 'true');
       if (data.health_check_interval) setHealthInterval(data.health_check_interval);
     }).catch(console.error);
+    api.get('/settings/host-template')
+      .then(({ data }) => setHostTemplate(data.template || DEFAULT_HOST_TEMPLATE))
+      .catch(() => {});
   }, []);
 
   const handleSaveConnection = async () => {
@@ -136,6 +149,36 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSaveHostTemplate = async () => {
+    const error = validateHostTemplate(hostTemplate);
+    if (error) {
+      showMsg('error', error);
+      return;
+    }
+
+    setHostTemplateSaving(true);
+    try {
+      const { data } = await api.post('/settings/host-template', { template: hostTemplate.trim() });
+      setHostTemplate(data.template || hostTemplate.trim());
+      showMsg('success', 'Шаблон хоста сохранён');
+    } catch (e: unknown) {
+      showMsg('error', getErrorMessage(e));
+    } finally {
+      setHostTemplateSaving(false);
+    }
+  };
+
+  const hostTemplateError = validateHostTemplate(hostTemplate);
+  const hostTemplatePreviewFull = renderHostTemplate(hostTemplate || DEFAULT_HOST_TEMPLATE, {
+    countryFlag: '🇩🇪',
+    countryCode: 'DE',
+    nodeName: 'Berlin-01',
+    nodeAddress: '203.0.113.10',
+    inboundType: 'vless-tcp-reality',
+    index: 1,
+  }, 999);
+  const hostTemplatePreview = hostTemplatePreviewFull.slice(0, HOST_TEMPLATE_REMARK_MAX_LENGTH);
+
   return (
     <Box>
       {/* Page header */}
@@ -147,6 +190,7 @@ export default function SettingsPage() {
       <Paper variant="outlined">
         <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
           <Tab label="Подключение" />
+          <Tab label="Шаблоны" />
           <Tab label="Система" />
           <Tab label="Уведомления" />
         </Tabs>
@@ -169,7 +213,7 @@ export default function SettingsPage() {
                 value={apiKey} onChange={e => setApiKey(e.target.value)}
                 slotProps={{ input: { endAdornment: secrets.length > 0 ? (
                   <Tooltip title="Вставить из секретов">
-                    <IconButton size="small" edge="end" onClick={() => openSecretPicker(setApiKey)}>
+                    <IconButton size="small" edge="end" aria-label="Вставить API-ключ из секретов" onClick={() => openSecretPicker(setApiKey)}>
                       <LockOpen fontSize="small" />
                     </IconButton>
                   </Tooltip>
@@ -185,8 +229,59 @@ export default function SettingsPage() {
           </Box>
         </TabPanel>
 
-        {/* Tab 1: System */}
+        {/* Tab 1: Templates */}
         <TabPanel value={tab} index={1}>
+          <Box sx={{ p: { xs: 2, md: 3 } }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>Шаблон имени хоста</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Глобальный шаблон используют профили в режиме наследования. Он применяется при создании хостов и при последующих ротациях.
+            </Typography>
+
+            <Stack spacing={2}>
+              <TextField
+                fullWidth
+                multiline
+                minRows={2}
+                size="small"
+                label="Глобальный шаблон"
+                value={hostTemplate}
+                onChange={e => setHostTemplate(e.target.value)}
+                error={Boolean(hostTemplateError)}
+                helperText={hostTemplateError || `Лимит remark в Remnawave: ${HOST_TEMPLATE_REMARK_MAX_LENGTH} символов`}
+              />
+
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>
+                  Доступные переменные
+                </Typography>
+                <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+                  {HOST_TEMPLATE_VARIABLES.map(v => (
+                    <Chip key={v} size="small" label={`{${v}}`} onClick={() => setHostTemplate(t => `${t}{${v}}`)} />
+                  ))}
+                </Stack>
+              </Box>
+
+              <Alert severity={hostTemplatePreviewFull.length > HOST_TEMPLATE_REMARK_MAX_LENGTH ? 'warning' : 'info'}>
+                Preview: <strong>{hostTemplatePreview || '—'}</strong>{' '}
+                <Typography component="span" variant="caption">
+                  ({Math.min(hostTemplatePreviewFull.length, HOST_TEMPLATE_REMARK_MAX_LENGTH)} / {HOST_TEMPLATE_REMARK_MAX_LENGTH})
+                </Typography>
+              </Alert>
+            </Stack>
+
+            <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ mt: 3 }}>
+              <Button variant="outlined" onClick={() => setHostTemplate(DEFAULT_HOST_TEMPLATE)}>
+                Сбросить к системному
+              </Button>
+              <Button variant="contained" onClick={handleSaveHostTemplate} disabled={hostTemplateSaving || Boolean(hostTemplateError)}>
+                Сохранить
+              </Button>
+            </Stack>
+          </Box>
+        </TabPanel>
+
+        {/* Tab 2: System */}
+        <TabPanel value={tab} index={2}>
           <Box sx={{ p: { xs: 2, md: 3 } }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>Доступ к RWManager</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -257,8 +352,8 @@ export default function SettingsPage() {
           </Box>
         </TabPanel>
 
-        {/* Tab 2: Telegram */}
-        <TabPanel value={tab} index={2}>
+        {/* Tab 3: Telegram */}
+        <TabPanel value={tab} index={3}>
           <Box sx={{ p: { xs: 2, md: 3 } }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>Telegram-уведомления</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -271,7 +366,7 @@ export default function SettingsPage() {
                 helperText="Получить у @BotFather"
                 slotProps={{ input: { endAdornment: secrets.length > 0 ? (
                   <Tooltip title="Вставить из секретов">
-                    <IconButton size="small" edge="end" onClick={() => openSecretPicker(setTgToken)}>
+                    <IconButton size="small" edge="end" aria-label="Вставить Telegram token из секретов" onClick={() => openSecretPicker(setTgToken)}>
                       <LockOpen fontSize="small" />
                     </IconButton>
                   </Tooltip>

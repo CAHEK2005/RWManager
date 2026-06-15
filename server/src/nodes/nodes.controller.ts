@@ -1,10 +1,18 @@
 import {
-  Controller, Post, Get, Delete, Body, Param,
-  HttpException, HttpStatus, Logger,
+  Controller,
+  Post,
+  Get,
+  Delete,
+  Body,
+  Param,
+  HttpException,
+  HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { NodesService } from './nodes.service';
 import type { InstallNodeDto } from './nodes.service';
 import { RemnavaveService } from '../remnawave/remnawave.service';
+import { InstallNodeRequestDto } from './nodes.dto';
 
 @Controller('nodes')
 export class NodesController {
@@ -25,9 +33,9 @@ export class NodesController {
   }
 
   @Post('install')
-  async install(@Body() dto: InstallNodeDto) {
+  async install(@Body() dto: InstallNodeRequestDto) {
     try {
-      return await this.nodesService.startInstall(dto);
+      return await this.nodesService.startInstall(dto as InstallNodeDto);
     } catch (e) {
       this.logger.error(`install error: ${e.message}`);
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);

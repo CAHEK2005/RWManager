@@ -1,8 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { v4 as uuidv4 } from 'uuid';
 import { Setting } from '../settings/entities/setting.entity';
+import { randomId } from '../common/random-id';
+import {
+  assertSafePublicHttpUrl,
+  fetchWithTimeout,
+  readLimitedResponseText,
+} from '../security/url-safety';
 
 @Injectable()
 export class RemnavaveService {
@@ -24,16 +29,46 @@ export class RemnavaveService {
     };
   }
 
-  async getConfigProfiles(): Promise<any[]> {
-    const { url, apiKey } = await this.getSettings();
-    if (!url || !apiKey) throw new Error('Remnawave credentials not configured');
+  private shouldAllowPrivateRemnawave(): boolean {
+    return process.env.RWM_ALLOW_PRIVATE_REMNAWAVE === 'true';
+  }
 
-    const res = await fetch(`${url}/api/config-profiles`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
+  private async buildApiUrl(baseUrl: string, path: string): Promise<string> {
+    const cleanUrl = baseUrl.replace(/\/+$/, '');
+    const parsed = await assertSafePublicHttpUrl(cleanUrl, {
+      allowPrivate: this.shouldAllowPrivateRemnawave(),
     });
+    return `${parsed.toString().replace(/\/+$/, '')}${path}`;
+  }
 
-    if (!res.ok) throw new Error(`Failed to get config profiles: ${res.status}`);
-    const data = await res.json();
+  private async request(
+    path: string,
+    init: RequestInit = {},
+    baseOverride?: string,
+  ): Promise<any> {
+    const settings = baseOverride
+      ? { url: baseOverride, apiKey: '' }
+      : await this.getSettings();
+    if (!settings.url || (!settings.apiKey && !baseOverride)) {
+      throw new Error('Remnawave credentials not configured');
+    }
+    const url = await this.buildApiUrl(settings.url, path);
+    const headers = {
+      ...(settings.apiKey
+        ? { Authorization: `Bearer ${settings.apiKey}` }
+        : {}),
+      ...(init.headers || {}),
+    };
+    const res = await fetchWithTimeout(url, { ...init, headers }, 10_000);
+    const text = await readLimitedResponseText(res, 1_048_576);
+    if (!res.ok) {
+      throw new Error(`Remnawave request failed: ${res.status} ${text}`);
+    }
+    return text ? JSON.parse(text) : null;
+  }
+
+  async getConfigProfiles(): Promise<any[]> {
+    const data = await this.request('/api/config-profiles');
     // Response shape: { response: { total, configProfiles: [...] } }
     return data.response?.configProfiles || [];
   }
@@ -44,83 +79,39 @@ export class RemnavaveService {
   }
 
   async updateConfigProfile(uuid: string, config: any): Promise<any> {
-    const { url, apiKey } = await this.getSettings();
-    if (!url || !apiKey) throw new Error('Remnawave credentials not configured');
-
-    const res = await fetch(`${url}/api/config-profiles`, {
+    const data = await this.request('/api/config-profiles', {
       method: 'PATCH',
       headers: {
-        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ uuid, config }),
     });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Failed to update config profile: ${res.status} ${errText}`);
-    }
-    const data = await res.json();
     return data.response;
   }
 
   async getNodes(): Promise<any[]> {
-    const { url, apiKey } = await this.getSettings();
-    if (!url || !apiKey) throw new Error('Remnawave credentials not configured');
-
-    const res = await fetch(`${url}/api/nodes`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
-
-    if (!res.ok) throw new Error(`Failed to get nodes: ${res.status}`);
-    const data = await res.json();
+    const data = await this.request('/api/nodes');
     return data.response || [];
   }
 
   async getAllHosts(): Promise<any[]> {
-    const { url, apiKey } = await this.getSettings();
-    if (!url || !apiKey) throw new Error('Remnawave credentials not configured');
-
-    const res = await fetch(`${url}/api/hosts`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
-
-    if (!res.ok) throw new Error(`Failed to get hosts: ${res.status}`);
-    const data = await res.json();
+    const data = await this.request('/api/hosts');
     return data.response || [];
   }
 
   async updateHost(uuid: string, body: object): Promise<any> {
-    const { url, apiKey } = await this.getSettings();
-    if (!url || !apiKey) throw new Error('Remnawave credentials not configured');
-
-    const res = await fetch(`${url}/api/hosts`, {
+    const data = await this.request('/api/hosts', {
       method: 'PATCH',
       headers: {
-        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ uuid, ...body }),
     });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Failed to update host ${uuid}: ${res.status} ${errText}`);
-    }
-    const data = await res.json();
     return data.response;
   }
 
   async getX25519Keys(): Promise<{ publicKey: string; privateKey: string }> {
-    const { url, apiKey } = await this.getSettings();
-    if (!url || !apiKey) throw new Error('Remnawave credentials not configured');
-
-    const res = await fetch(`${url}/api/system/tools/x25519/generate`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
-
-    if (!res.ok) throw new Error(`Failed to get X25519 keys: ${res.status}`);
-    const data = await res.json();
+    const data = await this.request('/api/system/tools/x25519/generate');
     const keypair = data.response?.keypairs?.[0] || data.keypairs?.[0];
 
     if (!keypair) throw new Error('No keypair returned from Remnawave');
@@ -129,10 +120,14 @@ export class RemnavaveService {
 
   async checkConnection(url: string, apiKey: string): Promise<boolean> {
     try {
-      const cleanUrl = url.replace(/\/+$/, '');
-      const res = await fetch(`${cleanUrl}/api/config-profiles`, {
-        headers: { Authorization: `Bearer ${apiKey}` },
-      });
+      const apiUrl = await this.buildApiUrl(url, '/api/config-profiles');
+      const res = await fetchWithTimeout(
+        apiUrl,
+        {
+          headers: { Authorization: `Bearer ${apiKey}` },
+        },
+        10_000,
+      );
       return res.ok;
     } catch {
       return false;
@@ -140,9 +135,6 @@ export class RemnavaveService {
   }
 
   async createConfigProfile(name: string, config?: object): Promise<any> {
-    const { url, apiKey } = await this.getSettings();
-    if (!url || !apiKey) throw new Error('Remnawave credentials not configured');
-
     const tmpTag = `init-${Date.now().toString(36)}-rwm`;
     const defaultConfig = {
       inbounds: [
@@ -151,14 +143,17 @@ export class RemnavaveService {
           protocol: 'vless',
           port: 44321,
           settings: {
-            clients: [{ id: uuidv4(), flow: '', email: 'placeholder' }],
+            clients: [{ id: randomId(), flow: '', email: 'placeholder' }],
             decryption: 'none',
             fallbacks: [],
           },
           streamSettings: {
             network: 'tcp',
             security: 'none',
-            tcpSettings: { acceptProxyProtocol: false, header: { type: 'none' } },
+            tcpSettings: {
+              acceptProxyProtocol: false,
+              header: { type: 'none' },
+            },
           },
           sniffing: { enabled: false, destOverride: [] },
         },
@@ -178,53 +173,27 @@ export class RemnavaveService {
     const body = { name, config: config ?? defaultConfig };
     this.logger.log(`createConfigProfile request: ${JSON.stringify(body)}`);
 
-    const res = await fetch(`${url}/api/config-profiles`, {
+    const data = await this.request('/api/config-profiles', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      this.logger.error(`createConfigProfile failed ${res.status}: ${errText}`);
-      throw new Error(`Failed to create config profile: ${res.status} ${errText}`);
-    }
-    const data = await res.json();
     return data.response;
   }
 
   async deleteConfigProfile(uuid: string): Promise<any> {
-    const { url, apiKey } = await this.getSettings();
-    if (!url || !apiKey) throw new Error('Remnawave credentials not configured');
-
-    const res = await fetch(`${url}/api/config-profiles/${uuid}`, {
+    const data = await this.request(`/api/config-profiles/${uuid}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${apiKey}` },
     });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Failed to delete config profile: ${res.status} ${errText}`);
-    }
-    const data = await res.json();
     return data.response;
   }
 
   async renameConfigProfile(uuid: string, name: string): Promise<any> {
-    const { url, apiKey } = await this.getSettings();
-    if (!url || !apiKey) throw new Error('Remnawave credentials not configured');
-
-    const res = await fetch(`${url}/api/config-profiles`, {
+    const data = await this.request('/api/config-profiles', {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ uuid, name }),
     });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Failed to rename config profile: ${res.status} ${errText}`);
-    }
-    const data = await res.json();
     return data.response;
   }
 
@@ -235,59 +204,41 @@ export class RemnavaveService {
     port: number;
     nodes?: string[];
   }): Promise<any> {
-    const { url, apiKey } = await this.getSettings();
-    if (!url || !apiKey) throw new Error('Remnawave credentials not configured');
-
-    const res = await fetch(`${url}/api/hosts`, {
+    const data = await this.request('/api/hosts', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Failed to create host: ${res.status} ${errText}`);
-    }
-    const data = await res.json();
     return data.response;
   }
 
-  async applyProfileToNode(nodeUuid: string, profileUuid: string, inboundUuids: string[]): Promise<any> {
-    const { url, apiKey } = await this.getSettings();
-    if (!url || !apiKey) throw new Error('Remnawave credentials not configured');
+  async applyProfileToNode(
+    nodeUuid: string,
+    profileUuid: string,
+    inboundUuids: string[],
+  ): Promise<any> {
+    if (!inboundUuids.length)
+      throw new Error('applyProfileToNode: inboundUuids must not be empty');
 
-    if (!inboundUuids.length) throw new Error('applyProfileToNode: inboundUuids must not be empty');
-
-    const res = await fetch(`${url}/api/nodes/bulk-actions/profile-modification`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        uuids: [nodeUuid],
-        configProfile: {
-          activeConfigProfileUuid: profileUuid,
-          activeInbounds: inboundUuids,
-        },
-      }),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Failed to apply profile to node: ${res.status} ${errText}`);
-    }
-    const data = await res.json();
+    const data = await this.request(
+      '/api/nodes/bulk-actions/profile-modification',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uuids: [nodeUuid],
+          configProfile: {
+            activeConfigProfileUuid: profileUuid,
+            activeInbounds: inboundUuids,
+          },
+        }),
+      },
+    );
     return data.response;
   }
 
   async getKeygenPubKey(): Promise<string> {
-    const { url, apiKey } = await this.getSettings();
-    if (!url || !apiKey) throw new Error('Remnawave credentials not configured');
-
-    const res = await fetch(`${url}/api/keygen`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
-
-    if (!res.ok) throw new Error(`Failed to get keygen pubKey: ${res.status}`);
-    const data = await res.json();
+    const data = await this.request('/api/keygen');
     return data.response?.pubKey || '';
   }
 
@@ -296,81 +247,44 @@ export class RemnavaveService {
     address: string;
     port?: number;
     countryCode?: string;
-    configProfile: { activeConfigProfileUuid: string; activeInbounds: string[] };
+    configProfile: {
+      activeConfigProfileUuid: string;
+      activeInbounds: string[];
+    };
   }): Promise<any> {
-    const { url, apiKey } = await this.getSettings();
-    if (!url || !apiKey) throw new Error('Remnawave credentials not configured');
-
-    const res = await fetch(`${url}/api/nodes`, {
+    const data = await this.request('/api/nodes', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Failed to create node: ${res.status} ${errText}`);
-    }
-    const data = await res.json();
     return data.response;
   }
 
   async deleteNode(uuid: string): Promise<any> {
-    const { url, apiKey } = await this.getSettings();
-    if (!url || !apiKey) throw new Error('Remnawave credentials not configured');
-
-    const res = await fetch(`${url}/api/nodes/${uuid}`, {
+    const data = await this.request(`/api/nodes/${uuid}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${apiKey}` },
     });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Failed to delete node: ${res.status} ${errText}`);
-    }
-    const data = await res.json();
     return data.response;
   }
 
   async enableNode(uuid: string): Promise<any> {
-    const { url, apiKey } = await this.getSettings();
-    if (!url || !apiKey) throw new Error('Remnawave credentials not configured');
-
-    const res = await fetch(`${url}/api/nodes/${uuid}/actions/enable`, {
+    const data = await this.request(`/api/nodes/${uuid}/actions/enable`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}` },
     });
-
-    if (!res.ok) throw new Error(`Failed to enable node: ${res.status}`);
-    const data = await res.json();
     return data.response;
   }
 
   async disableNode(uuid: string): Promise<any> {
-    const { url, apiKey } = await this.getSettings();
-    if (!url || !apiKey) throw new Error('Remnawave credentials not configured');
-
-    const res = await fetch(`${url}/api/nodes/${uuid}/actions/disable`, {
+    const data = await this.request(`/api/nodes/${uuid}/actions/disable`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}` },
     });
-
-    if (!res.ok) throw new Error(`Failed to disable node: ${res.status}`);
-    const data = await res.json();
     return data.response;
   }
 
   async restartNode(uuid: string): Promise<any> {
-    const { url, apiKey } = await this.getSettings();
-    if (!url || !apiKey) throw new Error('Remnawave credentials not configured');
-
-    const res = await fetch(`${url}/api/nodes/${uuid}/actions/restart`, {
+    const data = await this.request(`/api/nodes/${uuid}/actions/restart`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}` },
     });
-
-    if (!res.ok) throw new Error(`Failed to restart node: ${res.status}`);
-    const data = await res.json();
     return data.response;
   }
 }

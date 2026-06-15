@@ -2,11 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Client } from 'ssh2';
-import { v4 as uuidv4 } from 'uuid';
 import { Setting } from '../settings/entities/setting.entity';
 import { RemnavaveService } from '../remnawave/remnawave.service';
 import { ScriptsService } from '../scripts/scripts.service';
 import { SYSCTL_CONTENT } from '../config/constants';
+import { randomId } from '../common/random-id';
 
 export interface InstallNodeDto {
   name: string;
@@ -30,7 +30,6 @@ interface Job {
   nodeUuid?: string;
 }
 
-
 @Injectable()
 export class NodesService {
   private readonly logger = new Logger(NodesService.name);
@@ -43,13 +42,17 @@ export class NodesService {
     private scriptsService: ScriptsService,
   ) {}
 
-  getJobStatus(jobId: string): { status: string; logs: string[]; nodeUuid?: string } | null {
+  getJobStatus(
+    jobId: string,
+  ): { status: string; logs: string[]; nodeUuid?: string } | null {
     const job = this.jobs.get(jobId);
     if (!job) return null;
     return { status: job.status, logs: [...job.logs], nodeUuid: job.nodeUuid };
   }
 
-  async startInstall(dto: InstallNodeDto): Promise<{ jobId: string; nodeUuid: string }> {
+  async startInstall(
+    dto: InstallNodeDto,
+  ): Promise<{ jobId: string; nodeUuid: string }> {
     const sshUser = dto.sshUser || 'root';
     const nodePort = dto.nodePort || 2222;
     const useSudo = sshUser !== 'root';
@@ -59,7 +62,9 @@ export class NodesService {
     let profileUuid = dto.profileUuid || '';
 
     if (dto.createNewProfile && dto.profileName) {
-      const created = await this.remnavaveService.createConfigProfile(dto.profileName);
+      const created = await this.remnavaveService.createConfigProfile(
+        dto.profileName,
+      );
       profileUuid = created?.uuid || created?.response?.uuid || created;
       if (!profileUuid || typeof profileUuid !== 'string') {
         throw new Error('Не удалось получить UUID нового профиля');
@@ -87,9 +92,13 @@ export class NodesService {
     if (dto.countryCode) nodeBody.countryCode = dto.countryCode;
 
     const createdNode = await this.remnavaveService.createNode(nodeBody);
-    const nodeUuid: string = createdNode?.uuid || createdNode?.response?.uuid || '';
+    const nodeUuid: string =
+      createdNode?.uuid || createdNode?.response?.uuid || '';
+    if (!nodeUuid) {
+      throw new Error('Remnawave did not return node UUID');
+    }
 
-    const jobId = uuidv4();
+    const jobId = randomId();
     const job: Job = { status: 'running', logs: [], nodeUuid };
     this.jobs.set(jobId, job);
 
@@ -129,11 +138,23 @@ export class NodesService {
 
     this.runSsh(dto, sshUser, commands, job)
       .then(() => {
-        this.scriptsService.addSshNodeFromInstall(dto, nodeUuid, dto.name).catch(() => {});
+        this.scriptsService
+          .addSshNodeFromInstall(dto, nodeUuid, dto.name)
+          .catch(() => {});
       })
-      .catch((err) => {
+      .catch(async (err) => {
         job.logs.push(`[FATAL] ${err?.message || String(err)}`);
         job.status = 'error';
+        try {
+          await this.remnavaveService.deleteNode(nodeUuid);
+          job.logs.push(
+            '[CLEANUP] Remnawave node deleted after install failure',
+          );
+        } catch (cleanupErr) {
+          job.logs.push(
+            `[CLEANUP] Failed to delete Remnawave node: ${cleanupErr?.message || String(cleanupErr)}`,
+          );
+        }
       })
       .finally(() => {
         setTimeout(() => this.jobs.delete(jobId), 3_600_000);
@@ -142,7 +163,12 @@ export class NodesService {
     return { jobId, nodeUuid };
   }
 
-  private runSsh(dto: InstallNodeDto, sshUser: string, commands: string[], job: Job): Promise<void> {
+  private runSsh(
+    dto: InstallNodeDto,
+    sshUser: string,
+    commands: string[],
+    job: Job,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       const conn = new Client();
 
@@ -159,14 +185,16 @@ export class NodesService {
             job.status = 'error';
             job.logs.push(`[SSH] Ошибка: ${err?.message || String(err)}`);
             conn.end();
-            reject(err);
+            reject(err instanceof Error ? err : new Error(String(err)));
           });
       });
 
       conn.on('error', (err) => {
         job.status = 'error';
-        job.logs.push(`[SSH] Ошибка подключения: ${err?.message || String(err)}`);
-        reject(err);
+        job.logs.push(
+          `[SSH] Ошибка подключения: ${err?.message || String(err)}`,
+        );
+        reject(err instanceof Error ? err : new Error(String(err)));
       });
 
       const connectOptions: any = {
@@ -186,7 +214,11 @@ export class NodesService {
     });
   }
 
-  private runCommandsSequentially(conn: Client, commands: string[], job: Job): Promise<void> {
+  private runCommandsSequentially(
+    conn: Client,
+    commands: string[],
+    job: Job,
+  ): Promise<void> {
     return commands.reduce(
       (chain, cmd) => chain.then(() => this.execCommand(conn, cmd, job)),
       Promise.resolve(),

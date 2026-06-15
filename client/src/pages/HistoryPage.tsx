@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { Fragment, useEffect, useState, useCallback } from 'react';
 import {
   Alert, Box, Button, Chip, CircularProgress, Collapse,
   IconButton, Paper, Stack, Table, TableBody, TableCell,
@@ -8,6 +8,7 @@ import {
 import { CheckCircle, Cancel, ExpandMore, ExpandLess, DeleteOutline, Refresh } from '@mui/icons-material';
 import api from '../api';
 import { useAlert } from '../hooks/useAlert';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 interface HistoryNodeResult {
   nodeId: string;
@@ -40,6 +41,7 @@ export default function HistoryPage() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [detailCache, setDetailCache] = useState<Record<string, HistoryEntry>>({});
   const [clearing, setClearing] = useState(false);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const { msg, showMsg, closeMsg } = useAlert();
 
   const PAGE_SIZE = 20;
@@ -51,11 +53,11 @@ export default function HistoryPage() {
       setEntries(data.data || []);
       setTotal(data.total || 0);
     } catch {
-      showMsg('Ошибка загрузки истории', 'error');
+      showMsg('error', 'Ошибка загрузки истории');
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, showMsg]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -76,16 +78,20 @@ export default function HistoryPage() {
   };
 
   const handleClear = async () => {
-    if (!confirm('Удалить всю историю выполнений?')) return;
+    setClearConfirmOpen(true);
+  };
+
+  const confirmClear = async () => {
+    setClearConfirmOpen(false);
     setClearing(true);
     try {
       await api.delete('/scripts/history');
       setEntries([]);
       setTotal(0);
       setDetailCache({});
-      showMsg('История очищена', 'success');
+      showMsg('success', 'История очищена');
     } catch {
-      showMsg('Ошибка при очистке', 'error');
+      showMsg('error', 'Ошибка при очистке');
     } finally {
       setClearing(false);
     }
@@ -124,7 +130,7 @@ export default function HistoryPage() {
         />
         <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel>Статус</InputLabel>
-          <Select value={statusFilter} label="Статус" onChange={e => setStatusFilter(e.target.value as any)}>
+          <Select value={statusFilter} label="Статус" onChange={e => setStatusFilter(e.target.value as 'all' | 'success' | 'error')}>
             <MenuItem value="all">Все</MenuItem>
             <MenuItem value="success">Успешно</MenuItem>
             <MenuItem value="error">С ошибкой</MenuItem>
@@ -165,10 +171,14 @@ export default function HistoryPage() {
                 const detail = detailCache[entry.id];
                 const isOpen = expanded.has(entry.id);
                 return (
-                  <>
+                  <Fragment key={entry.id}>
                     <TableRow key={entry.id} hover sx={{ cursor: 'pointer' }} onClick={() => toggleExpand(entry)}>
                       <TableCell sx={{ width: 32 }}>
-                        <IconButton size="small" onClick={e => { e.stopPropagation(); toggleExpand(entry); }}>
+                        <IconButton
+                          size="small"
+                          aria-label={isOpen ? 'Свернуть историю' : 'Развернуть историю'}
+                          onClick={e => { e.stopPropagation(); toggleExpand(entry); }}
+                        >
                           {isOpen ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
                         </IconButton>
                       </TableCell>
@@ -228,7 +238,7 @@ export default function HistoryPage() {
                         </Collapse>
                       </TableCell>
                     </TableRow>
-                  </>
+                  </Fragment>
                 );
               })}
             </TableBody>
@@ -249,9 +259,18 @@ export default function HistoryPage() {
 
       {msg && (
         <Box sx={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 9999 }}>
-          <Alert severity={msg.severity} onClose={closeMsg}>{msg.text}</Alert>
+          <Alert severity={msg.type} onClose={closeMsg}>{msg.text}</Alert>
         </Box>
       )}
+      <ConfirmDialog
+        open={clearConfirmOpen}
+        title="Очистить историю?"
+        message="Удалить всю историю выполнения скриптов?"
+        confirmLabel="Очистить"
+        confirmColor="error"
+        onConfirm={confirmClear}
+        onCancel={() => setClearConfirmOpen(false)}
+      />
     </Box>
   );
 }

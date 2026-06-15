@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Box, Paper, TextField, Button, Typography, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../auth/useAuth';
 
 export default function LoginPage() {
   const [creds, setCreds] = useState({ login: '', password: '' });

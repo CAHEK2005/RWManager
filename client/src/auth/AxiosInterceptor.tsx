@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import { useAuth } from './AuthContext';
+import { useAuth } from './useAuth';
 
 export function AxiosInterceptor() {
   const { logout } = useAuth();

@@ -1,19 +1,10 @@
-import React, { createContext, useState, useMemo, useContext, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ThemeProvider as MuiThemeProvider, createTheme, responsiveFontSizes } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { getDesignTokens } from './theme'; 
-
-type ColorMode = 'light' | 'dark' | 'system';
-
-interface ThemeContextType {
-  mode: ColorMode;
-  toggleColorMode: () => void;
-}
-
-const ThemeContext = createContext<ThemeContextType>({} as ThemeContextType);
-
-export const useThemeContext = () => useContext(ThemeContext);
+import { ThemeContext } from './theme-context';
+import type { ColorMode } from './theme-context';
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mode, setMode] = useState<ColorMode>(() => {
