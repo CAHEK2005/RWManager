@@ -38,6 +38,7 @@ import {
   CheckConnectionDto,
   RenameManagedProfileDto,
   UpdateHostTemplateDto,
+  UpdateXrayConfigTemplateDto,
 } from './settings.dto';
 import {
   countryCodeToFlag,
@@ -47,6 +48,13 @@ import {
   validateHostTemplate,
   renderHostRemark,
 } from './host-template';
+import {
+  DEFAULT_XRAY_CONFIG_TEMPLATE,
+  XRAY_CONFIG_TEMPLATE_SETTING_KEY,
+  XRAY_CONFIG_TEMPLATE_MAX_LENGTH,
+  XRAY_INBOUNDS_PLACEHOLDER,
+  normalizeXrayConfigTemplate,
+} from './xray-template';
 
 @Controller('settings')
 export class SettingsController {
@@ -120,6 +128,36 @@ export class SettingsController {
     }
   }
 
+  @Get('xray-template')
+  async getXrayConfigTemplate() {
+    const template = await this.rotationService.getDefaultXrayConfigTemplate();
+    return {
+      template,
+      defaultTemplate: DEFAULT_XRAY_CONFIG_TEMPLATE,
+      inboundsPlaceholder: XRAY_INBOUNDS_PLACEHOLDER,
+      maxLength: XRAY_CONFIG_TEMPLATE_MAX_LENGTH,
+    };
+  }
+
+  @Post('xray-template')
+  async updateXrayConfigTemplate(@Body() body: UpdateXrayConfigTemplateDto) {
+    try {
+      const template = normalizeXrayConfigTemplate(body.template);
+      await this.settingsRepo.save({
+        key: XRAY_CONFIG_TEMPLATE_SETTING_KEY,
+        value: template,
+      });
+      return {
+        template,
+        defaultTemplate: DEFAULT_XRAY_CONFIG_TEMPLATE,
+        inboundsPlaceholder: XRAY_INBOUNDS_PLACEHOLDER,
+        maxLength: XRAY_CONFIG_TEMPLATE_MAX_LENGTH,
+      };
+    } catch (e) {
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
   @Post('profiles/managed')
   async addManagedProfile(@Body() body: AddManagedProfileDto) {
     const profiles = await this.rotationService.loadProfiles();
@@ -130,6 +168,7 @@ export class SettingsController {
       try {
         const created = await this.remnavaveService.createConfigProfile(
           body.name,
+          await this.rotationService.buildInitialXrayConfigProfile(),
         );
         profileUuid = created?.uuid || created?.response?.uuid || created;
         if (!profileUuid || typeof profileUuid !== 'string') {

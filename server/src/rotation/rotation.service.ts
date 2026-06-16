@@ -24,6 +24,13 @@ import {
   resolveActiveHostTemplate,
   validateHostTemplate,
 } from '../settings/host-template';
+import {
+  DEFAULT_XRAY_CONFIG_TEMPLATE,
+  XRAY_CONFIG_TEMPLATE_SETTING_KEY,
+  buildInitialXrayConfigFromTemplate,
+  normalizeXrayConfigTemplate,
+  renderXrayConfigTemplate,
+} from '../settings/xray-template';
 
 export interface RotationHistoryEntry {
   id: string;
@@ -76,6 +83,7 @@ export class RotationService implements OnModuleInit {
 
   private async initDefaultSettings() {
     await this.ensureDefaultHostTemplate();
+    await this.ensureDefaultXrayConfigTemplate();
 
     const key = 'managed_profiles';
     let existing = await this.settingRepo.findOne({ where: { key } });
@@ -212,6 +220,27 @@ export class RotationService implements OnModuleInit {
     }
   }
 
+  private async ensureDefaultXrayConfigTemplate() {
+    const existing = await this.settingRepo.findOne({
+      where: { key: XRAY_CONFIG_TEMPLATE_SETTING_KEY },
+    });
+    if (!existing) {
+      await this.saveSetting(
+        XRAY_CONFIG_TEMPLATE_SETTING_KEY,
+        DEFAULT_XRAY_CONFIG_TEMPLATE,
+      );
+      return;
+    }
+    try {
+      normalizeXrayConfigTemplate(existing.value);
+    } catch {
+      await this.saveSetting(
+        XRAY_CONFIG_TEMPLATE_SETTING_KEY,
+        DEFAULT_XRAY_CONFIG_TEMPLATE,
+      );
+    }
+  }
+
   async getDefaultHostTemplate(): Promise<string> {
     const setting = await this.settingRepo.findOne({
       where: { key: HOST_TEMPLATE_SETTING_KEY },
@@ -227,6 +256,35 @@ export class RotationService implements OnModuleInit {
     return resolveActiveHostTemplate(
       profile,
       await this.getDefaultHostTemplate(),
+    );
+  }
+
+  async getDefaultXrayConfigTemplate(): Promise<string> {
+    const setting = await this.settingRepo.findOne({
+      where: { key: XRAY_CONFIG_TEMPLATE_SETTING_KEY },
+    });
+    try {
+      return normalizeXrayConfigTemplate(
+        setting?.value || DEFAULT_XRAY_CONFIG_TEMPLATE,
+      );
+    } catch {
+      return DEFAULT_XRAY_CONFIG_TEMPLATE;
+    }
+  }
+
+  async buildXrayConfig(generatedInbounds: any[]) {
+    return renderXrayConfigTemplate(
+      await this.getDefaultXrayConfigTemplate(),
+      generatedInbounds,
+    );
+  }
+
+  async buildInitialXrayConfigProfile() {
+    const tmpTag = `init-${Date.now().toString(36)}-rwm`;
+    return buildInitialXrayConfigFromTemplate(
+      await this.getDefaultXrayConfigTemplate(),
+      tmpTag,
+      randomId(),
     );
   }
 
@@ -506,37 +564,15 @@ export class RotationService implements OnModuleInit {
         }
       }
 
-      let currentProfile: any;
+      let mergedConfig: any;
       try {
-        currentProfile = await this.remnavaveService.getConfigProfile(
-          profile.uuid,
-        );
-      } catch {
+        mergedConfig = await this.buildXrayConfig(generatedInbounds);
+      } catch (e) {
         return {
           success: false,
-          message: 'Ошибка получения профиля из Remnawave',
+          message: `Invalid Xray config template: ${e?.message}`,
         };
       }
-
-      const mergedConfig = {
-        ...(currentProfile?.config || {}),
-        inbounds: generatedInbounds,
-        outbounds: [
-          { tag: 'DIRECT', protocol: 'freedom' },
-          { tag: 'BLOCK', protocol: 'blackhole' },
-        ],
-        routing: {
-          rules: [
-            { type: 'field', ip: ['geoip:private'], outboundTag: 'BLOCK' },
-            {
-              type: 'field',
-              domain: ['geosite:private'],
-              outboundTag: 'BLOCK',
-            },
-            { type: 'field', protocol: ['bittorrent'], outboundTag: 'BLOCK' },
-          ],
-        },
-      };
 
       let updatedProfile: any;
       try {

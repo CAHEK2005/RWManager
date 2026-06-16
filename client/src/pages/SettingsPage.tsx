@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Box, TextField, Button, Typography, Paper, Snackbar, Alert,
   Stack, Tabs, Tab, Switch, FormControlLabel,
-  IconButton, MenuItem, Tooltip, Dialog, DialogTitle, DialogContent, Chip,
+  IconButton, MenuItem, Tooltip, Dialog, DialogTitle, DialogContent, Chip, Divider,
 } from '@mui/material';
 import { LockOpen, VpnKey } from '@mui/icons-material';
 import api from '../api';
@@ -15,6 +15,11 @@ import {
   renderHostTemplate,
   validateHostTemplate,
 } from '../utils/hostTemplate';
+import {
+  XRAY_INBOUNDS_PLACEHOLDER,
+  formatXrayConfigTemplate,
+  validateXrayConfigTemplate,
+} from '../utils/xrayTemplate';
 
 interface TabPanelProps { children?: React.ReactNode; index: number; value: number; }
 function TabPanel({ children, value, index }: TabPanelProps) {
@@ -41,6 +46,9 @@ export default function SettingsPage() {
   const [healthInterval, setHealthInterval] = useState('5');
   const [hostTemplate, setHostTemplate] = useState(DEFAULT_HOST_TEMPLATE);
   const [hostTemplateSaving, setHostTemplateSaving] = useState(false);
+  const [xrayTemplate, setXrayTemplate] = useState('');
+  const [xrayDefaultTemplate, setXrayDefaultTemplate] = useState('');
+  const [xrayTemplateSaving, setXrayTemplateSaving] = useState(false);
 
   const { msg, showMsg, closeMsg } = useAlert();
 
@@ -79,6 +87,12 @@ export default function SettingsPage() {
     }).catch(console.error);
     api.get('/settings/host-template')
       .then(({ data }) => setHostTemplate(data.template || DEFAULT_HOST_TEMPLATE))
+      .catch(() => {});
+    api.get('/settings/xray-template')
+      .then(({ data }) => {
+        setXrayTemplate(data.template || data.defaultTemplate || '');
+        setXrayDefaultTemplate(data.defaultTemplate || data.template || '');
+      })
       .catch(() => {});
   }, []);
 
@@ -168,6 +182,36 @@ export default function SettingsPage() {
     }
   };
 
+  const handleFormatXrayTemplate = () => {
+    const error = validateXrayConfigTemplate(xrayTemplate);
+    if (error) {
+      showMsg('error', error);
+      return;
+    }
+    setXrayTemplate(formatXrayConfigTemplate(xrayTemplate));
+  };
+
+  const handleSaveXrayTemplate = async () => {
+    const error = validateXrayConfigTemplate(xrayTemplate);
+    if (error) {
+      showMsg('error', error);
+      return;
+    }
+
+    setXrayTemplateSaving(true);
+    try {
+      const { data } = await api.post('/settings/xray-template', { template: xrayTemplate.trim() });
+      setXrayTemplate(data.template || xrayTemplate.trim());
+      setXrayDefaultTemplate(data.defaultTemplate || xrayDefaultTemplate);
+      showMsg('success', 'Шаблон Xray config сохранён');
+    } catch (e: unknown) {
+      showMsg('error', getErrorMessage(e));
+    } finally {
+      setXrayTemplateSaving(false);
+    }
+  };
+
+  const xrayTemplateError = xrayTemplate ? validateXrayConfigTemplate(xrayTemplate) : null;
   const hostTemplateError = validateHostTemplate(hostTemplate);
   const hostTemplatePreviewFull = renderHostTemplate(hostTemplate || DEFAULT_HOST_TEMPLATE, {
     countryFlag: '🇩🇪',
@@ -232,6 +276,53 @@ export default function SettingsPage() {
         {/* Tab 1: Templates */}
         <TabPanel value={tab} index={1}>
           <Box sx={{ p: { xs: 2, md: 3 } }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>Шаблон Xray config</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Базовый JSON config profile для Remnawave. Во время создания профиля и каждой ротации корневой ключ <strong>inbounds</strong> заменяется сгенерированными inbound'ами RWManager.
+            </Typography>
+
+            <Stack spacing={2}>
+              <Alert severity={xrayTemplateError ? 'error' : 'info'}>
+                {xrayTemplateError || `Для явного места подстановки можно оставить "inbounds": "${XRAY_INBOUNDS_PLACEHOLDER}". Если там массив, он будет полностью заменён при ротации.`}
+              </Alert>
+
+              <TextField
+                fullWidth
+                multiline
+                minRows={14}
+                size="small"
+                label="Xray config JSON"
+                value={xrayTemplate}
+                onChange={e => setXrayTemplate(e.target.value)}
+                error={Boolean(xrayTemplateError)}
+                helperText={xrayTemplateError || 'Секции outbounds, routing, dns, policy и другие пользовательские настройки сохраняются из этого шаблона.'}
+                slotProps={{
+                  input: {
+                    sx: {
+                      alignItems: 'flex-start',
+                      fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+                      fontSize: 13,
+                    },
+                  },
+                }}
+              />
+
+              <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1}>
+                <Button variant="outlined" onClick={handleFormatXrayTemplate} disabled={!xrayTemplate}>
+                  Форматировать JSON
+                </Button>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                  <Button variant="outlined" onClick={() => setXrayTemplate(xrayDefaultTemplate)} disabled={!xrayDefaultTemplate}>
+                    Сбросить к системному
+                  </Button>
+                  <Button variant="contained" onClick={handleSaveXrayTemplate} disabled={xrayTemplateSaving || Boolean(xrayTemplateError) || !xrayTemplate}>
+                    Сохранить Xray
+                  </Button>
+                </Stack>
+              </Stack>
+            </Stack>
+
+            <Divider sx={{ my: 4 }} />
             <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>Шаблон имени хоста</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
               Глобальный шаблон используют профили в режиме наследования. Он применяется при создании хостов и при последующих ротациях.

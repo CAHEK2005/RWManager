@@ -4,6 +4,10 @@ import { Repository } from 'typeorm';
 import { Setting } from '../settings/entities/setting.entity';
 import { randomId } from '../common/random-id';
 import {
+  DEFAULT_XRAY_CONFIG_TEMPLATE,
+  buildInitialXrayConfigFromTemplate,
+} from '../settings/xray-template';
+import {
   assertSafePublicHttpUrl,
   fetchWithTimeout,
   readLimitedResponseText,
@@ -136,40 +140,11 @@ export class RemnavaveService {
 
   async createConfigProfile(name: string, config?: object): Promise<any> {
     const tmpTag = `init-${Date.now().toString(36)}-rwm`;
-    const defaultConfig = {
-      inbounds: [
-        {
-          tag: tmpTag,
-          protocol: 'vless',
-          port: 44321,
-          settings: {
-            clients: [{ id: randomId(), flow: '', email: 'placeholder' }],
-            decryption: 'none',
-            fallbacks: [],
-          },
-          streamSettings: {
-            network: 'tcp',
-            security: 'none',
-            tcpSettings: {
-              acceptProxyProtocol: false,
-              header: { type: 'none' },
-            },
-          },
-          sniffing: { enabled: false, destOverride: [] },
-        },
-      ],
-      outbounds: [
-        { tag: 'DIRECT', protocol: 'freedom' },
-        { tag: 'BLOCK', protocol: 'blackhole' },
-      ],
-      routing: {
-        rules: [
-          { type: 'field', ip: ['geoip:private'], outboundTag: 'BLOCK' },
-          { type: 'field', domain: ['geosite:private'], outboundTag: 'BLOCK' },
-          { type: 'field', protocol: ['bittorrent'], outboundTag: 'BLOCK' },
-        ],
-      },
-    };
+    const defaultConfig = buildInitialXrayConfigFromTemplate(
+      DEFAULT_XRAY_CONFIG_TEMPLATE,
+      tmpTag,
+      randomId(),
+    );
     const body = { name, config: config ?? defaultConfig };
     this.logger.log(`createConfigProfile request: ${JSON.stringify(body)}`);
 

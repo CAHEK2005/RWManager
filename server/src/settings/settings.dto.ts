@@ -42,3 +42,10 @@ export class UpdateHostTemplateDto {
   @MaxLength(160)
   template: string;
 }
+
+export class UpdateXrayConfigTemplateDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200_000)
+  template: string;
+}
