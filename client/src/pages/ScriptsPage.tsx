@@ -55,6 +55,8 @@ interface SshNode {
   password?: string;
   sshKey?: string;
   categoryIds?: string[];
+  hasPassword?: boolean;
+  hasSshKey?: boolean;
 }
 
 interface NodeCategory {
@@ -721,6 +723,8 @@ export default function ScriptsPage() {
     }
     try {
       const payload = { ...nodeForm };
+      delete payload.hasPassword;
+      delete payload.hasSshKey;
       if (nodeEditId) payload.id = nodeEditId;
       await api[nodeEditId ? 'patch' : 'post'](
         nodeEditId ? `/scripts/ssh-nodes/${nodeEditId}` : '/scripts/ssh-nodes',

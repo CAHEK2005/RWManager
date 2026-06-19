@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsIn,
   IsObject,
   IsOptional,
@@ -53,6 +54,14 @@ export class SshNodeDto {
   @IsArray()
   @IsString({ each: true })
   categoryIds?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  hasPassword?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  hasSshKey?: boolean;
 }
 
 export class CategoryDto {
