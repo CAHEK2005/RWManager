@@ -36,6 +36,7 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       SECRET_ENCRYPTION_KEY: ${SECRET_ENCRYPTION_KEY}
       CORS_ORIGIN: ${CORS_ORIGIN}
+      RWM_ALLOW_PRIVATE_REMNAWAVE: ${RWM_ALLOW_PRIVATE_REMNAWAVE:-false}
     networks:
       - app-network
     healthcheck:
