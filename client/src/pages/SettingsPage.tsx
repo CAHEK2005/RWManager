@@ -118,10 +118,10 @@ export default function SettingsPage() {
       if (res.data.success) {
         showMsg('success', 'Подключение успешно');
       } else {
-        showMsg('error', 'Ошибка: неверные данные или нет доступа');
+        showMsg('error', res.data.message || 'Ошибка: неверные данные или нет доступа');
       }
-    } catch {
-      showMsg('error', 'Ошибка сети при проверке');
+    } catch (e: unknown) {
+      showMsg('error', getErrorMessage(e));
     }
   };
 

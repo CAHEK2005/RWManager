@@ -13,6 +13,12 @@ import {
   readLimitedResponseText,
 } from '../security/url-safety';
 
+export interface RemnawaveConnectionCheckResult {
+  success: boolean;
+  message?: string;
+  status?: number;
+}
+
 @Injectable()
 export class RemnavaveService {
   private readonly logger = new Logger(RemnavaveService.name);
@@ -122,7 +128,10 @@ export class RemnavaveService {
     return { publicKey: keypair.publicKey, privateKey: keypair.privateKey };
   }
 
-  async checkConnection(url: string, apiKey: string): Promise<boolean> {
+  async checkConnectionDetailed(
+    url: string,
+    apiKey: string,
+  ): Promise<RemnawaveConnectionCheckResult> {
     try {
       const apiUrl = await this.buildApiUrl(url, '/api/config-profiles');
       const res = await fetchWithTimeout(
@@ -132,10 +141,48 @@ export class RemnavaveService {
         },
         10_000,
       );
-      return res.ok;
-    } catch {
-      return false;
+      if (res.ok) return { success: true };
+      return {
+        success: false,
+        status: res.status,
+        message: this.describeConnectionResponse(res.status),
+      };
+    } catch (e) {
+      return { success: false, message: this.describeConnectionError(e) };
     }
+  }
+
+  async checkConnection(url: string, apiKey: string): Promise<boolean> {
+    return (await this.checkConnectionDetailed(url, apiKey)).success;
+  }
+
+  private describeConnectionResponse(status: number): string {
+    if (status === 401 || status === 403) {
+      return `Remnawave rejected the API token (HTTP ${status}).`;
+    }
+    if (status === 404) {
+      return 'Remnawave API endpoint was not found. Check the panel URL.';
+    }
+    return `Remnawave responded with HTTP ${status}.`;
+  }
+
+  private describeConnectionError(error: unknown): string {
+    const message =
+      error instanceof Error
+        ? error.message
+        : typeof error === 'string'
+          ? error
+          : 'Unknown error';
+    if (message.includes('Requests to internal addresses are forbidden')) {
+      return (
+        'Remnawave URL resolves to a private IP. ' +
+        'Set RWM_ALLOW_PRIVATE_REMNAWAVE=true for trusted internal panels and restart the backend.'
+      );
+    }
+    if (error instanceof Error && error.name === 'AbortError') {
+      return 'Connection to Remnawave timed out.';
+    }
+    return `Remnawave connection failed: ${message}`;
   }
 
   async createConfigProfile(name: string, config?: object): Promise<any> {

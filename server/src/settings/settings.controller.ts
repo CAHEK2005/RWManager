@@ -532,11 +532,10 @@ export class SettingsController {
 
   @Post('check')
   async checkConnection(@Body() body: CheckConnectionDto) {
-    const success = await this.remnavaveService.checkConnection(
+    return this.remnavaveService.checkConnectionDetailed(
       body.remnawave_url,
       body.remnawave_api_key,
     );
-    return { success };
   }
 
   @Post()
