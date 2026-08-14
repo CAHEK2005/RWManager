@@ -407,7 +407,9 @@ describe('HYSTERIA2_DEPLOY_SCRIPT runtime state transitions', () => {
     ).toHaveLength(2);
     expect(
       dockerCalls.filter((call) =>
-        call.startsWith('compose exec -T remnanode test -r /etc/hysteria2/'),
+        call.startsWith(
+          'compose exec -T --interactive=false remnanode test -r /etc/hysteria2/',
+        ),
       ),
     ).toHaveLength(2);
     expect(

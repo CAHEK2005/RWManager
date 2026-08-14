@@ -116,8 +116,8 @@ if ! cmp -s "$CADDY_TMP" "$CADDY_FILE"; then
 
   # Caddyfile bind-mounted как файл: сохраняем inode, записывая поверх файла.
   cat "$CADDY_TMP" > "$CADDY_FILE"
-  docker compose -f "$CADDY_COMPOSE" exec -T caddy \\
-    caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile \\
+  docker compose -f "$CADDY_COMPOSE" exec -T --interactive=false caddy \\
+    caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile </dev/null \\
     || fail "Новая конфигурация Caddy не прошла проверку"
   docker compose -f "$CADDY_COMPOSE" restart caddy \\
     || fail "Caddy не перезапустился с новой конфигурацией"
@@ -201,8 +201,10 @@ cleanup() {
       if (
         cd "$REMNANODE_DIR" \\
           && docker compose up -d --force-recreate remnanode \\
-          && docker compose exec -T remnanode test -r /etc/hysteria2/fullchain.pem \\
-          && docker compose exec -T remnanode test -r /etc/hysteria2/privkey.pem
+          && docker compose exec -T --interactive=false remnanode \\
+            test -r /etc/hysteria2/fullchain.pem </dev/null \\
+          && docker compose exec -T --interactive=false remnanode \\
+            test -r /etc/hysteria2/privkey.pem </dev/null
       ); then
         echo "[ROLLBACK] remnanode снова использует предыдущее поколение" >&2
       else
@@ -337,8 +339,10 @@ fi
 if [ "$RESTART_REMNANODE" -eq 1 ] && [ -f "$RESTART_MARKER" ]; then
   cd "$REMNANODE_DIR"
   docker compose up -d --force-recreate remnanode
-  docker compose exec -T remnanode test -r /etc/hysteria2/fullchain.pem
-  docker compose exec -T remnanode test -r /etc/hysteria2/privkey.pem
+  docker compose exec -T --interactive=false remnanode \\
+    test -r /etc/hysteria2/fullchain.pem </dev/null
+  docker compose exec -T --interactive=false remnanode \\
+    test -r /etc/hysteria2/privkey.pem </dev/null
   rm -f "$RESTART_MARKER"
   RESTART_COMPLETED=1
 fi
@@ -365,7 +369,7 @@ flock -n 9 || exit 0
 
 /opt/certbot/ensure-caddy-webroot.sh
 docker compose -f /opt/certbot/docker-compose.hysteria2.yml \\
-  run --rm certbot renew --quiet --cert-name "$HYSTERIA_DOMAIN"
+  run --rm -T certbot renew --quiet --cert-name "$HYSTERIA_DOMAIN" </dev/null
 /opt/certbot/deploy-hysteria2-cert.sh`;
 
 export const HYSTERIA2_SETUP_SCRIPT = `set -Eeuo pipefail
@@ -619,7 +623,7 @@ HYSTERIA_ENV_FILE="$STAGE_DIR/hysteria2.env" \\
 
 echo "[3/5] Получение сертификата Let's Encrypt..."
 docker compose -f "$STAGE_DIR/docker-compose.hysteria2.yml" \\
-  run --rm certbot certonly \\
+  run --rm -T certbot certonly \\
   --webroot \\
   --webroot-path /var/www/certbot \\
   --preferred-challenges http \\
@@ -628,7 +632,7 @@ docker compose -f "$STAGE_DIR/docker-compose.hysteria2.yml" \\
   --non-interactive \\
   --agree-tos \\
   --no-eff-email \\
-  --email "$CERTBOT_EMAIL"
+  --email "$CERTBOT_EMAIL" </dev/null
 
 CERT_LIVE_DIR="$CERTBOT_DIR/certs/live/$HYSTERIA_DOMAIN"
 RENEWAL_CONF="$CERTBOT_DIR/certs/renewal/$HYSTERIA_DOMAIN.conf"
@@ -649,11 +653,11 @@ RENEWAL_TESTED=0
 if ! renewal_uses_expected_webroot; then
   echo "Перевод существующего Certbot-lineage на webroot..."
   docker compose -f "$STAGE_DIR/docker-compose.hysteria2.yml" \\
-    run --rm certbot reconfigure \\
+    run --rm -T certbot reconfigure \\
     --cert-name "$HYSTERIA_DOMAIN" \\
     --authenticator webroot \\
     --webroot-path /var/www/certbot \\
-    --non-interactive
+    --non-interactive </dev/null
   RENEWAL_TESTED=1
 fi
 
@@ -663,10 +667,10 @@ renewal_uses_expected_webroot \\
 if [ "$RENEWAL_TESTED" -eq 0 ]; then
   echo "Проверка будущего продления через Let's Encrypt staging..."
   docker compose -f "$STAGE_DIR/docker-compose.hysteria2.yml" \\
-    run --rm certbot renew \\
+    run --rm -T certbot renew \\
     --dry-run \\
     --cert-name "$HYSTERIA_DOMAIN" \\
-    --no-directory-hooks
+    --no-directory-hooks </dev/null
 fi
 
 # Сертификат получен и renewal проверен через staging: ACME-маршрут уже нужен постоянно.
@@ -750,8 +754,10 @@ fi
 
 (
   cd "$REMNANODE_DIR"
-  docker compose exec -T remnanode test -r /etc/hysteria2/fullchain.pem
-  docker compose exec -T remnanode test -r /etc/hysteria2/privkey.pem
+  docker compose exec -T --interactive=false remnanode \\
+    test -r /etc/hysteria2/fullchain.pem </dev/null
+  docker compose exec -T --interactive=false remnanode \\
+    test -r /etc/hysteria2/privkey.pem </dev/null
 ) || fail "Контейнер remnanode не видит сертификат или закрытый ключ"
 if [ "$REMNANODE_RECREATED" -eq 1 ]; then
   rm -f "$RESTART_MARKER"

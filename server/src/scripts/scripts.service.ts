@@ -1042,17 +1042,32 @@ export class ScriptsService implements OnModuleInit {
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const conn = new Client();
+      const remoteScriptPath = `/tmp/rwm-script-${randomId()}.sh`;
+      let settled = false;
+      let uploadTimer: ReturnType<typeof setTimeout> | undefined;
 
-      conn.on('ready', () => {
-        const useSudo = node.sshUser && node.sshUser !== 'root';
-        result.logs.push(
-          useSudo ? '[SSH] Подключено (sudo)' : '[SSH] Подключено',
-        );
-        const cmd = useSudo
-          ? `sudo bash -e << 'SCRIPT_EOF'\n${content}\nSCRIPT_EOF`
-          : `bash -e << 'SCRIPT_EOF'\n${content}\nSCRIPT_EOF`;
+      const finish = (error?: Error) => {
+        if (settled) return;
+        settled = true;
+        if (uploadTimer) clearTimeout(uploadTimer);
+        conn.end();
+        if (error) {
+          reject(error);
+        } else {
+          result.logs.push('[SSH] Выполнено успешно');
+          resolve();
+        }
+      };
 
-        // Allocate a PTY so interactive programs (e.g. warp-cli) see a real terminal
+      const executeUploadedScript = (useSudo: boolean) => {
+        const runner = useSudo ? 'sudo bash' : 'bash';
+        const cmd =
+          `RWM_SCRIPT_FILE='${remoteScriptPath}'; ` +
+          'rwm_cleanup() { rm -f -- "$RWM_SCRIPT_FILE"; }; ' +
+          'trap rwm_cleanup EXIT; ' +
+          "trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM; " +
+          `${runner} -e -- "$RWM_SCRIPT_FILE"`;
+
         conn.exec(
           cmd,
           { pty: { term: 'xterm', cols: 200, rows: 50 } },
@@ -1061,8 +1076,7 @@ export class ScriptsService implements OnModuleInit {
               result.logs.push(
                 this.maskSecrets(`[ERROR] ${err.message}`, mask),
               );
-              conn.end();
-              return reject(err);
+              return finish(err);
             }
 
             stream.on('data', (data: Buffer) => {
@@ -1076,8 +1090,10 @@ export class ScriptsService implements OnModuleInit {
               }
               text
                 .split('\n')
-                .filter((l) => l.trim())
-                .forEach((l) => result.logs.push(this.maskSecrets(l, mask)));
+                .filter((line) => line.trim())
+                .forEach((line) =>
+                  result.logs.push(this.maskSecrets(line, mask)),
+                );
             });
 
             // With PTY, stderr is merged into stdout — keep handler for non-PTY compat
@@ -1085,27 +1101,109 @@ export class ScriptsService implements OnModuleInit {
               this.stripAnsi(data.toString())
                 .split('\n')
                 .filter(Boolean)
-                .forEach((l) =>
-                  result.logs.push(this.maskSecrets(`[stderr] ${l}`, mask)),
+                .forEach((line) =>
+                  result.logs.push(this.maskSecrets(`[stderr] ${line}`, mask)),
                 );
             });
 
+            stream.on('error', (streamError: Error) => finish(streamError));
             stream.on('close', (code: number) => {
-              conn.end();
-              if (code !== 0)
-                return reject(new Error(`Скрипт завершился с кодом ${code}`));
-              result.logs.push('[SSH] Выполнено успешно');
-              resolve();
+              if (settled) return;
+              if (code !== 0) {
+                return finish(
+                  new Error(`Скрипт завершился с кодом ${String(code)}`),
+                );
+              }
+              finish();
             });
           },
         );
+      };
+
+      conn.on('ready', () => {
+        const useSudo = node.sshUser && node.sshUser !== 'root';
+        result.logs.push(
+          useSudo ? '[SSH] Подключено (sudo)' : '[SSH] Подключено',
+        );
+
+        // Upload over a dedicated channel first. Commands executed by the script
+        // may read stdin; keeping source code on stdin would let them consume the
+        // unparsed remainder of the script.
+        // Self-delete after Bash has opened the file. The EXIT trap below remains
+        // a fallback, but an SSH process can be killed before traps are delivered.
+        const uploadedContent = `rm -f -- "$0"\n${content}`;
+        const contentBytes = Buffer.byteLength(uploadedContent, 'utf8');
+        const orphanCleanupSeconds = 300;
+        const uploadCmd =
+          `RWM_SCRIPT_FILE='${remoteScriptPath}'; umask 077; ` +
+          'cat > "$RWM_SCRIPT_FILE" && ' +
+          `[ "$(wc -c < "$RWM_SCRIPT_FILE")" -eq ${contentBytes} ] || ` +
+          '{ rm -f -- "$RWM_SCRIPT_FILE"; exit 1; }; ' +
+          `nohup sh -c 'sleep ${orphanCleanupSeconds}; rm -f -- "$1"' ` +
+          'sh "$RWM_SCRIPT_FILE" </dev/null >/dev/null 2>&1 &';
+
+        uploadTimer = setTimeout(
+          () => finish(new Error('Таймаут загрузки скрипта на ноду')),
+          30_000,
+        );
+
+        conn.exec(uploadCmd, (err, stream) => {
+          // A timed-out SSH request can still deliver its callback later. End
+          // that channel without sending the payload; the remote size check
+          // then removes the empty/incomplete file.
+          if (settled) {
+            if (!err) {
+              stream.on('error', () => undefined);
+              stream.stderr.on('error', () => undefined);
+              stream.resume();
+              stream.stderr.resume();
+              stream.end();
+            }
+            return;
+          }
+          if (err) {
+            result.logs.push(this.maskSecrets(`[ERROR] ${err.message}`, mask));
+            return finish(err);
+          }
+
+          let uploadError = '';
+          // Consume stdout so the non-PTY channel enters flowing mode and can
+          // deliver its close event after the remote cat process exits.
+          stream.on('data', (data: Buffer) => {
+            uploadError += this.stripAnsi(data.toString());
+          });
+          stream.stderr.on('data', (data: Buffer) => {
+            uploadError += this.stripAnsi(data.toString());
+          });
+          stream.on('error', (streamError: Error) => finish(streamError));
+          stream.on('close', (code: number) => {
+            if (settled) return;
+            if (uploadTimer) {
+              clearTimeout(uploadTimer);
+              uploadTimer = undefined;
+            }
+            if (code !== 0) {
+              const detail = uploadError.trim();
+              return finish(
+                new Error(
+                  `Не удалось загрузить скрипт на ноду (код ${String(code)})${detail ? `: ${detail}` : ''}`,
+                ),
+              );
+            }
+            executeUploadedScript(Boolean(useSudo));
+          });
+          stream.end(uploadedContent, 'utf8');
+        });
       });
 
       conn.on('error', (err) => {
         result.logs.push(
           this.maskSecrets(`[SSH] Ошибка подключения: ${err.message}`, mask),
         );
-        reject(err);
+        finish(err);
+      });
+      conn.on('close', () => {
+        if (!settled) finish(new Error('SSH-соединение закрыто'));
       });
 
       const connectOptions: any = {
