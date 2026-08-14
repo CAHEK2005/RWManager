@@ -55,8 +55,7 @@ interface RwNode {
   isDisabled: boolean;
   isConnecting: boolean;
   countryCode: string;
-  xrayVersion: string | null;
-  nodeVersion: string | null;
+  versions: { xray: string; node: string } | null;
   usersOnline: number | null;
   lastStatusMessage: string | null;
 }
@@ -65,6 +64,8 @@ interface RwProfile {
   uuid: string;
   name: string;
 }
+
+const PROFILE_NAME_RE = /^[A-Za-z0-9_\s-]+$/;
 
 function NodeStatusDot({ node }: { node: RwNode }) {
   if (node.isDisabled)
@@ -225,20 +226,39 @@ export default function NodesPage() {
   };
 
   const handleInstall = async () => {
-    if (!nodeName.trim() || !nodeIp.trim()) { setInstallError('Укажите имя ноды и IP-адрес'); return; }
+    const normalizedNodeName = nodeName.trim();
+    const normalizedNodeAddress = nodeIp.trim();
+    const normalizedProfileName = newProfileName.trim();
+
+    if (normalizedNodeName.length < 3 || normalizedNodeName.length > 30) {
+      setInstallError('Имя ноды должно содержать от 3 до 30 символов');
+      return;
+    }
+    if (normalizedNodeAddress.length < 2) {
+      setInstallError('Укажите корректный адрес ноды');
+      return;
+    }
     if (!createNewProfile && !profileUuid) { setInstallError('Выберите профиль или создайте новый'); return; }
-    if (createNewProfile && !newProfileName.trim()) { setInstallError('Укажите имя нового профиля'); return; }
+    if (
+      createNewProfile &&
+      (normalizedProfileName.length < 2 ||
+        normalizedProfileName.length > 30 ||
+        !PROFILE_NAME_RE.test(normalizedProfileName))
+    ) {
+      setInstallError('Имя профиля: 2–30 символов, латиница, цифры, пробел, _ или -');
+      return;
+    }
     setInstalling(true); setInstallError('');
     try {
       const { data } = await api.post('/nodes/install', {
-        name: nodeName.trim(), ip: nodeIp.trim(),
+        name: normalizedNodeName, ip: normalizedNodeAddress,
         sshPort: parseInt(sshPort) || 22, sshUser: sshUser || 'root',
         authType,
         password: authType === 'password' ? sshPassword : undefined,
         sshKey: authType === 'key' ? sshKey : undefined,
         profileUuid: createNewProfile ? undefined : profileUuid,
         createNewProfile,
-        profileName: createNewProfile ? newProfileName.trim() : undefined,
+        profileName: createNewProfile ? normalizedProfileName : undefined,
         countryCode: countryCode.trim().toUpperCase() || undefined,
         nodePort: parseInt(nodePort) || 2222,
         enableOptimization,
@@ -332,8 +352,8 @@ export default function NodesPage() {
                     <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>
                       {node.address}{node.port ? `:${node.port}` : ''}
                     </Typography>
-                    {node.xrayVersion && (
-                      <Typography variant="caption" color="text.secondary">xray {node.xrayVersion}</Typography>
+                    {node.versions?.xray && (
+                      <Typography variant="caption" color="text.secondary">xray {node.versions.xray}</Typography>
                     )}
                   </TableCell>
                   <TableCell><NodeStatusDot node={node} /></TableCell>
@@ -394,6 +414,7 @@ export default function NodesPage() {
               label="Внутреннее имя" size="small" fullWidth
               value={nodeName}
               onChange={e => { setNodeName(e.target.value); setInstallFormDirty(true); }}
+              slotProps={{ htmlInput: { maxLength: 30 } }}
             />
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
               <TextField
@@ -465,7 +486,14 @@ export default function NodesPage() {
               </Select>
             </FormControl>
             {createNewProfile && (
-              <TextField label="Имя нового профиля" size="small" fullWidth value={newProfileName} onChange={e => setNewProfileName(e.target.value)} />
+              <TextField
+                label="Имя нового профиля"
+                size="small"
+                fullWidth
+                value={newProfileName}
+                onChange={e => setNewProfileName(e.target.value)}
+                slotProps={{ htmlInput: { maxLength: 30 } }}
+              />
             )}
             <TextField
               label="Код страны (опционально)" size="small" sx={{ width: 200 }}

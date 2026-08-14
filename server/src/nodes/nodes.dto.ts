@@ -4,7 +4,9 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  Matches,
   Max,
+  MaxLength,
   Min,
   MinLength,
 } from 'class-validator';
@@ -12,11 +14,12 @@ import { Type } from 'class-transformer';
 
 export class InstallNodeRequestDto {
   @IsString()
-  @MinLength(1)
+  @MinLength(3)
+  @MaxLength(30)
   name: string;
 
   @IsString()
-  @MinLength(1)
+  @MinLength(2)
   ip: string;
 
   @IsOptional()
@@ -51,10 +54,14 @@ export class InstallNodeRequestDto {
 
   @IsOptional()
   @IsString()
+  @MinLength(2)
+  @MaxLength(30)
+  @Matches(/^[A-Za-z0-9_\s-]+$/)
   profileName?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(2)
   countryCode?: string;
 
   @IsOptional()

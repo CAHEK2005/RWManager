@@ -22,7 +22,10 @@
 
 - Ubuntu 20.04+ или Debian 12+
 - Docker + Docker Compose v2
-- Панель Remnawave с API-ключом
+- Панель Remnawave с API-ключом (интеграция проверена с API v3.2.3)
+
+Для scoped API-токена Remnawave разрешите config profiles, nodes, hosts,
+keygen и system tools; токен со scope `*` покрывает все функции RWManager.
 
 ## Установка
 

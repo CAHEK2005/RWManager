@@ -7,6 +7,7 @@ import { RemnavaveService } from '../remnawave/remnawave.service';
 import { ScriptsService } from '../scripts/scripts.service';
 import { SYSCTL_CONTENT } from '../config/constants';
 import { randomId } from '../common/random-id';
+import type { CreateRemnawaveNodeBody } from '../remnawave/remnawave.types';
 
 export interface InstallNodeDto {
   name: string;
@@ -65,22 +66,20 @@ export class NodesService {
       const created = await this.remnavaveService.createConfigProfile(
         dto.profileName,
       );
-      profileUuid = created?.uuid || created?.response?.uuid || created;
-      if (!profileUuid || typeof profileUuid !== 'string') {
+      profileUuid = created.uuid;
+      if (!profileUuid) {
         throw new Error('Не удалось получить UUID нового профиля');
       }
     }
 
     if (!profileUuid) throw new Error('UUID профиля не указан');
 
-    const sslCert = await this.remnavaveService.getKeygenPubKey();
+    const nodeSecretKey = await this.remnavaveService.getNodeSecretKey();
 
     const rwProfile = await this.remnavaveService.getConfigProfile(profileUuid);
-    const inboundUuids: string[] = (rwProfile?.inbounds || [])
-      .map((i: any) => i.uuid)
-      .filter(Boolean);
+    const inboundUuids = rwProfile.inbounds.map((inbound) => inbound.uuid);
 
-    const nodeBody: any = {
+    const nodeBody: CreateRemnawaveNodeBody = {
       name: dto.name,
       address: dto.ip,
       port: nodePort,
@@ -92,8 +91,7 @@ export class NodesService {
     if (dto.countryCode) nodeBody.countryCode = dto.countryCode;
 
     const createdNode = await this.remnavaveService.createNode(nodeBody);
-    const nodeUuid: string =
-      createdNode?.uuid || createdNode?.response?.uuid || '';
+    const nodeUuid = createdNode.uuid;
     if (!nodeUuid) {
       throw new Error('Remnawave did not return node UUID');
     }
@@ -118,7 +116,7 @@ export class NodesService {
       `        hard: 1048576`,
       `    environment:`,
       `      - NODE_PORT=${nodePort}`,
-      `      - SECRET_KEY=${sslCert}`,
+      `      - SECRET_KEY=${nodeSecretKey}`,
     ].join('\n');
 
     const commands: string[] = [

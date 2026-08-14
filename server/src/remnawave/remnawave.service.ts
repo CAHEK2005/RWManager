@@ -12,6 +12,16 @@ import {
   fetchWithTimeout,
   readLimitedResponseText,
 } from '../security/url-safety';
+import type {
+  CreateRemnawaveHostBody,
+  CreateRemnawaveNodeBody,
+  RemnawaveConfigProfile,
+  RemnawaveHost,
+  RemnawaveNode,
+  RemnawaveResponse,
+  RemnawaveXrayConfig,
+  UpdateRemnawaveHostBody,
+} from './remnawave.types';
 
 export interface RemnawaveConnectionCheckResult {
   success: boolean;
@@ -51,11 +61,11 @@ export class RemnavaveService {
     return `${parsed.toString().replace(/\/+$/, '')}${path}`;
   }
 
-  private async request(
+  private async request<T>(
     path: string,
     init: RequestInit = {},
     baseOverride?: string,
-  ): Promise<any> {
+  ): Promise<T> {
     const settings = baseOverride
       ? { url: baseOverride, apiKey: '' }
       : await this.getSettings();
@@ -74,55 +84,87 @@ export class RemnavaveService {
     if (!res.ok) {
       throw new Error(`Remnawave request failed: ${res.status} ${text}`);
     }
-    return text ? JSON.parse(text) : null;
+    return (text ? JSON.parse(text) : undefined) as T;
   }
 
-  async getConfigProfiles(): Promise<any[]> {
-    const data = await this.request('/api/config-profiles');
-    // Response shape: { response: { total, configProfiles: [...] } }
-    return data.response?.configProfiles || [];
-  }
-
-  async getConfigProfile(uuid: string): Promise<any> {
-    const profiles = await this.getConfigProfiles();
-    return profiles.find((p: any) => p.uuid === uuid) || null;
-  }
-
-  async updateConfigProfile(uuid: string, config: any): Promise<any> {
-    const data = await this.request('/api/config-profiles', {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ uuid, config }),
-    });
+  private unwrapResponse<T>(data: RemnawaveResponse<T>, operation: string): T {
+    if (!data || data.response === undefined) {
+      throw new Error(`Invalid response from Remnawave for ${operation}`);
+    }
     return data.response;
   }
 
-  async getNodes(): Promise<any[]> {
-    const data = await this.request('/api/nodes');
-    return data.response || [];
+  async getConfigProfiles(): Promise<RemnawaveConfigProfile[]> {
+    const data = await this.request<
+      RemnawaveResponse<{
+        total: number;
+        configProfiles: RemnawaveConfigProfile[];
+      }>
+    >('/api/config-profiles');
+    return this.unwrapResponse(data, 'get config profiles').configProfiles;
   }
 
-  async getAllHosts(): Promise<any[]> {
-    const data = await this.request('/api/hosts');
-    return data.response || [];
+  async getConfigProfile(uuid: string): Promise<RemnawaveConfigProfile> {
+    const data = await this.request<RemnawaveResponse<RemnawaveConfigProfile>>(
+      `/api/config-profiles/${encodeURIComponent(uuid)}`,
+    );
+    return this.unwrapResponse(data, 'get config profile');
   }
 
-  async updateHost(uuid: string, body: object): Promise<any> {
-    const data = await this.request('/api/hosts', {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
+  async updateConfigProfile(
+    uuid: string,
+    config: RemnawaveXrayConfig,
+  ): Promise<RemnawaveConfigProfile> {
+    const data = await this.request<RemnawaveResponse<RemnawaveConfigProfile>>(
+      '/api/config-profiles',
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ uuid, config }),
       },
-      body: JSON.stringify({ uuid, ...body }),
-    });
-    return data.response;
+    );
+    return this.unwrapResponse(data, 'update config profile');
+  }
+
+  async getNodes(): Promise<RemnawaveNode[]> {
+    const data =
+      await this.request<RemnawaveResponse<RemnawaveNode[]>>('/api/nodes');
+    return this.unwrapResponse(data, 'get nodes');
+  }
+
+  async getAllHosts(): Promise<RemnawaveHost[]> {
+    const data =
+      await this.request<RemnawaveResponse<RemnawaveHost[]>>('/api/hosts');
+    return this.unwrapResponse(data, 'get hosts');
+  }
+
+  async updateHost(
+    uuid: string,
+    body: UpdateRemnawaveHostBody,
+  ): Promise<RemnawaveHost> {
+    const data = await this.request<RemnawaveResponse<RemnawaveHost>>(
+      '/api/hosts',
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ...body, uuid }),
+      },
+    );
+    return this.unwrapResponse(data, 'update host');
   }
 
   async getX25519Keys(): Promise<{ publicKey: string; privateKey: string }> {
-    const data = await this.request('/api/system/tools/x25519/generate');
-    const keypair = data.response?.keypairs?.[0] || data.keypairs?.[0];
+    const data = await this.request<
+      RemnawaveResponse<{
+        keypairs: Array<{ publicKey: string; privateKey: string }>;
+      }>
+    >('/api/system/tools/x25519/generate');
+    const keypair = this.unwrapResponse(data, 'generate X25519 keys')
+      .keypairs[0];
 
     if (!keypair) throw new Error('No keypair returned from Remnawave');
     return { publicKey: keypair.publicKey, privateKey: keypair.privateKey };
@@ -157,8 +199,11 @@ export class RemnavaveService {
   }
 
   private describeConnectionResponse(status: number): string {
-    if (status === 401 || status === 403) {
+    if (status === 401) {
       return `Remnawave rejected the API token (HTTP ${status}).`;
+    }
+    if (status === 403) {
+      return 'Remnawave API token cannot access config profiles (HTTP 403). Check the token scopes.';
     }
     if (status === 404) {
       return 'Remnawave API endpoint was not found. Check the panel URL.';
@@ -185,7 +230,10 @@ export class RemnavaveService {
     return `Remnawave connection failed: ${message}`;
   }
 
-  async createConfigProfile(name: string, config?: object): Promise<any> {
+  async createConfigProfile(
+    name: string,
+    config?: RemnawaveXrayConfig,
+  ): Promise<RemnawaveConfigProfile> {
     const tmpTag = `init-${Date.now().toString(36)}-rwm`;
     const defaultConfig = buildInitialXrayConfigFromTemplate(
       DEFAULT_XRAY_CONFIG_TEMPLATE,
@@ -195,118 +243,127 @@ export class RemnavaveService {
     const body = { name, config: config ?? defaultConfig };
     this.logger.log(`createConfigProfile request: ${JSON.stringify(body)}`);
 
-    const data = await this.request('/api/config-profiles', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    return data.response;
+    const data = await this.request<RemnawaveResponse<RemnawaveConfigProfile>>(
+      '/api/config-profiles',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+    );
+    return this.unwrapResponse(data, 'create config profile');
   }
 
-  async deleteConfigProfile(uuid: string): Promise<any> {
-    const data = await this.request(`/api/config-profiles/${uuid}`, {
-      method: 'DELETE',
-    });
-    return data.response;
+  async deleteConfigProfile(uuid: string): Promise<void> {
+    await this.request<void>(
+      `/api/config-profiles/${encodeURIComponent(uuid)}`,
+      {
+        method: 'DELETE',
+      },
+    );
   }
 
-  async renameConfigProfile(uuid: string, name: string): Promise<any> {
-    const data = await this.request('/api/config-profiles', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uuid, name }),
-    });
-    return data.response;
+  async renameConfigProfile(
+    uuid: string,
+    name: string,
+  ): Promise<RemnawaveConfigProfile> {
+    const data = await this.request<RemnawaveResponse<RemnawaveConfigProfile>>(
+      '/api/config-profiles',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uuid, name }),
+      },
+    );
+    return this.unwrapResponse(data, 'rename config profile');
   }
 
-  async createHost(body: {
-    inbound: { configProfileUuid: string; configProfileInboundUuid: string };
-    remark: string;
-    address: string;
-    port: number;
-    nodes?: string[];
-  }): Promise<any> {
-    const data = await this.request('/api/hosts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    return data.response;
+  async createHost(body: CreateRemnawaveHostBody): Promise<RemnawaveHost> {
+    const data = await this.request<RemnawaveResponse<RemnawaveHost>>(
+      '/api/hosts',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+    );
+    return this.unwrapResponse(data, 'create host');
   }
 
   async applyProfileToNode(
     nodeUuid: string,
     profileUuid: string,
     inboundUuids: string[],
-  ): Promise<any> {
+  ): Promise<void> {
     if (!inboundUuids.length)
       throw new Error('applyProfileToNode: inboundUuids must not be empty');
 
-    const data = await this.request(
-      '/api/nodes/bulk-actions/profile-modification',
+    await this.request<void>('/api/nodes/bulk-actions/profile-modification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uuids: [nodeUuid],
+        configProfile: {
+          activeConfigProfileUuid: profileUuid,
+          activeInbounds: inboundUuids,
+        },
+      }),
+    });
+  }
+
+  async getNodeSecretKey(): Promise<string> {
+    const data =
+      await this.request<RemnawaveResponse<{ secretKey: string }>>(
+        '/api/keygen',
+      );
+    const { secretKey } = this.unwrapResponse(data, 'generate node secret key');
+    if (!secretKey)
+      throw new Error('No node secret key returned from Remnawave');
+    return secretKey;
+  }
+
+  async createNode(body: CreateRemnawaveNodeBody): Promise<RemnawaveNode> {
+    const data = await this.request<RemnawaveResponse<RemnawaveNode>>(
+      '/api/nodes',
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          uuids: [nodeUuid],
-          configProfile: {
-            activeConfigProfileUuid: profileUuid,
-            activeInbounds: inboundUuids,
-          },
-        }),
+        body: JSON.stringify(body),
       },
     );
-    return data.response;
+    return this.unwrapResponse(data, 'create node');
   }
 
-  async getKeygenPubKey(): Promise<string> {
-    const data = await this.request('/api/keygen');
-    return data.response?.pubKey || '';
-  }
-
-  async createNode(body: {
-    name: string;
-    address: string;
-    port?: number;
-    countryCode?: string;
-    configProfile: {
-      activeConfigProfileUuid: string;
-      activeInbounds: string[];
-    };
-  }): Promise<any> {
-    const data = await this.request('/api/nodes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    return data.response;
-  }
-
-  async deleteNode(uuid: string): Promise<any> {
-    const data = await this.request(`/api/nodes/${uuid}`, {
+  async deleteNode(uuid: string): Promise<void> {
+    await this.request<void>(`/api/nodes/${encodeURIComponent(uuid)}`, {
       method: 'DELETE',
     });
-    return data.response;
   }
 
-  async enableNode(uuid: string): Promise<any> {
-    const data = await this.request(`/api/nodes/${uuid}/actions/enable`, {
-      method: 'POST',
-    });
-    return data.response;
+  async enableNode(uuid: string): Promise<RemnawaveNode> {
+    const data = await this.request<RemnawaveResponse<RemnawaveNode>>(
+      `/api/nodes/${encodeURIComponent(uuid)}/actions/enable`,
+      { method: 'POST' },
+    );
+    return this.unwrapResponse(data, 'enable node');
   }
 
-  async disableNode(uuid: string): Promise<any> {
-    const data = await this.request(`/api/nodes/${uuid}/actions/disable`, {
-      method: 'POST',
-    });
-    return data.response;
+  async disableNode(uuid: string): Promise<RemnawaveNode> {
+    const data = await this.request<RemnawaveResponse<RemnawaveNode>>(
+      `/api/nodes/${encodeURIComponent(uuid)}/actions/disable`,
+      { method: 'POST' },
+    );
+    return this.unwrapResponse(data, 'disable node');
   }
 
-  async restartNode(uuid: string): Promise<any> {
-    const data = await this.request(`/api/nodes/${uuid}/actions/restart`, {
-      method: 'POST',
-    });
-    return data.response;
+  async restartNode(uuid: string, forceRestart = false): Promise<void> {
+    await this.request<void>(
+      `/api/nodes/${encodeURIComponent(uuid)}/actions/restart`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ forceRestart }),
+      },
+    );
   }
 }

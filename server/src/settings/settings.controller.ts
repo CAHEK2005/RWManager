@@ -170,8 +170,8 @@ export class SettingsController {
           body.name,
           await this.rotationService.buildInitialXrayConfigProfile(),
         );
-        profileUuid = created?.uuid || created?.response?.uuid || created;
-        if (!profileUuid || typeof profileUuid !== 'string') {
+        profileUuid = created.uuid;
+        if (!profileUuid) {
           throw new HttpException(
             'Не удалось получить UUID нового профиля',
             HttpStatus.BAD_REQUEST,
@@ -425,10 +425,7 @@ export class SettingsController {
           nodes: profile.nodeUuid ? [profile.nodeUuid] : undefined,
         });
 
-        const hostUuid =
-          newHost?.uuid ||
-          newHost?.response?.uuid ||
-          (typeof newHost === 'string' ? newHost : null);
+        const hostUuid = newHost.uuid;
         if (hostUuid) {
           newMappings.push({ tag: inboundTag, hostUuid });
           created++;

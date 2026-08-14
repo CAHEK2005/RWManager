@@ -3,6 +3,7 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  Matches,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -13,7 +14,9 @@ export class AddManagedProfileDto {
   uuid?: string;
 
   @IsString()
-  @MinLength(1)
+  @MinLength(2)
+  @MaxLength(30)
+  @Matches(/^[A-Za-z0-9_\s-]+$/)
   name: string;
 
   @IsOptional()
@@ -23,7 +26,9 @@ export class AddManagedProfileDto {
 
 export class RenameManagedProfileDto {
   @IsString()
-  @MinLength(1)
+  @MinLength(2)
+  @MaxLength(30)
+  @Matches(/^[A-Za-z0-9_\s-]+$/)
   name: string;
 }
 

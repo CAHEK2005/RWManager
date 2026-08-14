@@ -30,7 +30,7 @@ interface RwNode {
   isDisabled: boolean;
   countryCode: string;
   usersOnline: number | null;
-  xrayVersion: string | null;
+  versions: { xray: string; node: string } | null;
 }
 
 interface HistoryEntry {
