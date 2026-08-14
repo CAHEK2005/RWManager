@@ -8,6 +8,10 @@ import { SYSCTL_CONTENT } from '../config/constants';
 import { TelegramService } from '../telegram/telegram.service';
 import { randomId } from '../common/random-id';
 import { SecretsService } from '../secrets/secrets.service';
+import {
+  HYSTERIA2_SCRIPT_ID,
+  HYSTERIA2_SETUP_SCRIPT,
+} from './hysteria2-script';
 
 export interface SshNode {
   id: string;
@@ -221,6 +225,14 @@ cd /opt/remnanode && docker compose up -d --force-recreate`,
     content: WARP_UNINSTALL_SCRIPT,
   },
   {
+    id: HYSTERIA2_SCRIPT_ID,
+    name: 'Настройка Hysteria2',
+    description:
+      "Получает сертификат Let's Encrypt через работающий Caddy, подключает его к Remnawave Node и настраивает автообновление",
+    isBuiltIn: true,
+    content: HYSTERIA2_SETUP_SCRIPT,
+  },
+  {
     id: 'builtin-setup-ssh-key',
     name: 'Настройка SSH-ключа',
     description:
@@ -375,6 +387,89 @@ export class ScriptsService implements OnModuleInit {
           : `{{ ${name} }}`;
       },
     );
+  }
+
+  private renderScript(
+    script: Script,
+    variables: Record<string, string>,
+  ): string {
+    this.validateScriptVariables(script, variables);
+    return Object.keys(variables).length > 0
+      ? this.substituteVariables(script.content, variables)
+      : script.content;
+  }
+
+  private validateScriptVariables(
+    script: Script,
+    variables: Record<string, string>,
+  ): void {
+    if (script.id !== HYSTERIA2_SCRIPT_ID) return;
+
+    const needsDomain = /\{\{\s*hysteria_domain(?:\s*\||\s*\}\})/.test(
+      script.content,
+    );
+    const needsEmail = /\{\{\s*certbot_email(?:\s*\||\s*\}\})/.test(
+      script.content,
+    );
+    if (!needsDomain && !needsEmail) return;
+
+    const domain = variables.hysteria_domain;
+    const email = variables.certbot_email;
+
+    if (
+      needsDomain &&
+      (typeof domain !== 'string' || !this.isValidHostname(domain))
+    ) {
+      throw new Error(
+        'Некорректный домен Hysteria2. Укажите доменное имя в нижнем регистре (ASCII/Punycode), без схемы, пути и wildcard.',
+      );
+    }
+
+    if (
+      needsEmail &&
+      (typeof email !== 'string' || !this.isValidEmail(email))
+    ) {
+      throw new Error("Некорректный email для Let's Encrypt.");
+    }
+  }
+
+  private isValidEmail(value: string): boolean {
+    if (value.length > 254 || value !== value.trim()) return false;
+
+    const atIndex = value.lastIndexOf('@');
+    if (atIndex <= 0 || atIndex !== value.indexOf('@')) return false;
+
+    const localPart = value.slice(0, atIndex);
+    const domain = value.slice(atIndex + 1);
+    return (
+      localPart.length <= 64 &&
+      !localPart.startsWith('.') &&
+      !localPart.endsWith('.') &&
+      !localPart.includes('..') &&
+      /^[A-Za-z0-9._%+-]+$/.test(localPart) &&
+      this.isValidHostname(domain)
+    );
+  }
+
+  private isValidHostname(value: string): boolean {
+    if (
+      value.length < 3 ||
+      value.length > 253 ||
+      value !== value.trim() ||
+      value !== value.toLowerCase() ||
+      !value.includes('.')
+    ) {
+      return false;
+    }
+
+    return value
+      .split('.')
+      .every(
+        (label) =>
+          label.length >= 1 &&
+          label.length <= 63 &&
+          /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(label),
+      );
   }
 
   private maskSecrets(text: string, mask: string[]): string {
@@ -722,6 +817,15 @@ export class ScriptsService implements OnModuleInit {
     const targetNodes = nodes.filter((n) => nodeIds.includes(n.id));
     if (!targetNodes.length) throw new Error('Не выбрано ни одной ноды');
 
+    const renderedContentByNode = new Map<string, string>();
+    for (const node of targetNodes) {
+      const nodeVars = {
+        ...(variables ?? {}),
+        ...(variablesPerNode?.[node.id] ?? {}),
+      };
+      renderedContentByNode.set(node.id, this.renderScript(script, nodeVars));
+    }
+
     const sensitiveValues = [
       ...Object.values(variables || {}),
       ...Object.values(variablesPerNode || {}).flatMap((v) => Object.values(v)),
@@ -744,11 +848,7 @@ export class ScriptsService implements OnModuleInit {
     // Запускаем параллельно на всех нодах
     const promises = targetNodes.map(async (node, idx) => {
       const result = job.results[idx];
-      const nodeVars = variablesPerNode?.[node.id] ?? variables ?? {};
-      const content =
-        Object.keys(nodeVars).length > 0
-          ? this.substituteVariables(script.content, nodeVars)
-          : script.content;
+      const content = renderedContentByNode.get(node.id) ?? script.content;
       try {
         await this.runScriptOnNode(node, content, result, sensitiveValues);
         result.status = 'success';
@@ -829,6 +929,20 @@ export class ScriptsService implements OnModuleInit {
     const targetNodes = nodes.filter((n) => nodeIds.includes(n.id));
     if (!targetNodes.length) throw new Error('Не выбрано ни одной ноды');
 
+    const renderedContentByNode = new Map<string, string[]>();
+    for (const node of targetNodes) {
+      renderedContentByNode.set(
+        node.id,
+        resolvedScripts.map((script) => {
+          const vars = {
+            ...(variablesPerScript[script.id] ?? {}),
+            ...(variablesPerScriptPerNode?.[script.id]?.[node.id] ?? {}),
+          };
+          return this.renderScript(script, vars);
+        }),
+      );
+    }
+
     const sensitiveValues = [
       ...Object.values(variablesPerScript).flatMap((vars) =>
         Object.values(vars),
@@ -857,14 +971,8 @@ export class ScriptsService implements OnModuleInit {
       const result = job.results[idx];
       for (let i = 0; i < resolvedScripts.length; i++) {
         const script = resolvedScripts[i];
-        const vars =
-          variablesPerScriptPerNode?.[script.id]?.[node.id] ??
-          variablesPerScript[script.id] ??
-          {};
         const content =
-          Object.keys(vars).length > 0
-            ? this.substituteVariables(script.content, vars)
-            : script.content;
+          renderedContentByNode.get(node.id)?.[i] ?? script.content;
 
         result.logs.push(`=== Скрипт ${i + 1}: ${script.name} ===`);
 
