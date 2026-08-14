@@ -3,7 +3,13 @@ import {
   Alert, Box, TextField, Button, Typography, IconButton, Paper, TablePagination,
   Table, TableHead, TableRow, TableCell, TableBody, Stack, Snackbar, Tooltip,
 } from '@mui/material';
-import { Delete, Add, UploadFile, Language, FileDownload, Remove, DnsOutlined } from '@mui/icons-material';
+import Delete from '@mui/icons-material/Delete';
+import Add from '@mui/icons-material/Add';
+import UploadFile from '@mui/icons-material/UploadFile';
+import Language from '@mui/icons-material/Language';
+import FileDownload from '@mui/icons-material/FileDownload';
+import Remove from '@mui/icons-material/Remove';
+import DnsOutlined from '@mui/icons-material/DnsOutlined';
 import api from '../api';
 import { useAlert } from '../hooks/useAlert';
 import UrlImportDialog from '../components/UrlImportDialog';

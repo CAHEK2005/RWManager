@@ -4,11 +4,19 @@ import {
   useMediaQuery, useTheme, AppBar, Toolbar,
 } from '@mui/material';
 import ConfirmDialog from './ConfirmDialog';
-import {
-  Layers, Dns, Settings, Storage, Dashboard, Terminal,
-  Brightness7, Brightness4, BrightnessAuto, Logout, Menu as MenuIcon,
-  HelpOutline, History,
-} from '@mui/icons-material';
+import Layers from '@mui/icons-material/Layers';
+import Dns from '@mui/icons-material/Dns';
+import Settings from '@mui/icons-material/Settings';
+import Storage from '@mui/icons-material/Storage';
+import Dashboard from '@mui/icons-material/Dashboard';
+import Terminal from '@mui/icons-material/Terminal';
+import Brightness7 from '@mui/icons-material/Brightness7';
+import Brightness4 from '@mui/icons-material/Brightness4';
+import BrightnessAuto from '@mui/icons-material/BrightnessAuto';
+import Logout from '@mui/icons-material/Logout';
+import MenuIcon from '@mui/icons-material/Menu';
+import HelpOutline from '@mui/icons-material/HelpOutline';
+import History from '@mui/icons-material/History';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useThemeContext } from '../useThemeContext';
 import { useAuth } from '../auth/useAuth';

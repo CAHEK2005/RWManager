@@ -4,10 +4,15 @@ import {
   Skeleton, Snackbar, Stack, Table, TableBody, TableCell,
   TableHead, TableRow, Tooltip, Typography, Paper,
 } from '@mui/material';
-import {
-  Refresh, PlayArrow, Storage, Layers, Autorenew, Public,
-  CheckCircle, Cancel, RadioButtonUnchecked,
-} from '@mui/icons-material';
+import Autorenew from '@mui/icons-material/Autorenew';
+import Cancel from '@mui/icons-material/Cancel';
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import Layers from '@mui/icons-material/Layers';
+import PlayArrow from '@mui/icons-material/PlayArrow';
+import Public from '@mui/icons-material/Public';
+import RadioButtonUnchecked from '@mui/icons-material/RadioButtonUnchecked';
+import Refresh from '@mui/icons-material/Refresh';
+import Storage from '@mui/icons-material/Storage';
 import api from '../api';
 import { useAlert } from '../hooks/useAlert';
 import { getErrorMessage } from '../utils/error';

@@ -6,11 +6,28 @@ import {
   Snackbar, Stack, Switch, Tab, Table, TableBody, TableCell, TableHead,
   TableRow, Tabs, TextField, Tooltip, Typography, useMediaQuery, useTheme,
 } from '@mui/material';
-import {
-  Add, CheckCircle, Close, ContentCopy, CropSquare, Delete, Edit, ErrorOutline,
-  FileDownload, History, KeyboardArrowDown, KeyboardArrowUp, Label, MoreVert,
-  LockOpen, OpenInNew, PlayArrow, Remove, Restore, Terminal, UploadFile, VpnKey,
-} from '@mui/icons-material';
+import Add from '@mui/icons-material/Add';
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import Close from '@mui/icons-material/Close';
+import ContentCopy from '@mui/icons-material/ContentCopy';
+import CropSquare from '@mui/icons-material/CropSquare';
+import Delete from '@mui/icons-material/Delete';
+import Edit from '@mui/icons-material/Edit';
+import ErrorOutline from '@mui/icons-material/ErrorOutline';
+import FileDownload from '@mui/icons-material/FileDownload';
+import History from '@mui/icons-material/History';
+import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUp from '@mui/icons-material/KeyboardArrowUp';
+import Label from '@mui/icons-material/Label';
+import LockOpen from '@mui/icons-material/LockOpen';
+import MoreVert from '@mui/icons-material/MoreVert';
+import OpenInNew from '@mui/icons-material/OpenInNew';
+import PlayArrow from '@mui/icons-material/PlayArrow';
+import Remove from '@mui/icons-material/Remove';
+import Restore from '@mui/icons-material/Restore';
+import Terminal from '@mui/icons-material/Terminal';
+import UploadFile from '@mui/icons-material/UploadFile';
+import VpnKey from '@mui/icons-material/VpnKey';
 import type { SelectChangeEvent } from '@mui/material/Select';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';

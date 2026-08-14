@@ -6,10 +6,19 @@ import {
   Tabs, Tab, Snackbar, Alert, useTheme, useMediaQuery, Grid, Divider,
   CircularProgress, List, ListItem, ListItemText,
 } from '@mui/material';
-import {
-  Add, Delete, PlayArrow, PauseCircleFilled, Warning, Check, Refresh,
-  CheckCircle, UploadFile, Language, FileDownload, ContentCopy, MoreVert,
-} from '@mui/icons-material';
+import Add from '@mui/icons-material/Add';
+import Check from '@mui/icons-material/Check';
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import ContentCopy from '@mui/icons-material/ContentCopy';
+import Delete from '@mui/icons-material/Delete';
+import FileDownload from '@mui/icons-material/FileDownload';
+import Language from '@mui/icons-material/Language';
+import MoreVert from '@mui/icons-material/MoreVert';
+import PauseCircleFilled from '@mui/icons-material/PauseCircleFilled';
+import PlayArrow from '@mui/icons-material/PlayArrow';
+import Refresh from '@mui/icons-material/Refresh';
+import UploadFile from '@mui/icons-material/UploadFile';
+import Warning from '@mui/icons-material/Warning';
 import type { SelectChangeEvent } from '@mui/material/Select';
 import api from '../api';
 import { useAlert } from '../hooks/useAlert';

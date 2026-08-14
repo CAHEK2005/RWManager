@@ -5,7 +5,12 @@ import {
   TableHead, TableRow, Typography, TextField, Select, MenuItem,
   FormControl, InputLabel, Pagination,
 } from '@mui/material';
-import { CheckCircle, Cancel, ExpandMore, ExpandLess, DeleteOutline, Refresh } from '@mui/icons-material';
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import Cancel from '@mui/icons-material/Cancel';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import DeleteOutline from '@mui/icons-material/DeleteOutline';
+import Refresh from '@mui/icons-material/Refresh';
 import api from '../api';
 import { useAlert } from '../hooks/useAlert';
 import ConfirmDialog from '../components/ConfirmDialog';

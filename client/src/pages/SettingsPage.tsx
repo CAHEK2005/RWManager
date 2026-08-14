@@ -4,7 +4,8 @@ import {
   Stack, Tabs, Tab, Switch, FormControlLabel,
   IconButton, MenuItem, Tooltip, Dialog, DialogTitle, DialogContent, Chip, Divider,
 } from '@mui/material';
-import { LockOpen, VpnKey } from '@mui/icons-material';
+import LockOpen from '@mui/icons-material/LockOpen';
+import VpnKey from '@mui/icons-material/VpnKey';
 import api from '../api';
 import { useAlert } from '../hooks/useAlert';
 import { getErrorMessage } from '../utils/error';

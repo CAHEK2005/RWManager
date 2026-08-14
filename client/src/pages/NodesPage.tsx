@@ -32,17 +32,15 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import {
-  CheckCircleOutline,
-  ErrorOutline,
-  LockOpen,
-  MoreVert,
-  PowerSettingsNew,
-  Refresh,
-  Add,
-  Delete,
-  VpnKey,
-} from '@mui/icons-material';
+import Add from '@mui/icons-material/Add';
+import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
+import Delete from '@mui/icons-material/Delete';
+import ErrorOutline from '@mui/icons-material/ErrorOutline';
+import LockOpen from '@mui/icons-material/LockOpen';
+import MoreVert from '@mui/icons-material/MoreVert';
+import PowerSettingsNew from '@mui/icons-material/PowerSettingsNew';
+import Refresh from '@mui/icons-material/Refresh';
+import VpnKey from '@mui/icons-material/VpnKey';
 import api from '../api';
 import ConfirmDialog from '../components/ConfirmDialog';
 

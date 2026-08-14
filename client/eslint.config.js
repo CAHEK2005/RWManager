@@ -19,5 +19,19 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@mui/icons-material',
+              message:
+                'Import icons from @mui/icons-material/<IconName> to keep production builds memory-efficient.',
+            },
+          ],
+        },
+      ],
+    },
   },
 ])
