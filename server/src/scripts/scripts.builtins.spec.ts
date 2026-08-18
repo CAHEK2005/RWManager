@@ -143,6 +143,34 @@ describe('ScriptsService built-in scripts', () => {
     expect(rendered).toContain('CERTBOT_EMAIL="admin+acme@example.com"');
   });
 
+  it('bounds the Certbot dry-run and keeps Docker Compose non-interactive', async () => {
+    const { service } = createService();
+    const script = await seedHysteria2Script(service);
+    const dryRunStart = script.content.indexOf(
+      'if [ "$RENEWAL_TESTED" -eq 0 ]; then',
+    );
+    const dryRunEnd = script.content.indexOf('\nfi', dryRunStart);
+
+    expect(dryRunStart).toBeGreaterThanOrEqual(0);
+    expect(dryRunEnd).toBeGreaterThan(dryRunStart);
+
+    const dryRunBlock = script.content.slice(dryRunStart, dryRunEnd);
+    expect(dryRunBlock).toContain('timeout ');
+    expect(dryRunBlock).toContain('--progress plain');
+    expect(dryRunBlock).toContain('run --rm -T certbot renew');
+    expect(dryRunBlock).toContain('--dry-run');
+    expect(dryRunBlock).toContain('--no-random-sleep-on-renew');
+    expect(dryRunBlock).toContain('</dev/null');
+    expect(dryRunBlock).toContain('5 минут');
+    expect(dryRunBlock.indexOf('timeout ')).toBeLessThan(
+      dryRunBlock.indexOf('docker compose'),
+    );
+    expect(dryRunBlock.indexOf('docker compose')).toBeLessThan(
+      dryRunBlock.indexOf('run --rm -T certbot renew'),
+    );
+    expect(script.content).toContain('down --remove-orphans --timeout 10');
+  });
+
   it('rejects unsafe per-node values before starting a script job', async () => {
     const { service, rows } = createService();
     await seedHysteria2Script(service);

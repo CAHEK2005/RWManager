@@ -479,6 +479,13 @@ on_exit() {
   EXIT_CODE=$?
   trap - EXIT
   set +e
+  if [ -n "$STAGE_DIR" ] \\
+    && [ -f "$STAGE_DIR/docker-compose.hysteria2.yml" ]; then
+    timeout --foreground --kill-after=5s 30s \\
+      docker compose --progress plain \\
+      -f "$STAGE_DIR/docker-compose.hysteria2.yml" \\
+      down --remove-orphans --timeout 10 >/dev/null 2>&1 || true
+  fi
   if [ "$EXIT_CODE" -ne 0 ] && [ "$TRANSACTION_ACTIVE" -eq 1 ]; then
     rollback_transaction
   fi
@@ -516,12 +523,14 @@ printf '%s\\n' "$$" > "$SETUP_LOCK_DIR/pid"
 if ! command -v cron >/dev/null 2>&1 \\
   || ! command -v jq >/dev/null 2>&1 \\
   || ! command -v flock >/dev/null 2>&1 \\
-  || ! command -v openssl >/dev/null 2>&1; then
+  || ! command -v openssl >/dev/null 2>&1 \\
+  || ! command -v timeout >/dev/null 2>&1; then
   command -v apt-get >/dev/null 2>&1 \\
-    || fail "Для установки cron, jq, util-linux и openssl необходим apt-get"
-  echo "Установка cron, jq, util-linux и openssl..."
+    || fail "Для установки cron, jq, util-linux, openssl и coreutils необходим apt-get"
+  echo "Установка cron, jq, util-linux, openssl и coreutils..."
   apt-get update -qq
-  DEBIAN_FRONTEND=noninteractive apt-get install -y cron jq util-linux openssl
+  DEBIAN_FRONTEND=noninteractive apt-get install -y \\
+    cron jq util-linux openssl coreutils
 fi
 
 exec 9>/run/lock/rwm-hysteria2.lock
@@ -665,12 +674,28 @@ renewal_uses_expected_webroot \\
   || fail "В Certbot renewal не сохранён правильный webroot"
 
 if [ "$RENEWAL_TESTED" -eq 0 ]; then
-  echo "Проверка будущего продления через Let's Encrypt staging..."
-  docker compose -f "$STAGE_DIR/docker-compose.hysteria2.yml" \\
+  echo "Проверка будущего продления через Let's Encrypt staging (лимит 5 минут)..."
+  DRY_RUN_STATUS=0
+  timeout --foreground --kill-after=30s 5m \\
+    docker compose --progress plain \\
+    -f "$STAGE_DIR/docker-compose.hysteria2.yml" \\
     run --rm -T certbot renew \\
     --dry-run \\
     --cert-name "$HYSTERIA_DOMAIN" \\
-    --no-directory-hooks </dev/null
+    --no-directory-hooks \\
+    --no-random-sleep-on-renew </dev/null \\
+    || DRY_RUN_STATUS=$?
+  case "$DRY_RUN_STATUS" in
+    0)
+      echo "Staging-проверка продления успешно завершена."
+      ;;
+    124|137)
+      fail "Staging-проверка Certbot не завершилась за 5 минут"
+      ;;
+    *)
+      fail "Staging-проверка Certbot завершилась с кодом $DRY_RUN_STATUS"
+      ;;
+  esac
 fi
 
 # Сертификат получен и renewal проверен через staging: ACME-маршрут уже нужен постоянно.
