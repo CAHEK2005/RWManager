@@ -8,6 +8,8 @@ import { SYSCTL_CONTENT } from '../config/constants';
 import { TelegramService } from '../telegram/telegram.service';
 import { randomId } from '../common/random-id';
 import { SecretsService } from '../secrets/secrets.service';
+import { connectSsh, parseSocks5ProxyUrl } from '../common/ssh-proxy';
+import { decryptProxyUrl, encryptProxyUrl } from '../common/proxy-crypto';
 import {
   HYSTERIA2_RECONFIGURE_SCRIPT,
   HYSTERIA2_RECONFIGURE_SCRIPT_ID,
@@ -25,6 +27,8 @@ export interface SshNode {
   authType: 'password' | 'key';
   password?: string;
   sshKey?: string;
+  proxyUrl?: string;
+  hasProxyUrl?: boolean;
   passwordSecretId?: string;
   sshKeySecretId?: string;
   hasPassword?: boolean;
@@ -532,13 +536,30 @@ export class ScriptsService implements OnModuleInit {
   }
 
   private redactSshNode(node: SshNode): SshNode {
-    const { password, sshKey, passwordSecretId, sshKeySecretId, ...rest } =
-      node;
+    const {
+      password,
+      sshKey,
+      passwordSecretId,
+      sshKeySecretId,
+      proxyUrl,
+      ...rest
+    } = node;
     return {
       ...rest,
       hasPassword: Boolean(password || passwordSecretId),
       hasSshKey: Boolean(sshKey || sshKeySecretId),
+      hasProxyUrl: Boolean(proxyUrl),
     };
+  }
+
+  async resolveSshProxyUrl(
+    nodeProxyUrl?: string | null,
+  ): Promise<string | undefined> {
+    if (nodeProxyUrl) return decryptProxyUrl(nodeProxyUrl);
+    const setting = await this.settingRepo.findOne({
+      where: { key: 'ssh_proxy_url' },
+    });
+    return setting?.value ? decryptProxyUrl(setting.value) : undefined;
   }
 
   private async resolveSshNodeSecrets(node: SshNode): Promise<SshNode> {
@@ -556,12 +577,27 @@ export class ScriptsService implements OnModuleInit {
 
   private async loadSshNodesForExecution(): Promise<SshNode[]> {
     const nodes = await this.loadStoredSshNodes();
-    return Promise.all(nodes.map((node) => this.resolveSshNodeSecrets(node)));
+    const globalProxyUrl = await this.resolveSshProxyUrl();
+    return Promise.all(
+      nodes.map(async (node) => ({
+        ...(await this.resolveSshNodeSecrets(node)),
+        proxyUrl: node.proxyUrl
+          ? decryptProxyUrl(node.proxyUrl)
+          : globalProxyUrl,
+      })),
+    );
   }
 
   async getSshNodeForConnection(id: string): Promise<SshNode | null> {
     const nodes = await this.loadSshNodesForExecution();
     return nodes.find((node) => node.id === id) ?? null;
+  }
+
+  async getSshProxyUrlForNode(id: string): Promise<string | undefined> {
+    const nodes = await this.loadStoredSshNodes();
+    return this.resolveSshProxyUrl(
+      nodes.find((node) => node.id === id)?.proxyUrl,
+    );
   }
 
   private async saveSshCredentialSecret(
@@ -572,8 +608,9 @@ export class ScriptsService implements OnModuleInit {
   ): Promise<string | undefined> {
     if (!value?.trim()) return existingSecretId;
     if (existingSecretId) {
-      await this.secretsService.update(existingSecretId, { name, type, value });
-      return existingSecretId;
+      const existingValue =
+        await this.secretsService.getValue(existingSecretId);
+      if (existingValue === value) return existingSecretId;
     }
     const secret = await this.secretsService.create({ name, type, value });
     return secret.id;
@@ -586,18 +623,40 @@ export class ScriptsService implements OnModuleInit {
     const id = node.id || randomId();
     const existing = nodes.find((n) => n.id === id);
     const saved: SshNode = { ...existing, ...node, id } as SshNode;
-    saved.passwordSecretId = await this.saveSshCredentialSecret(
-      existing?.passwordSecretId,
-      `${saved.name} SSH password`,
-      'password',
-      node.password,
-    );
-    saved.sshKeySecretId = await this.saveSshCredentialSecret(
-      existing?.sshKeySecretId,
-      `${saved.name} SSH key`,
-      'ssh-key',
-      node.sshKey,
-    );
+    if (node.proxyUrl !== undefined) {
+      if (node.proxyUrl) {
+        parseSocks5ProxyUrl(node.proxyUrl);
+        saved.proxyUrl = encryptProxyUrl(node.proxyUrl);
+      } else delete saved.proxyUrl;
+    }
+    if (node.passwordSecretId) {
+      if (
+        (await this.secretsService.getValue(node.passwordSecretId)) === null
+      ) {
+        throw new Error('Selected SSH password secret was not found');
+      }
+      saved.passwordSecretId = node.passwordSecretId;
+    } else {
+      saved.passwordSecretId = await this.saveSshCredentialSecret(
+        existing?.passwordSecretId,
+        `${saved.name} SSH password`,
+        'password',
+        node.password,
+      );
+    }
+    if (node.sshKeySecretId) {
+      if ((await this.secretsService.getValue(node.sshKeySecretId)) === null) {
+        throw new Error('Selected SSH key secret was not found');
+      }
+      saved.sshKeySecretId = node.sshKeySecretId;
+    } else {
+      saved.sshKeySecretId = await this.saveSshCredentialSecret(
+        existing?.sshKeySecretId,
+        `${saved.name} SSH key`,
+        'ssh-key',
+        node.sshKey,
+      );
+    }
     delete saved.password;
     delete saved.sshKey;
     delete saved.hasPassword;
@@ -615,6 +674,16 @@ export class ScriptsService implements OnModuleInit {
       'ssh_nodes',
       JSON.stringify(nodes.filter((n) => n.id !== id)),
     );
+  }
+
+  async deleteSshNodes(
+    ids: string[],
+  ): Promise<{ success: true; deleted: number }> {
+    const nodes = await this.loadStoredSshNodes();
+    const selected = new Set(ids);
+    const remaining = nodes.filter((node) => !selected.has(node.id));
+    await this.saveSetting('ssh_nodes', JSON.stringify(remaining));
+    return { success: true, deleted: nodes.length - remaining.length };
   }
 
   async getCategories(): Promise<string[]> {
@@ -653,6 +722,33 @@ export class ScriptsService implements OnModuleInit {
     return updated;
   }
 
+  async deleteCategories(
+    ids: string[],
+  ): Promise<{ success: true; deleted: number }> {
+    const selected = new Set(ids);
+    const row = await this.settingRepo.findOne({
+      where: { key: 'node_categories' },
+    });
+    let categories: { id: string; name: string; color: string }[];
+    try {
+      categories = JSON.parse(row?.value || '[]');
+      if (!Array.isArray(categories)) categories = [];
+    } catch {
+      categories = [];
+    }
+    const remaining = categories.filter(
+      (category) => !selected.has(category.id),
+    );
+    const nodes = await this.loadStoredSshNodes();
+    const updatedNodes = nodes.map((node) => ({
+      ...node,
+      categoryIds: (node.categoryIds || []).filter((id) => !selected.has(id)),
+    }));
+    await this.saveSetting('node_categories', JSON.stringify(remaining));
+    await this.saveSetting('ssh_nodes', JSON.stringify(updatedNodes));
+    return { success: true, deleted: categories.length - remaining.length };
+  }
+
   async addSshNodeFromInstall(
     dto: InstallNodeDto,
     rwNodeUuid: string,
@@ -668,6 +764,9 @@ export class ScriptsService implements OnModuleInit {
       authType: dto.authType,
       password: dto.password,
       sshKey: dto.sshKey,
+      sshKeySecretId: dto.sshKeySecretId,
+      passwordSecretId: dto.passwordSecretId,
+      proxyUrl: dto.proxyUrl,
     };
     await this.upsertSshNode(node);
     this.logger.log(`Нода сохранена после установки: ${name} (${dto.ip})`);
@@ -726,6 +825,25 @@ export class ScriptsService implements OnModuleInit {
       'scripts',
       JSON.stringify(scripts.filter((s) => s.id !== id)),
     );
+  }
+
+  async deleteScripts(
+    ids: string[],
+  ): Promise<{ success: true; deleted: number }> {
+    const selected = new Set(ids);
+    const scripts = await this.loadScripts();
+    let deleted = 0;
+    const remaining = scripts.filter((script) => {
+      if (!selected.has(script.id) || script.isHidden) return true;
+      deleted++;
+      if (script.isBuiltIn) {
+        script.isHidden = true;
+        return true;
+      }
+      return false;
+    });
+    await this.saveSetting('scripts', JSON.stringify(remaining));
+    return { success: true, deleted };
   }
 
   async revertScript(id: string): Promise<Script> {
@@ -827,6 +945,16 @@ export class ScriptsService implements OnModuleInit {
 
   async clearHistory(): Promise<void> {
     await this.saveSetting('script_history', '[]');
+  }
+
+  async deleteHistoryEntries(
+    ids: string[],
+  ): Promise<{ success: true; deleted: number }> {
+    const history = await this.loadHistory();
+    const selected = new Set(ids);
+    const remaining = history.filter((entry) => !selected.has(entry.id));
+    await this.saveSetting('script_history', JSON.stringify(remaining));
+    return { success: true, deleted: history.length - remaining.length };
   }
 
   // ── Execute ──────────────────────────────────────────────────────────────────
@@ -1245,7 +1373,7 @@ export class ScriptsService implements OnModuleInit {
       } else {
         connectOptions.password = node.password || '';
       }
-      conn.connect(connectOptions);
+      connectSsh(conn, connectOptions, node.proxyUrl);
     });
   }
 }

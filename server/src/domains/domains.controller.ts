@@ -8,6 +8,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { DomainsService } from './domains.service';
+import { BulkNumberIdsDto } from '../common/bulk.dto';
 import {
   CreateDomainDto,
   PreviewUrlDto,
@@ -54,6 +55,11 @@ export class DomainsController {
   @Delete('all')
   removeAll() {
     return this.domainsService.removeAll();
+  }
+
+  @Delete('bulk')
+  removeMany(@Body() body: BulkNumberIdsDto) {
+    return this.domainsService.removeMany(body.ids);
   }
 
   @Delete(':id')

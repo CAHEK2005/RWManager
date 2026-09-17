@@ -153,6 +153,11 @@ export class DomainsService implements OnModuleInit {
     return this.repo.delete(id);
   }
 
+  async removeMany(ids: number[]) {
+    const result = await this.repo.delete([...new Set(ids)]);
+    return { success: true, deleted: result.affected ?? 0 };
+  }
+
   async removeAll() {
     await this.repo.clear();
     return { success: true };

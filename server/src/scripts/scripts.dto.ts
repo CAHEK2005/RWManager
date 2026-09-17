@@ -51,6 +51,18 @@ export class SshNodeDto {
   sshKey?: string;
 
   @IsOptional()
+  @IsString()
+  passwordSecretId?: string;
+
+  @IsOptional()
+  @IsString()
+  sshKeySecretId?: string;
+
+  @IsOptional()
+  @IsString()
+  proxyUrl?: string;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   categoryIds?: string[];

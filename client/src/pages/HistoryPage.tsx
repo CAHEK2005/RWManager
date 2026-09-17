@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState, useCallback } from 'react';
 import {
-  Alert, Box, Button, Chip, CircularProgress, Collapse,
+  Alert, Box, Button, Checkbox, Chip, CircularProgress, Collapse,
   IconButton, Paper, Stack, Table, TableBody, TableCell,
   TableHead, TableRow, Typography, TextField, Select, MenuItem,
   FormControl, InputLabel, Pagination,
@@ -47,6 +47,8 @@ export default function HistoryPage() {
   const [detailCache, setDetailCache] = useState<Record<string, HistoryEntry>>({});
   const [clearing, setClearing] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleteSelectedConfirmOpen, setDeleteSelectedConfirmOpen] = useState(false);
   const { msg, showMsg, closeMsg } = useAlert();
 
   const PAGE_SIZE = 20;
@@ -94,9 +96,30 @@ export default function HistoryPage() {
       setEntries([]);
       setTotal(0);
       setDetailCache({});
+      setSelectedIds([]);
       showMsg('success', 'История очищена');
     } catch {
       showMsg('error', 'Ошибка при очистке');
+    } finally {
+      setClearing(false);
+    }
+  };
+
+  const confirmDeleteSelected = async () => {
+    setDeleteSelectedConfirmOpen(false);
+    setClearing(true);
+    try {
+      const { data } = await api.delete('/scripts/history/bulk', { data: { ids: selectedIds } });
+      const deletedIds = new Set(selectedIds);
+      setSelectedIds([]);
+      setExpanded(prev => new Set([...prev].filter(id => !deletedIds.has(id))));
+      setDetailCache(prev => Object.fromEntries(Object.entries(prev).filter(([id]) => !deletedIds.has(id))));
+      if (page > 1 && total - data.deleted <= (page - 1) * PAGE_SIZE) setPage(page - 1);
+      else await load();
+      showMsg('success', `Удалено записей: ${data.deleted}`);
+    } catch {
+      showMsg('error', 'Не удалось удалить выбранные записи');
+      await load();
     } finally {
       setClearing(false);
     }
@@ -145,6 +168,12 @@ export default function HistoryPage() {
         <Button size="small" startIcon={<Refresh />} onClick={load} disabled={loading}>
           Обновить
         </Button>
+        {selectedIds.length > 0 && (
+          <Button size="small" color="error" startIcon={<DeleteOutline />}
+            onClick={() => setDeleteSelectedConfirmOpen(true)} disabled={clearing}>
+            Удалить выбранные ({selectedIds.length})
+          </Button>
+        )}
         <Button size="small" color="error" startIcon={clearing ? <CircularProgress size={14} /> : <DeleteOutline />}
           onClick={handleClear} disabled={clearing || entries.length === 0}>
           Очистить всё
@@ -162,6 +191,12 @@ export default function HistoryPage() {
           <Table size="small">
             <TableHead>
               <TableRow>
+                <TableCell padding="checkbox"><Checkbox size="small" aria-label="Выбрать все видимые записи истории"
+                  checked={filtered.length > 0 && filtered.every(e => selectedIds.includes(e.id))}
+                  indeterminate={filtered.some(e => selectedIds.includes(e.id)) && !filtered.every(e => selectedIds.includes(e.id))}
+                  onChange={event => setSelectedIds(prev => event.target.checked
+                    ? [...new Set([...prev, ...filtered.map(e => e.id)])]
+                    : prev.filter(id => !filtered.some(e => e.id === id)))} /></TableCell>
                 <TableCell />
                 <TableCell>Скрипт</TableCell>
                 <TableCell>Статус</TableCell>
@@ -178,6 +213,11 @@ export default function HistoryPage() {
                 return (
                   <Fragment key={entry.id}>
                     <TableRow key={entry.id} hover sx={{ cursor: 'pointer' }} onClick={() => toggleExpand(entry)}>
+                      <TableCell padding="checkbox" onClick={e => e.stopPropagation()}>
+                        <Checkbox size="small" aria-label={`Выбрать запуск ${entry.scriptName} от ${formatDate(entry.startedAt)}`}
+                          checked={selectedIds.includes(entry.id)}
+                          onChange={() => setSelectedIds(prev => prev.includes(entry.id) ? prev.filter(id => id !== entry.id) : [...prev, entry.id])} />
+                      </TableCell>
                       <TableCell sx={{ width: 32 }}>
                         <IconButton
                           size="small"
@@ -213,7 +253,7 @@ export default function HistoryPage() {
                       </TableCell>
                     </TableRow>
                     <TableRow key={`${entry.id}-detail`}>
-                      <TableCell colSpan={7} sx={{ py: 0 }}>
+                      <TableCell colSpan={8} sx={{ py: 0 }}>
                         <Collapse in={isOpen} unmountOnExit>
                           <Box sx={{ p: 2 }}>
                             {!detail ? (
@@ -275,6 +315,15 @@ export default function HistoryPage() {
         confirmColor="error"
         onConfirm={confirmClear}
         onCancel={() => setClearConfirmOpen(false)}
+      />
+      <ConfirmDialog
+        open={deleteSelectedConfirmOpen}
+        title="Удалить выбранные записи?"
+        message={`Удалить ${selectedIds.length} выбранных записей истории?`}
+        confirmLabel="Удалить"
+        confirmColor="error"
+        onConfirm={confirmDeleteSelected}
+        onCancel={() => setDeleteSelectedConfirmOpen(false)}
       />
     </Box>
   );

@@ -10,6 +10,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { SecretsService } from './secrets.service';
+import { BulkStringIdsDto } from '../common/bulk.dto';
 import { CreateSecretDto, UpdateSecretDto } from './secrets.dto';
 
 @Controller('secrets')
@@ -47,6 +48,11 @@ export class SecretsController {
     } catch {
       throw new HttpException('Secret not found', HttpStatus.NOT_FOUND);
     }
+  }
+
+  @Delete('bulk')
+  deleteMany(@Body() body: BulkStringIdsDto) {
+    return this.secretsService.deleteMany(body.ids);
   }
 
   @Delete(':id')

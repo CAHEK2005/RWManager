@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions,
+  Alert, Box, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions,
   DialogContent, DialogTitle, Divider, FormControl, FormControlLabel,
   IconButton, InputLabel, Menu, MenuItem, Paper, Radio, RadioGroup, Select,
   Snackbar, Stack, Switch, Tab, Table, TableBody, TableCell, TableHead,
@@ -71,6 +71,10 @@ interface SshNode {
   authType: 'password' | 'key';
   password?: string;
   sshKey?: string;
+  passwordSecretId?: string;
+  sshKeySecretId?: string;
+  proxyUrl?: string;
+  hasProxyUrl?: boolean;
   categoryIds?: string[];
   hasPassword?: boolean;
   hasSshKey?: boolean;
@@ -519,6 +523,11 @@ export default function ScriptsPage() {
   // Search/filter
   const [nodeSearch, setNodeSearch] = useState('');
   const [scriptSearch, setScriptSearch] = useState('');
+  const [selectedNodeListIds, setSelectedNodeListIds] = useState<string[]>([]);
+  const [selectedScriptIds, setSelectedScriptIds] = useState<string[]>([]);
+  const [selectedSecretIds, setSelectedSecretIds] = useState<string[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   // Snackbar
   const { msg, showMsg, closeMsg } = useAlert();
@@ -527,6 +536,7 @@ export default function ScriptsPage() {
   const [nodeDialog, setNodeDialog] = useState(false);
   const [nodeForm, setNodeForm] = useState<Partial<SshNode>>(blankNode());
   const [nodeEditId, setNodeEditId] = useState<string | null>(null);
+  const [clearNodeProxy, setClearNodeProxy] = useState(false);
 
   // ── Script content expand ─────────────────────────────────────────────────
   const [expandedScripts, setExpandedScripts] = useState<Set<string>>(new Set());
@@ -565,7 +575,7 @@ export default function ScriptsPage() {
   const [secretForm, setSecretForm] = useState<SecretFormState>({ name: '', type: 'password', value: '', description: '' });
   // Universal secret picker dialog
   const [secretPickerOpen, setSecretPickerOpen] = useState(false);
-  const [secretPickerCallback, setSecretPickerCallback] = useState<((v: string) => void) | null>(null);
+  const [secretPickerCallback, setSecretPickerCallback] = useState<((v: string, id: string) => void) | null>(null);
 
   // ── History ───────────────────────────────────────────────────────────────
   const [scriptHistoryDots, setScriptHistoryDots] = useState<
@@ -722,13 +732,15 @@ export default function ScriptsPage() {
   const openAddNode = () => {
     setNodeEditId(null);
     setNodeForm(blankNode());
+    setClearNodeProxy(false);
     setNodeFormDirty(false);
     setNodeDialog(true);
   };
 
   const openEditNode = (node: SshNode) => {
     setNodeEditId(node.id);
-    setNodeForm({ ...node });
+    setNodeForm({ ...node, proxyUrl: '' });
+    setClearNodeProxy(false);
     setNodeFormDirty(false);
     setNodeDialog(true);
   };
@@ -742,6 +754,9 @@ export default function ScriptsPage() {
       const payload = { ...nodeForm };
       delete payload.hasPassword;
       delete payload.hasSshKey;
+      delete payload.hasProxyUrl;
+      if (nodeEditId && !clearNodeProxy && !payload.proxyUrl?.trim()) delete payload.proxyUrl;
+      if (clearNodeProxy) payload.proxyUrl = '';
       if (nodeEditId) payload.id = nodeEditId;
       await api[nodeEditId ? 'patch' : 'post'](
         nodeEditId ? `/scripts/ssh-nodes/${nodeEditId}` : '/scripts/ssh-nodes',
@@ -763,6 +778,36 @@ export default function ScriptsPage() {
         loadSshNodes();
       } catch (e: unknown) {
         showMsg('error', getErrorMessage(e));
+      }
+    });
+  };
+
+  const toggleSelected = (id: string, selected: string[], setSelected: React.Dispatch<React.SetStateAction<string[]>>) => {
+    setSelected(selected.includes(id) ? selected.filter(item => item !== id) : [...selected, id]);
+  };
+
+  const askBulkDelete = (kind: 'ssh-nodes' | 'scripts' | 'secrets' | 'categories', ids: string[], names: string[], after: () => Promise<unknown>) => {
+    if (!ids.length) return;
+    const url = kind === 'secrets' ? '/secrets/bulk' : `/scripts/${kind}/bulk`;
+    const preview = names.slice(0, 5).join(', ') + (names.length > 5 ? ` и ещё ${names.length - 5}` : '');
+    const builtInCount = kind === 'scripts' ? scripts.filter(s => ids.includes(s.id) && s.isBuiltIn).length : 0;
+    const scriptNote = builtInCount ? ` ${builtInCount} встроенных скриптов будут скрыты.` : '';
+    askDelete('Удалить выбранное', `Удалить ${ids.length} выбранных элементов: ${preview}?${scriptNote}`, async () => {
+      setConfirmDel(d => ({ ...d, open: false }));
+      setBulkBusy(true);
+      try {
+        const { data } = await api.delete(url, { data: { ids } });
+        await after();
+        if (kind === 'ssh-nodes') setSelectedNodeListIds([]);
+        if (kind === 'scripts') { setSelectedScriptIds([]); setScriptQueue(prev => prev.filter(s => !ids.includes(s.id))); }
+        if (kind === 'secrets') setSelectedSecretIds([]);
+        if (kind === 'categories') setSelectedCategoryIds([]);
+        showMsg('success', `Удалено: ${data.deleted}`);
+      } catch (e: unknown) {
+        showMsg('error', getErrorMessage(e));
+        await after();
+      } finally {
+        setBulkBusy(false);
       }
     });
   };
@@ -1195,7 +1240,7 @@ export default function ScriptsPage() {
     });
   };
 
-  const openSecretPicker = (onPick: (v: string) => void) => {
+  const openSecretPicker = (onPick: (v: string, id: string) => void) => {
     setSecretPickerCallback(() => onPick);
     setSecretPickerOpen(true);
   };
@@ -1205,7 +1250,7 @@ export default function ScriptsPage() {
     if (!secretPickerCallback) return;
     try {
       const { data } = await api.get(`/secrets/${id}/value`);
-      secretPickerCallback(data.value);
+      secretPickerCallback(data.value, id);
     } catch {
       showMsg('error', 'Не удалось получить значение секрета');
     }
@@ -1253,6 +1298,10 @@ export default function ScriptsPage() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
+  const filteredNodes = sshNodes.filter(n => !nodeSearch || n.name.toLowerCase().includes(nodeSearch.toLowerCase()) || n.ip.includes(nodeSearch));
+  const filteredScripts = scripts.filter(s => !scriptSearch || s.name.toLowerCase().includes(scriptSearch.toLowerCase()));
+  const selectedScripts = scripts.filter(s => selectedScriptIds.includes(s.id));
+
   return (
     <Box>
       <Box sx={{ mb: 3 }}>
@@ -1288,14 +1337,22 @@ export default function ScriptsPage() {
               </Stack>
 
               {sshNodes.length > 0 && (
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }} sx={{ mb: 2 }}>
                 <TextField
                   size="small"
                   placeholder="Поиск по имени или IP..."
                   value={nodeSearch}
                   onChange={e => setNodeSearch(e.target.value)}
-                  sx={{ mb: 2, maxWidth: 320 }}
+                  sx={{ maxWidth: 320 }}
                   slotProps={{ input: { sx: { fontSize: 14 } } }}
                 />
+                {selectedNodeListIds.length > 0 && (
+                  <Button size="small" color="error" startIcon={<Delete />} disabled={bulkBusy}
+                    onClick={() => askBulkDelete('ssh-nodes', selectedNodeListIds, sshNodes.filter(n => selectedNodeListIds.includes(n.id)).map(n => n.name), loadSshNodes)}>
+                    Удалить выбранные ({selectedNodeListIds.length})
+                  </Button>
+                )}
+                </Stack>
               )}
 
               {sshNodes.length === 0 ? (
@@ -1307,6 +1364,14 @@ export default function ScriptsPage() {
                 <Table size="small" sx={{ minWidth: 360 }}>
                   <TableHead>
                     <TableRow>
+                      <TableCell padding="checkbox">
+                        <Checkbox size="small" aria-label="Выбрать все видимые ноды"
+                          checked={filteredNodes.length > 0 && filteredNodes.every(n => selectedNodeListIds.includes(n.id))}
+                          indeterminate={filteredNodes.some(n => selectedNodeListIds.includes(n.id)) && !filteredNodes.every(n => selectedNodeListIds.includes(n.id))}
+                          onChange={e => setSelectedNodeListIds(prev => e.target.checked
+                            ? [...new Set([...prev, ...filteredNodes.map(n => n.id)])]
+                            : prev.filter(id => !filteredNodes.some(n => n.id === id)))} />
+                      </TableCell>
                       <TableCell>Имя</TableCell>
                       <TableCell>IP</TableCell>
                       <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>SSH-порт</TableCell>
@@ -1318,10 +1383,13 @@ export default function ScriptsPage() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {sshNodes.filter(n => !nodeSearch || n.name.toLowerCase().includes(nodeSearch.toLowerCase()) || n.ip.includes(nodeSearch)).map(node => {
+                    {filteredNodes.map(node => {
                       const rw = rwNodes.find(r => r.uuid === node.rwNodeUuid);
                       return (
                         <TableRow key={node.id} hover>
+                          <TableCell padding="checkbox"><Checkbox size="small" aria-label={`Выбрать ноду ${node.name}`}
+                            checked={selectedNodeListIds.includes(node.id)}
+                            onChange={() => toggleSelected(node.id, selectedNodeListIds, setSelectedNodeListIds)} /></TableCell>
                           <TableCell>{node.name}</TableCell>
                           <TableCell>{node.ip}</TableCell>
                           <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{node.sshPort}</TableCell>
@@ -1332,6 +1400,7 @@ export default function ScriptsPage() {
                               size="small"
                               variant="outlined"
                             />
+                            {node.hasProxyUrl && <Chip label="SOCKS5" size="small" color="info" variant="outlined" sx={{ ml: 0.5 }} />}
                           </TableCell>
                           <TableCell>
                             <Stack direction="row" spacing={0.5} flexWrap="wrap">
@@ -1424,19 +1493,48 @@ export default function ScriptsPage() {
 
               <Divider sx={{ mb: 2 }} />
 
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }} sx={{ mb: 2 }}>
               <TextField
                 size="small"
                 placeholder="Поиск по названию скрипта..."
                 value={scriptSearch}
                 onChange={e => setScriptSearch(e.target.value)}
-                sx={{ mb: 2, maxWidth: 320 }}
+                sx={{ maxWidth: 320 }}
                 slotProps={{ input: { sx: { fontSize: 14 } } }}
               />
+              {selectedScriptIds.length > 0 && (
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Button size="small" startIcon={<Add />} disabled={sshNodes.length === 0}
+                    onClick={() => { selectedScripts.forEach(addToQueue); setSelectedScriptIds([]); }}>
+                    В очередь ({selectedScriptIds.length})
+                  </Button>
+                  <Button size="small" color="error" startIcon={<Delete />} disabled={bulkBusy}
+                    onClick={() => askBulkDelete('scripts', selectedScriptIds, selectedScripts.map(s => s.name), loadScripts)}>
+                    Удалить выбранные ({selectedScriptIds.length})
+                  </Button>
+                </Stack>
+              )}
+              </Stack>
+
+              {filteredScripts.length > 0 && (
+                <Stack direction="row" alignItems="center" sx={{ mb: 1 }}>
+                  <Checkbox size="small" aria-label="Выбрать все видимые скрипты"
+                    checked={filteredScripts.every(s => selectedScriptIds.includes(s.id))}
+                    indeterminate={filteredScripts.some(s => selectedScriptIds.includes(s.id)) && !filteredScripts.every(s => selectedScriptIds.includes(s.id))}
+                    onChange={e => setSelectedScriptIds(prev => e.target.checked
+                      ? [...new Set([...prev, ...filteredScripts.map(s => s.id)])]
+                      : prev.filter(id => !filteredScripts.some(s => s.id === id)))} />
+                  <Typography variant="body2" color="text.secondary">Выбрать видимые скрипты</Typography>
+                </Stack>
+              )}
 
               <Stack spacing={2}>
-                {scripts.filter(s => !scriptSearch || s.name.toLowerCase().includes(scriptSearch.toLowerCase())).map(s => (
+                {filteredScripts.map(s => (
                   <Paper key={s.id} variant="outlined" sx={{ p: 2 }}>
                     <Stack direction="row" alignItems="flex-start" spacing={2}>
+                      <Checkbox size="small" aria-label={`Выбрать скрипт ${s.name}`}
+                        checked={selectedScriptIds.includes(s.id)}
+                        onChange={() => toggleSelected(s.id, selectedScriptIds, setSelectedScriptIds)} sx={{ p: 0.25 }} />
                       <Box sx={{ flex: 1 }}>
                         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
                           <Typography variant="subtitle1" fontWeight={600}>{s.name}</Typography>
@@ -1613,6 +1711,13 @@ export default function ScriptsPage() {
                 </Button>
               </Stack>
 
+              {selectedSecretIds.length > 0 && (
+                <Button size="small" color="error" startIcon={<Delete />} disabled={bulkBusy} sx={{ mb: 1 }}
+                  onClick={() => askBulkDelete('secrets', selectedSecretIds, secrets.filter(s => selectedSecretIds.includes(s.id)).map(s => s.name), loadSecrets)}>
+                  Удалить выбранные ({selectedSecretIds.length})
+                </Button>
+              )}
+
               {secrets.length === 0 ? (
                 <Alert severity="info">
                   Нет сохранённых секретов. Добавьте SSH-ключи, пароли или токены, чтобы использовать их как переменные при запуске скриптов.
@@ -1621,6 +1726,10 @@ export default function ScriptsPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
+                      <TableCell padding="checkbox"><Checkbox size="small" aria-label="Выбрать все секреты"
+                        checked={secrets.length > 0 && secrets.every(s => selectedSecretIds.includes(s.id))}
+                        indeterminate={secrets.some(s => selectedSecretIds.includes(s.id)) && !secrets.every(s => selectedSecretIds.includes(s.id))}
+                        onChange={e => setSelectedSecretIds(e.target.checked ? secrets.map(s => s.id) : [])} /></TableCell>
                       <TableCell>Название</TableCell>
                       <TableCell>Тип</TableCell>
                       <TableCell>Описание</TableCell>
@@ -1631,6 +1740,9 @@ export default function ScriptsPage() {
                   <TableBody>
                     {secrets.map(s => (
                       <TableRow key={s.id} hover>
+                        <TableCell padding="checkbox"><Checkbox size="small" aria-label={`Выбрать секрет ${s.name}`}
+                          checked={selectedSecretIds.includes(s.id)}
+                          onChange={() => toggleSelected(s.id, selectedSecretIds, setSelectedSecretIds)} /></TableCell>
                         <TableCell>
                           <Stack direction="row" spacing={1} alignItems="center">
                             <VpnKey fontSize="small" color="action" />
@@ -1738,6 +1850,24 @@ export default function ScriptsPage() {
               />
             </Stack>
 
+            <TextField
+              label="SOCKS5-прокси ноды"
+              size="small"
+              fullWidth
+              placeholder="socks5://user:password@address:port"
+              value={nodeForm.proxyUrl || ''}
+              onChange={e => { setNodeForm(p => ({ ...p, proxyUrl: e.target.value })); setClearNodeProxy(false); setNodeFormDirty(true); }}
+              helperText={nodeEditId && nodeForm.hasProxyUrl && !clearNodeProxy
+                ? 'Прокси сохранён. Оставьте поле пустым, чтобы сохранить его. Прокси ноды имеет приоритет над общим.'
+                : 'Необязательно. Если оставить пустым, будет использован общий прокси из настроек, если он задан.'}
+            />
+            {nodeEditId && nodeForm.hasProxyUrl && (
+              <Button size="small" color={clearNodeProxy ? 'warning' : 'inherit'} sx={{ alignSelf: 'flex-start' }}
+                onClick={() => { setClearNodeProxy(prev => !prev); setNodeForm(p => ({ ...p, proxyUrl: '' })); setNodeFormDirty(true); }}>
+                {clearNodeProxy ? 'Отменить сброс прокси' : 'Сбросить прокси ноды'}
+              </Button>
+            )}
+
             <FormControl>
               <RadioGroup
                 row
@@ -1756,14 +1886,14 @@ export default function ScriptsPage() {
                 type="password"
                 fullWidth
                 value={nodeForm.password || ''}
-                onChange={e => setNodeForm(p => ({ ...p, password: e.target.value }))}
+                onChange={e => setNodeForm(p => ({ ...p, password: e.target.value, passwordSecretId: undefined }))}
                 slotProps={{ input: { endAdornment: secrets.length > 0 ? (
                   <Tooltip title="Вставить из секретов">
                     <IconButton
                       size="small"
                       edge="end"
                       aria-label="Вставить пароль ноды из секретов"
-                      onClick={() => openSecretPicker(v => setNodeForm(p => ({ ...p, password: v })))}
+                      onClick={() => openSecretPicker((v, id) => setNodeForm(p => ({ ...p, password: v, passwordSecretId: id })))}
                     >
                       <LockOpen fontSize="small" />
                     </IconButton>
@@ -1781,7 +1911,7 @@ export default function ScriptsPage() {
                     if (!file) return;
                     const reader = new FileReader();
                     reader.onload = ev => {
-                      setNodeForm(p => ({ ...p, sshKey: ev.target?.result as string }));
+                      setNodeForm(p => ({ ...p, sshKey: ev.target?.result as string, sshKeySecretId: undefined }));
                     };
                     reader.readAsText(file);
                     e.target.value = '';
@@ -1795,7 +1925,7 @@ export default function ScriptsPage() {
                         <IconButton
                           size="small"
                           aria-label="Вставить SSH-ключ ноды из секретов"
-                          onClick={() => openSecretPicker(v => setNodeForm(p => ({ ...p, sshKey: v })))}
+                          onClick={() => openSecretPicker((v, id) => setNodeForm(p => ({ ...p, sshKey: v, sshKeySecretId: id })))}
                         >
                           <LockOpen fontSize="small" />
                         </IconButton>
@@ -1813,7 +1943,7 @@ export default function ScriptsPage() {
                   fullWidth
                   placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
                   value={nodeForm.sshKey || ''}
-                  onChange={e => setNodeForm(p => ({ ...p, sshKey: e.target.value }))}
+                  onChange={e => setNodeForm(p => ({ ...p, sshKey: e.target.value, sshKeySecretId: undefined }))}
                   slotProps={{ input: { style: { fontFamily: 'monospace', fontSize: '0.75rem' } } }}
                 />
               </Box>
@@ -1862,13 +1992,35 @@ export default function ScriptsPage() {
       }} maxWidth="xs" fullWidth>
         <DialogTitle>Категории нод</DialogTitle>
         <DialogContent>
-          <Stack spacing={1} sx={{ mt: 1 }}>
-            {categories.length === 0 && (
-              <Typography variant="body2" color="textSecondary">Нет категорий. Создайте первую.</Typography>
-            )}
-            {categories.map(cat => (
-              <Stack key={cat.id} direction="row" spacing={1} alignItems="center">
-                <Box sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: cat.color, flexShrink: 0 }} />
+            <Stack spacing={1} sx={{ mt: 1 }}>
+              {categories.length === 0 && (
+                <Typography variant="body2" color="textSecondary">Нет категорий. Создайте первую.</Typography>
+              )}
+              {categories.length > 0 && (
+                <Stack direction="row" alignItems="center" justifyContent="space-between">
+                  <Stack direction="row" alignItems="center">
+                    <Checkbox size="small" aria-label="Выбрать все категории"
+                      checked={categories.every(c => selectedCategoryIds.includes(c.id))}
+                      indeterminate={categories.some(c => selectedCategoryIds.includes(c.id)) && !categories.every(c => selectedCategoryIds.includes(c.id))}
+                      onChange={e => setSelectedCategoryIds(e.target.checked ? categories.map(c => c.id) : [])} />
+                    <Typography variant="body2">Выбрать все</Typography>
+                  </Stack>
+                  {selectedCategoryIds.length > 0 && (
+                    <Button size="small" color="error" startIcon={<Delete />} disabled={bulkBusy}
+                      onClick={() => askBulkDelete('categories', selectedCategoryIds,
+                        categories.filter(c => selectedCategoryIds.includes(c.id)).map(c => c.name),
+                        async () => { await Promise.all([loadCategories(), loadSshNodes()]); })}>
+                      Удалить ({selectedCategoryIds.length})
+                    </Button>
+                  )}
+                </Stack>
+              )}
+              {categories.map(cat => (
+                <Stack key={cat.id} direction="row" spacing={1} alignItems="center">
+                  <Checkbox size="small" aria-label={`Выбрать категорию ${cat.name}`}
+                    checked={selectedCategoryIds.includes(cat.id)}
+                    onChange={() => toggleSelected(cat.id, selectedCategoryIds, setSelectedCategoryIds)} />
+                  <Box sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: cat.color, flexShrink: 0 }} />
                 <Typography variant="body2" sx={{ flex: 1 }}>{cat.name}</Typography>
                 <IconButton size="small" aria-label={`Изменить категорию ${cat.name}`} onClick={() => openEditCategory(cat)}><Edit fontSize="small" /></IconButton>
                 <IconButton size="small" color="error" aria-label={`Удалить категорию ${cat.name}`} onClick={() => handleDeleteCategory(cat.id, cat.name)}><Delete fontSize="small" /></IconButton>

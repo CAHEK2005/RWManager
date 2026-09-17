@@ -32,6 +32,9 @@ export default function SettingsPage() {
 
   const [url, setUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
+  const [sshProxyUrl, setSshProxyUrl] = useState('');
+  const [sshProxyConfigured, setSshProxyConfigured] = useState(false);
+  const [sshProxySaving, setSshProxySaving] = useState(false);
 
   const [adminLogin, setAdminLogin] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
@@ -76,6 +79,7 @@ export default function SettingsPage() {
     api.get('/settings').then(({ data }) => {
       if (data.remnawave_url) setUrl(data.remnawave_url);
       if (data.remnawave_api_key) setApiKey(data.remnawave_api_key);
+      setSshProxyConfigured(data.ssh_proxy_configured === 'true');
       if (data.admin_login) setAdminLogin(data.admin_login);
       if (data.telegram_bot_token) setTgToken(data.telegram_bot_token);
       if (data.telegram_chat_id) setTgChatId(data.telegram_chat_id);
@@ -123,6 +127,36 @@ export default function SettingsPage() {
       }
     } catch (e: unknown) {
       showMsg('error', getErrorMessage(e));
+    }
+  };
+
+  const handleSaveSshProxy = async () => {
+    const nextProxy = sshProxyUrl.trim();
+    if (!nextProxy) return;
+    setSshProxySaving(true);
+    try {
+      await api.post('/settings', { ssh_proxy_url: nextProxy });
+      setSshProxyUrl('');
+      setSshProxyConfigured(true);
+      showMsg('success', 'Глобальный SOCKS5-прокси сохранён');
+    } catch (e: unknown) {
+      showMsg('error', getErrorMessage(e));
+    } finally {
+      setSshProxySaving(false);
+    }
+  };
+
+  const handleClearSshProxy = async () => {
+    setSshProxySaving(true);
+    try {
+      await api.post('/settings', { ssh_proxy_url: '' });
+      setSshProxyUrl('');
+      setSshProxyConfigured(false);
+      showMsg('success', 'Глобальный SOCKS5-прокси удалён');
+    } catch (e: unknown) {
+      showMsg('error', getErrorMessage(e));
+    } finally {
+      setSshProxySaving(false);
     }
   };
 
@@ -270,6 +304,28 @@ export default function SettingsPage() {
                 <Button variant="outlined" onClick={handleCheckConnection}>Проверить подключение</Button>
               )}
               <Button variant="contained" onClick={handleSaveConnection}>Сохранить</Button>
+            </Stack>
+            <Divider sx={{ my: 4 }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>Глобальный SOCKS5-прокси для SSH</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Используется для подключения к нодам и запуска скриптов. Прокси конкретной ноды имеет приоритет.
+            </Typography>
+            <TextField
+              fullWidth size="small" type="password" label="SOCKS5-прокси"
+              value={sshProxyUrl} onChange={e => setSshProxyUrl(e.target.value)}
+              placeholder="socks5://user:password@address:port"
+              helperText={sshProxyConfigured
+                ? 'Прокси настроен. Введите новый адрес, чтобы заменить его.'
+                : 'Необязательно. Оставьте поле пустым для прямого подключения.'}
+              slotProps={{ htmlInput: { autoComplete: 'off' } }}
+            />
+            <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ mt: 2 }}>
+              {sshProxyConfigured && (
+                <Button variant="outlined" color="error" onClick={handleClearSshProxy} disabled={sshProxySaving}>Удалить прокси</Button>
+              )}
+              <Button variant="contained" onClick={handleSaveSshProxy} disabled={!sshProxyUrl.trim() || sshProxySaving}>
+                Сохранить прокси
+              </Button>
             </Stack>
           </Box>
         </TabPanel>

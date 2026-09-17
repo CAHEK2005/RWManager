@@ -110,6 +110,8 @@ export default function NodesPage() {
   const [nodes, setNodes] = useState<RwNode[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const [confirmDel, setConfirmDel] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({ open: false, title: '', message: '', onConfirm: () => {} });
   const askDelete = (title: string, message: string, onConfirm: () => void) =>
@@ -127,6 +129,9 @@ export default function NodesPage() {
   const [authType, setAuthType] = useState<'password' | 'key'>('password');
   const [sshPassword, setSshPassword] = useState('');
   const [sshKey, setSshKey] = useState('');
+  const [passwordSecretId, setPasswordSecretId] = useState<string | null>(null);
+  const [sshKeySecretId, setSshKeySecretId] = useState<string | null>(null);
+  const [proxyUrl, setProxyUrl] = useState('');
   const [profileUuid, setProfileUuid] = useState('');
   const [createNewProfile, setCreateNewProfile] = useState(false);
   const [newProfileName, setNewProfileName] = useState('');
@@ -145,13 +150,15 @@ export default function NodesPage() {
 
   const [secrets, setSecrets] = useState<{ id: string; name: string; type: string }[]>([]);
   const [secretPickerOpen, setSecretPickerOpen] = useState(false);
-  const [secretPickerCallback, setSecretPickerCallback] = useState<((v: string) => void) | null>(null);
+  const [secretPickerCallback, setSecretPickerCallback] = useState<((value: string, id: string) => void) | null>(null);
 
   const loadNodes = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await api.get('/nodes');
-      setNodes(Array.isArray(data) ? data : []);
+      const nextNodes: RwNode[] = Array.isArray(data) ? data : [];
+      setNodes(nextNodes);
+      setSelectedNodeIds(previous => new Set([...previous].filter(id => nextNodes.some(node => node.uuid === id))));
     } catch { /* ignore */ }
     finally { setLoading(false); }
   }, []);
@@ -172,7 +179,7 @@ export default function NodesPage() {
     if (logsEndRef.current) logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
   }, [jobLogs]);
 
-  const openSecretPicker = (onPick: (v: string) => void) => {
+  const openSecretPicker = (onPick: (value: string, id: string) => void) => {
     setSecretPickerCallback(() => onPick);
     setSecretPickerOpen(true);
   };
@@ -182,7 +189,7 @@ export default function NodesPage() {
     if (!secretPickerCallback) return;
     try {
       const { data } = await api.get(`/secrets/${id}/value`);
-      secretPickerCallback(data.value);
+      secretPickerCallback(data.value, id);
     } catch { /* silent */ }
   };
 
@@ -209,6 +216,7 @@ export default function NodesPage() {
     loadProfiles();
     setNodeName(''); setNodeIp(''); setSshPort('22'); setSshUser('root');
     setAuthType('password'); setSshPassword(''); setSshKey('');
+    setPasswordSecretId(null); setSshKeySecretId(null); setProxyUrl('');
     setProfileUuid(''); setCreateNewProfile(false); setNewProfileName('');
     setCountryCode(''); setNodePort('2222'); setEnableOptimization(true);
     setInstallError(''); setInstallFormDirty(false);
@@ -219,7 +227,11 @@ export default function NodesPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => setSshKey((ev.target?.result as string) || '');
+    reader.onload = (ev) => {
+      setSshKey((ev.target?.result as string) || '');
+      setSshKeySecretId(null);
+      setInstallFormDirty(true);
+    };
     reader.readAsText(file);
   };
 
@@ -253,7 +265,10 @@ export default function NodesPage() {
         sshPort: parseInt(sshPort) || 22, sshUser: sshUser || 'root',
         authType,
         password: authType === 'password' ? sshPassword : undefined,
+        passwordSecretId: authType === 'password' ? passwordSecretId || undefined : undefined,
         sshKey: authType === 'key' ? sshKey : undefined,
+        sshKeySecretId: authType === 'key' ? sshKeySecretId || undefined : undefined,
+        proxyUrl: proxyUrl.trim() || undefined,
         profileUuid: createNewProfile ? undefined : profileUuid,
         createNewProfile,
         profileName: createNewProfile ? normalizedProfileName : undefined,
@@ -284,6 +299,37 @@ export default function NodesPage() {
     }
   };
 
+  const toggleNodeSelection = (id: string) => {
+    setSelectedNodeIds(previous => {
+      const next = new Set(previous);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const runBulkAction = async (action: 'enable' | 'disable' | 'restart' | 'delete') => {
+    const uuids = [...selectedNodeIds];
+    if (uuids.length === 0) return;
+    setBulkBusy(true);
+    setActionError('');
+    try {
+      const { data } = await api.post('/nodes/bulk-action', { uuids, action });
+      const results = Array.isArray(data?.results) ? data.results as { uuid: string; success: boolean; error?: string }[] : [];
+      const failed = results.filter(result => !result.success);
+      setSelectedNodeIds(new Set(failed.map(result => result.uuid)));
+      if (failed.length > 0) {
+        setActionError(`Не удалось обработать ${failed.length} из ${uuids.length} нод: ${failed.map(result => `${nodes.find(node => node.uuid === result.uuid)?.name || result.uuid}: ${result.error || 'Ошибка'}`).join('; ')}`);
+      }
+      await loadNodes();
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string };
+      setActionError(err?.response?.data?.message || err?.message || 'Ошибка массового действия');
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   return (
     <Box>
       {/* Page header */}
@@ -306,12 +352,39 @@ export default function NodesPage() {
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError('')}>{actionError}</Alert>
       )}
 
+      {selectedNodeIds.size > 0 && (
+        <Paper variant="outlined" sx={{ p: 1.5, mb: 2 }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
+            <Typography variant="body2" sx={{ mr: 'auto', fontWeight: 600 }}>Выбрано: {selectedNodeIds.size}</Typography>
+            <Button size="small" variant="outlined" disabled={bulkBusy} onClick={() => runBulkAction('restart')}>Перезапустить</Button>
+            <Button size="small" variant="outlined" disabled={bulkBusy} onClick={() => runBulkAction('enable')}>Включить</Button>
+            <Button size="small" variant="outlined" disabled={bulkBusy} onClick={() => runBulkAction('disable')}>Отключить</Button>
+            <Button size="small" color="error" variant="outlined" disabled={bulkBusy} onClick={() => askDelete(
+              'Удалить выбранные ноды',
+              `Удалить ${selectedNodeIds.size} нод из Remnawave?`,
+              () => { setConfirmDel(current => ({ ...current, open: false })); void runBulkAction('delete'); },
+            )}>Удалить</Button>
+            <Button size="small" disabled={bulkBusy} onClick={() => setSelectedNodeIds(new Set())}>Снять выбор</Button>
+          </Stack>
+        </Paper>
+      )}
+
       {/* Nodes table */}
       <Box sx={{ overflowX: 'auto' }}>
         <Paper variant="outlined" sx={{ minWidth: 480 }}>
           <Table size="small">
             <TableHead>
               <TableRow>
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    size="small"
+                    inputProps={{ 'aria-label': 'Выбрать все ноды' }}
+                    checked={nodes.length > 0 && nodes.every(node => selectedNodeIds.has(node.uuid))}
+                    indeterminate={selectedNodeIds.size > 0 && selectedNodeIds.size < nodes.length}
+                    disabled={loading || bulkBusy || nodes.length === 0}
+                    onChange={e => setSelectedNodeIds(e.target.checked ? new Set(nodes.map(node => node.uuid)) : new Set())}
+                  />
+                </TableCell>
                 <TableCell>Имя</TableCell>
                 <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Страна</TableCell>
                 <TableCell>Адрес</TableCell>
@@ -323,20 +396,29 @@ export default function NodesPage() {
             <TableBody>
               {loading && Array(3).fill(0).map((_, i) => (
                 <TableRow key={`sk-${i}`}>
-                  {Array(6).fill(0).map((__, j) => (
+                  {Array(7).fill(0).map((__, j) => (
                     <TableCell key={j}><Skeleton variant="text" /></TableCell>
                   ))}
                 </TableRow>
               ))}
               {!loading && nodes.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                     Нет нод — нажмите «Добавить ноду»
                   </TableCell>
                 </TableRow>
               )}
               {!loading && nodes.map(node => (
-                <TableRow key={node.uuid}>
+                <TableRow key={node.uuid} selected={selectedNodeIds.has(node.uuid)}>
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      size="small"
+                      inputProps={{ 'aria-label': `Выбрать ноду ${node.name}` }}
+                      checked={selectedNodeIds.has(node.uuid)}
+                      disabled={bulkBusy}
+                      onChange={() => toggleNodeSelection(node.uuid)}
+                    />
+                  </TableCell>
                   <TableCell>
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>{node.name}</Typography>
                     {node.lastStatusMessage && !node.isConnected && !node.isDisabled && (
@@ -426,6 +508,14 @@ export default function NodesPage() {
               <TextField label="SSH-пользователь" size="small" fullWidth value={sshUser} onChange={e => setSshUser(e.target.value)} />
               <TextField label="Порт ноды" size="small" sx={{ width: { xs: '100%', sm: 120 } }} value={nodePort} onChange={e => setNodePort(e.target.value)} helperText="APP_PORT" />
             </Stack>
+            <TextField
+              label="SOCKS5-прокси ноды" type="password" size="small" fullWidth
+              value={proxyUrl}
+              onChange={e => { setProxyUrl(e.target.value); setInstallFormDirty(true); }}
+              placeholder="socks5://user:password@address:port"
+              helperText="Необязательно. Прокси ноды имеет приоритет над глобальным прокси в настройках."
+              slotProps={{ htmlInput: { autoComplete: 'off' } }}
+            />
             <FormControl>
               <FormLabel>Аутентификация</FormLabel>
               <RadioGroup row value={authType} onChange={e => setAuthType(e.target.value as 'password' | 'key')}>
@@ -436,10 +526,10 @@ export default function NodesPage() {
             {authType === 'password' ? (
               <TextField
                 label="Пароль" type="password" size="small" fullWidth
-                value={sshPassword} onChange={e => setSshPassword(e.target.value)}
+                value={sshPassword} onChange={e => { setSshPassword(e.target.value); setPasswordSecretId(null); setInstallFormDirty(true); }}
                 slotProps={{ input: { endAdornment: secrets.length > 0 ? (
                   <Tooltip title="Вставить из секретов">
-                    <IconButton size="small" edge="end" aria-label="Вставить пароль из секретов" onClick={() => openSecretPicker(setSshPassword)}>
+                    <IconButton size="small" edge="end" aria-label="Вставить пароль из секретов" onClick={() => openSecretPicker((value, id) => { setSshPassword(value); setPasswordSecretId(id); setInstallFormDirty(true); })}>
                       <LockOpen fontSize="small" />
                     </IconButton>
                   </Tooltip>
@@ -452,7 +542,7 @@ export default function NodesPage() {
                   <Stack direction="row" spacing={0.5}>
                     {secrets.length > 0 && (
                       <Tooltip title="Вставить из секретов">
-                        <IconButton size="small" aria-label="Вставить SSH-ключ из секретов" onClick={() => openSecretPicker(setSshKey)}><LockOpen fontSize="small" /></IconButton>
+                        <IconButton size="small" aria-label="Вставить SSH-ключ из секретов" onClick={() => openSecretPicker((value, id) => { setSshKey(value); setSshKeySecretId(id); setInstallFormDirty(true); })}><LockOpen fontSize="small" /></IconButton>
                       </Tooltip>
                     )}
                     <Button size="small" variant="outlined" onClick={() => fileInputRef.current?.click()}>Загрузить файл</Button>
@@ -461,7 +551,7 @@ export default function NodesPage() {
                 </Stack>
                 <Box
                   component="textarea" value={sshKey}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSshKey(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => { setSshKey(e.target.value); setSshKeySecretId(null); setInstallFormDirty(true); }}
                   placeholder="-----BEGIN RSA PRIVATE KEY-----"
                   rows={5}
                   sx={{ width: '100%', fontFamily: 'monospace', fontSize: 12, p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1, bgcolor: 'background.paper', color: 'text.primary', resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}

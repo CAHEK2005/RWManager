@@ -11,6 +11,7 @@ import * as WebSocket from 'ws';
 import { Client } from 'ssh2';
 import * as http from 'http';
 import { randomId } from '../common/random-id';
+import { connectSsh } from '../common/ssh-proxy';
 
 @Injectable()
 export class TerminalService implements OnModuleInit, OnModuleDestroy {
@@ -187,6 +188,6 @@ export class TerminalService implements OnModuleInit, OnModuleDestroy {
       connectOptions.password = node.password || '';
     }
 
-    conn.connect(connectOptions);
+    connectSsh(conn, connectOptions, node.proxyUrl);
   }
 }

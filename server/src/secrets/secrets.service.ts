@@ -87,12 +87,17 @@ export class SecretsService implements OnModuleInit {
   private async load(): Promise<Secret[]> {
     const row = await this.settingRepo.findOne({ where: { key: 'secrets' } });
     if (!row) return [];
+    let raw: Secret[];
     try {
-      const raw: Secret[] = JSON.parse(row.value);
-      return raw.map((s) => ({ ...s, value: this.decrypt(s.value) }));
+      raw = JSON.parse(row.value);
     } catch {
       return [];
     }
+    if (!Array.isArray(raw)) return [];
+    return raw.map((secret) => ({
+      ...secret,
+      value: this.decrypt(secret.value),
+    }));
   }
 
   private async save(secrets: Secret[]): Promise<void> {
@@ -156,5 +161,13 @@ export class SecretsService implements OnModuleInit {
   async delete(id: string): Promise<void> {
     const secrets = await this.load();
     await this.save(secrets.filter((s) => s.id !== id));
+  }
+
+  async deleteMany(ids: string[]): Promise<{ success: true; deleted: number }> {
+    const secrets = await this.load();
+    const selected = new Set(ids);
+    const remaining = secrets.filter((secret) => !selected.has(secret.id));
+    await this.save(remaining);
+    return { success: true, deleted: secrets.length - remaining.length };
   }
 }

@@ -2,6 +2,7 @@ const SENSITIVE_SETTING_KEYS = new Set([
   'secrets',
   'telegram_bot_token',
   'remnawave_api_key',
+  'ssh_proxy_url',
 ]);
 
 function redactSshNodesValue(value: string): string {
@@ -16,14 +17,17 @@ function redactSshNodesValue(value: string): string {
           redacted.password || redacted.passwordSecretId,
         );
         const hasSshKey = Boolean(redacted.sshKey || redacted.sshKeySecretId);
+        const hasProxyUrl = Boolean(redacted.proxyUrl);
         delete redacted.password;
         delete redacted.sshKey;
         delete redacted.passwordSecretId;
         delete redacted.sshKeySecretId;
+        delete redacted.proxyUrl;
         return {
           ...redacted,
           hasPassword,
           hasSshKey,
+          hasProxyUrl,
         };
       }),
     );
@@ -47,7 +51,10 @@ function redactSettings(
 export function redactSettingsForResponse(
   settings: Record<string, string>,
 ): Record<string, string> {
-  return redactSettings(settings, SENSITIVE_SETTING_KEYS);
+  return {
+    ...redactSettings(settings, SENSITIVE_SETTING_KEYS),
+    ssh_proxy_configured: settings.ssh_proxy_url ? 'true' : 'false',
+  };
 }
 
 export function redactSettingsForBackup(

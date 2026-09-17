@@ -11,6 +11,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ScriptsService } from './scripts.service';
+import { BulkStringIdsDto } from '../common/bulk.dto';
 import {
   assertSafePublicHttpUrl,
   fetchWithTimeout,
@@ -55,6 +56,11 @@ export class ScriptsController {
     }
   }
 
+  @Delete('ssh-nodes/bulk')
+  async deleteSshNodes(@Body() body: BulkStringIdsDto) {
+    return this.scriptsService.deleteSshNodes(body.ids);
+  }
+
   @Delete('ssh-nodes/:id')
   async deleteSshNode(@Param('id') id: string) {
     try {
@@ -79,6 +85,11 @@ export class ScriptsController {
     } catch (e) {
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
+  }
+
+  @Delete('categories/bulk')
+  async deleteCategories(@Body() body: BulkStringIdsDto) {
+    return this.scriptsService.deleteCategories(body.ids);
   }
 
   @Delete('categories/:name')
@@ -122,6 +133,11 @@ export class ScriptsController {
     } catch (e) {
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
+  }
+
+  @Delete('scripts/bulk')
+  async deleteScripts(@Body() body: BulkStringIdsDto) {
+    return this.scriptsService.deleteScripts(body.ids);
   }
 
   @Delete('scripts/:id')
@@ -227,6 +243,11 @@ export class ScriptsController {
     if (!entry)
       throw new HttpException('Запись не найдена', HttpStatus.NOT_FOUND);
     return entry;
+  }
+
+  @Delete('history/bulk')
+  async deleteHistoryEntries(@Body() body: BulkStringIdsDto) {
+    return this.scriptsService.deleteHistoryEntries(body.ids);
   }
 
   @Delete('history')

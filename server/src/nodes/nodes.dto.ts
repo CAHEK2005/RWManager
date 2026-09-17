@@ -46,6 +46,18 @@ export class InstallNodeRequestDto {
 
   @IsOptional()
   @IsString()
+  sshKeySecretId?: string;
+
+  @IsOptional()
+  @IsString()
+  passwordSecretId?: string;
+
+  @IsOptional()
+  @IsString()
+  proxyUrl?: string;
+
+  @IsOptional()
+  @IsString()
   profileUuid?: string;
 
   @IsOptional()

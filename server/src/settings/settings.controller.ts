@@ -13,6 +13,8 @@ import {
   Res,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { BulkStringIdsDto } from '../common/bulk.dto';
+import { BulkRotationStateDto } from './settings-bulk.dto';
 import { Repository } from 'typeorm';
 import { Setting } from './entities/setting.entity';
 import { Domain } from '../domains/entities/domain.entity';
@@ -55,6 +57,8 @@ import {
   XRAY_INBOUNDS_PLACEHOLDER,
   normalizeXrayConfigTemplate,
 } from './xray-template';
+import { parseSocks5ProxyUrl } from '../common/ssh-proxy';
+import { encryptProxyUrl } from '../common/proxy-crypto';
 
 @Controller('settings')
 export class SettingsController {
@@ -284,6 +288,69 @@ export class SettingsController {
     profiles[idx] = nextProfile;
     await this.rotationService.saveProfiles(profiles);
     return profiles[idx];
+  }
+
+  @Delete('profiles/managed/bulk')
+  async deleteManagedProfilesBulk(
+    @Body() body: BulkStringIdsDto,
+    @Query('deleteFromRemnawave') deleteFromRemnawave?: string,
+  ) {
+    const selected = new Set(body.ids);
+    const profiles = await this.rotationService.loadProfiles();
+    const toDelete = profiles.filter((profile) => selected.has(profile.uuid));
+    const remoteFailures: { uuid: string; error: string }[] = [];
+    if (deleteFromRemnawave === 'true') {
+      for (const profile of toDelete) {
+        try {
+          await this.remnavaveService.deleteConfigProfile(profile.uuid);
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          this.logger.warn(
+            `Failed to delete Remnawave profile ${profile.uuid}: ${message}`,
+          );
+          remoteFailures.push({ uuid: profile.uuid, error: message });
+        }
+      }
+    }
+    await this.rotationService.saveProfiles(
+      profiles.filter((profile) => !selected.has(profile.uuid)),
+    );
+    return { success: true, deleted: toDelete.length, remoteFailures };
+  }
+
+  @Patch('profiles/managed/bulk/rotation')
+  async updateManagedProfilesRotationBulk(@Body() body: BulkRotationStateDto) {
+    const selected = new Set(body.ids);
+    const profiles = await this.rotationService.loadProfiles();
+    let updated = 0;
+    for (const profile of profiles) {
+      if (selected.has(profile.uuid)) {
+        profile.rotationEnabled = body.enabled;
+        updated++;
+      }
+    }
+    await this.rotationService.saveProfiles(profiles);
+    return { success: true, updated };
+  }
+
+  @Post('profiles/managed/bulk-rotate')
+  async rotateManagedProfilesBulk(@Body() body: BulkStringIdsDto) {
+    const selected = new Set(body.ids);
+    const profiles = await this.rotationService.loadProfiles();
+    const results: { uuid: string; success: boolean; message: string }[] = [];
+    for (const profile of profiles) {
+      if (!selected.has(profile.uuid)) continue;
+      const result = await this.rotationService.performRotation(profile);
+      profile.lastRotationTimestamp = result.success
+        ? Date.now()
+        : profile.lastRotationTimestamp;
+      profile.lastRotationStatus = result.success ? 'success' : 'error';
+      profile.lastRotationError = result.success ? '' : result.message;
+      results.push({ uuid: profile.uuid, ...result });
+    }
+    await this.rotationService.saveProfiles(profiles);
+    return { results };
   }
 
   @Delete('profiles/managed/:uuid')
@@ -537,6 +604,13 @@ export class SettingsController {
 
   @Post()
   async update(@Body() settings: Record<string, string>) {
+    if (settings.ssh_proxy_url) {
+      try {
+        parseSocks5ProxyUrl(settings.ssh_proxy_url);
+      } catch (error) {
+        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      }
+    }
     if (settings.remnawave_url) {
       try {
         const parsed = new URL(settings.remnawave_url);
@@ -584,7 +658,11 @@ export class SettingsController {
     }
 
     for (const [key, value] of Object.entries(settings)) {
-      await this.settingsRepo.save({ key, value });
+      if (key === 'ssh_proxy_configured') continue;
+      await this.settingsRepo.save({
+        key,
+        value: key === 'ssh_proxy_url' ? encryptProxyUrl(value) : value,
+      });
     }
     return { success: true };
   }

@@ -6,6 +6,7 @@ import * as net from 'net';
 import { Setting } from '../settings/entities/setting.entity';
 import { TelegramService } from '../telegram/telegram.service';
 import { ScriptsService } from '../scripts/scripts.service';
+import { openSocks5Socket } from '../common/ssh-proxy';
 
 export interface NodeHealthStatus {
   nodeId: string;
@@ -48,11 +49,21 @@ export class HealthService {
     };
   }
 
-  private tcpPing(
+  private async tcpPing(
     ip: string,
     port: number,
+    proxyUrl?: string,
     timeoutMs = 5000,
   ): Promise<boolean> {
+    if (proxyUrl) {
+      try {
+        const socket = await openSocks5Socket(proxyUrl, ip, port, timeoutMs);
+        socket.destroy();
+        return true;
+      } catch {
+        return false;
+      }
+    }
     return new Promise((resolve) => {
       const socket = new net.Socket();
       socket.setTimeout(timeoutMs);
@@ -88,7 +99,8 @@ export class HealthService {
 
     const nowIso = new Date().toISOString();
     for (const node of nodes) {
-      const online = await this.tcpPing(node.ip, node.sshPort || 22);
+      const proxyUrl = await this.scriptsService.getSshProxyUrlForNode(node.id);
+      const online = await this.tcpPing(node.ip, node.sshPort || 22, proxyUrl);
       const prev = this.statusMap.get(node.id);
       const status: NodeHealthStatus = {
         nodeId: node.id,

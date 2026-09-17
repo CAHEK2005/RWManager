@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert, Box, Button, Chip, CircularProgress,
+  Alert, Box, Button, Checkbox, Chip, CircularProgress,
   Skeleton, Snackbar, Stack, Table, TableBody, TableCell,
   TableHead, TableRow, Tooltip, Typography, Paper,
 } from '@mui/material';
@@ -156,6 +156,7 @@ export default function DashboardPage() {
   const [healthError, setHealthError] = useState('');
   const { msg, showMsg, closeMsg } = useAlert();
   const [rotating, setRotating] = useState<string | null>(null);
+  const [selectedProfileIds, setSelectedProfileIds] = useState<string[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadAll = useCallback(async () => {
@@ -210,6 +211,23 @@ export default function DashboardPage() {
       setRotating(uuid);
       const { data } = await api.post(`/settings/profiles/managed/${uuid}/rotate`);
       showMsg(data.success ? 'success' : 'error', data.message);
+      await loadAll();
+    } catch (e: unknown) {
+      showMsg('error', getErrorMessage(e));
+    } finally { setRotating(null); }
+  };
+
+  const handleRotateSelected = async () => {
+    if (!selectedProfileIds.length) return;
+    try {
+      setRotating('selected');
+      const { data } = await api.post('/settings/profiles/managed/bulk-rotate', { ids: selectedProfileIds });
+      const results = (data.results as { success: boolean }[] | undefined) || [];
+      const failed = results.filter(result => !result.success).length;
+      showMsg(failed ? 'error' : 'success', failed
+        ? `Ротация: ${results.length - failed} успешно, ${failed} с ошибкой`
+        : `Ротация выполнена для ${results.length} профилей`);
+      setSelectedProfileIds([]);
       await loadAll();
     } catch (e: unknown) {
       showMsg('error', getErrorMessage(e));
@@ -309,6 +327,14 @@ export default function DashboardPage() {
         {/* Profiles */}
         <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', overflowX: 'auto' }}>
           <SectionHeader title="Профили" count={profiles.length} />
+          {selectedProfileIds.length > 0 && (
+            <Box sx={{ px: 2, pb: 1 }}>
+              <Button size="small" startIcon={rotating === 'selected' ? <CircularProgress size={14} /> : <Autorenew />}
+                onClick={handleRotateSelected} disabled={!!rotating}>
+                Ротировать выбранные ({selectedProfileIds.length})
+              </Button>
+            </Box>
+          )}
           {profiles.length === 0 ? (
             <Box sx={{ p: 3, textAlign: 'center' }}>
               <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>Нет профилей</Typography>
@@ -317,6 +343,10 @@ export default function DashboardPage() {
             <Table size="small">
               <TableHead>
                 <TableRow>
+                  <TableCell padding="checkbox"><Checkbox size="small" aria-label="Выбрать все профили"
+                    checked={profiles.length > 0 && profiles.every(p => selectedProfileIds.includes(p.uuid))}
+                    indeterminate={profiles.some(p => selectedProfileIds.includes(p.uuid)) && !profiles.every(p => selectedProfileIds.includes(p.uuid))}
+                    onChange={e => setSelectedProfileIds(e.target.checked ? profiles.map(p => p.uuid) : [])} /></TableCell>
                   <TableCell>Имя</TableCell>
                   <TableCell>Статус</TableCell>
                   <TableCell>Ротация</TableCell>
@@ -326,11 +356,14 @@ export default function DashboardPage() {
               <TableBody>
                 {loading && Array(3).fill(0).map((_, i) => (
                   <TableRow key={`sk-p-${i}`}>
-                    {Array(4).fill(0).map((__, j) => <TableCell key={j}><Skeleton variant="text" /></TableCell>)}
+                    {Array(5).fill(0).map((__, j) => <TableCell key={j}><Skeleton variant="text" /></TableCell>)}
                   </TableRow>
                 ))}
                 {!loading && profiles.map((p) => (
                   <TableRow key={p.uuid}>
+                    <TableCell padding="checkbox"><Checkbox size="small" aria-label={`Выбрать профиль ${p.name}`}
+                      checked={selectedProfileIds.includes(p.uuid)}
+                      onChange={() => setSelectedProfileIds(prev => prev.includes(p.uuid) ? prev.filter(id => id !== p.uuid) : [...prev, p.uuid])} /></TableCell>
                     <TableCell>
                       <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500 }}>{p.name}</Typography>
                     </TableCell>

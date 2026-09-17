@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert, Box, TextField, Button, Typography, IconButton, Paper, TablePagination,
+  Alert, Box, TextField, Button, Checkbox, Typography, IconButton, Paper, TablePagination,
   Table, TableHead, TableRow, TableCell, TableBody, Stack, Snackbar, Tooltip,
 } from '@mui/material';
 import Delete from '@mui/icons-material/Delete';
@@ -33,6 +33,8 @@ export default function DomainsPage() {
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const loadDomains = useCallback(async () => {
     try {
@@ -74,6 +76,26 @@ export default function DomainsPage() {
         try { await api.delete('/domains/all'); loadDomains(); } catch { /* ignore */ }
       },
     );
+  };
+
+  const handleDeleteSelected = () => {
+    if (!selectedIds.length) return;
+    askDelete('Удалить выбранные домены', `Удалить ${selectedIds.length} выбранных доменов?`, async () => {
+      setConfirmDel(d => ({ ...d, open: false }));
+      setBulkBusy(true);
+      try {
+        const { data } = await api.delete('/domains/bulk', { data: { ids: selectedIds } });
+        setSelectedIds([]);
+        if (page > 0 && totalCount - data.deleted <= page * rowsPerPage) setPage(page - 1);
+        else await loadDomains();
+        showMsg('success', `Удалено доменов: ${data.deleted}`);
+      } catch {
+        showMsg('error', 'Не удалось удалить выбранные домены');
+        await loadDomains();
+      } finally {
+        setBulkBusy(false);
+      }
+    });
   };
 
   const handleExport = async () => {
@@ -156,6 +178,12 @@ export default function DomainsPage() {
         <Table size="small">
           <TableHead>
             <TableRow>
+              <TableCell padding="checkbox"><Checkbox size="small" aria-label="Выбрать все домены на странице"
+                checked={domains.length > 0 && domains.every(d => selectedIds.includes(d.id))}
+                indeterminate={domains.some(d => selectedIds.includes(d.id)) && !domains.every(d => selectedIds.includes(d.id))}
+                onChange={e => setSelectedIds(prev => e.target.checked
+                  ? [...new Set([...prev, ...domains.map(d => d.id)])]
+                  : prev.filter(id => !domains.some(d => d.id === id)))} /></TableCell>
               <TableCell>Домен</TableCell>
               <TableCell align="right" sx={{ width: 60 }}></TableCell>
             </TableRow>
@@ -163,6 +191,9 @@ export default function DomainsPage() {
           <TableBody>
             {domains.map(d => (
               <TableRow key={d.id}>
+                <TableCell padding="checkbox"><Checkbox size="small" aria-label={`Выбрать домен ${d.name}`}
+                  checked={selectedIds.includes(d.id)}
+                  onChange={() => setSelectedIds(prev => prev.includes(d.id) ? prev.filter(id => id !== d.id) : [...prev, d.id])} /></TableCell>
                 <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{d.name}</TableCell>
                 <TableCell align="right">
                   <IconButton
@@ -178,7 +209,7 @@ export default function DomainsPage() {
             ))}
             {domains.length === 0 && (
               <TableRow>
-                <TableCell colSpan={2} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                <TableCell colSpan={3} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                   Нет доменов
                 </TableCell>
               </TableRow>
@@ -188,6 +219,11 @@ export default function DomainsPage() {
 
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1, borderTop: 1, borderColor: 'divider' }}>
           <Stack direction="row" spacing={1}>
+            {selectedIds.length > 0 && (
+              <Button size="small" color="error" startIcon={<Delete />} onClick={handleDeleteSelected} disabled={bulkBusy}>
+                Удалить выбранные ({selectedIds.length})
+              </Button>
+            )}
             <Button size="small" variant="text" startIcon={<FileDownload />} onClick={handleExport} disabled={totalCount === 0}>
               Экспорт .txt
             </Button>

@@ -198,6 +198,8 @@ export default function ProfilesPage() {
   const [hosts, setHosts] = useState<RwHost[]>([]);
   const [profileTab, setProfileTab] = useState(0);
   const [profileSearch, setProfileSearch] = useState('');
+  const [selectedProfileIds, setSelectedProfileIds] = useState<string[]>([]);
+  const [selectedInboundIndices, setSelectedInboundIndices] = useState<number[]>([]);
 
   // Dialogs
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -206,6 +208,7 @@ export default function ProfilesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [profileToDelete, setProfileToDelete] = useState<ManagedProfile | null>(null);
   const [deleteFromRemnawave, setDeleteFromRemnawave] = useState(false);
+  const [bulkDelete, setBulkDelete] = useState(false);
 
   // Inline rename
   const [renamingUuid, setRenamingUuid] = useState<string | null>(null);
@@ -239,6 +242,7 @@ export default function ProfilesPage() {
 
   // ── Tab 4: SNI Domains ────────────────────────────────────────────────────
   const [localProfileDomains, setLocalProfileDomains] = useState<string[]>([]);
+  const [selectedLocalDomains, setSelectedLocalDomains] = useState<string[]>([]);
   const [domainInput, setDomainInput] = useState('');
   const [profileUrlImportOpen, setProfileUrlImportOpen] = useState(false);
   const domainFileInputRef = useRef<HTMLInputElement>(null);
@@ -312,6 +316,7 @@ export default function ProfilesPage() {
   useEffect(() => {
     if (!selectedProfile) return;
     setLocalInbounds(selectedProfile.inboundsConfig || []);
+    setSelectedInboundIndices([]);
     setLocalExcludedPorts(selectedProfile.excludedPorts || []);
     setExcludedPortInput('');
     setLocalNodeUuid(selectedProfile.nodeUuid || '');
@@ -328,6 +333,7 @@ export default function ProfilesPage() {
     setLocalTimezone(selectedProfile.rotationTimezone || 'Europe/Moscow');
     setLocalScheduleDays(selectedProfile.rotationScheduleDays || []);
     setLocalProfileDomains(selectedProfile.profileDomains || []);
+    setSelectedLocalDomains([]);
     setDomainInput('');
   }, [loadSni, selectedProfile]);
 
@@ -392,24 +398,64 @@ export default function ProfilesPage() {
 
   const handleDeleteOpen = (p: ManagedProfile, e: React.MouseEvent) => {
     e.stopPropagation();
+    setBulkDelete(false);
     setProfileToDelete(p);
     setDeleteFromRemnawave(false);
     setDeleteDialogOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
-    if (!profileToDelete) return;
+    if (!bulkDelete && !profileToDelete) return;
     try {
       const params = deleteFromRemnawave ? '?deleteFromRemnawave=true' : '';
-      await api.delete(`/settings/profiles/managed/${profileToDelete.uuid}${params}`);
-      setProfiles(prev => prev.filter(p => p.uuid !== profileToDelete.uuid));
-      if (selectedProfile?.uuid === profileToDelete.uuid) setSelectedProfile(null);
-      showMsg('success', `Профиль "${profileToDelete.name}" удалён`);
+      if (bulkDelete) {
+        const { data } = await api.delete(`/settings/profiles/managed/bulk${params}`, { data: { ids: selectedProfileIds } });
+        setProfiles(prev => prev.filter(p => !selectedProfileIds.includes(p.uuid)));
+        if (selectedProfile && selectedProfileIds.includes(selectedProfile.uuid)) setSelectedProfile(null);
+        const remoteFailures = (data.remoteFailures as { uuid: string; error: string }[] | undefined) || [];
+        showMsg(remoteFailures.length ? 'error' : 'success', remoteFailures.length
+          ? `Локально удалено ${data.deleted} профилей, но ${remoteFailures.length} не удалось удалить из Remnawave`
+          : `Удалено профилей: ${data.deleted}`);
+        setSelectedProfileIds([]);
+      } else if (profileToDelete) {
+        await api.delete(`/settings/profiles/managed/${profileToDelete.uuid}${params}`);
+        setProfiles(prev => prev.filter(p => p.uuid !== profileToDelete.uuid));
+        if (selectedProfile?.uuid === profileToDelete.uuid) setSelectedProfile(null);
+        showMsg('success', `Профиль "${profileToDelete.name}" удалён`);
+      }
     } catch (e: unknown) {
       showMsg('error', getErrorMessage(e));
     }
     setDeleteDialogOpen(false);
     setProfileToDelete(null);
+    setBulkDelete(false);
+  };
+
+  const handleBulkRotate = async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.post('/settings/profiles/managed/bulk-rotate', { ids: selectedProfileIds });
+      const results = (data.results as { uuid: string; success: boolean; message: string }[] | undefined) || [];
+      const failed = results.filter(result => !result.success);
+      showMsg(failed.length ? 'error' : 'success', failed.length
+        ? `Ротация: ${results.length - failed.length} успешно, ${failed.length} с ошибкой`
+        : `Ротация выполнена для ${results.length} профилей`);
+      await loadProfiles();
+    } catch (e: unknown) {
+      showMsg('error', getErrorMessage(e));
+    } finally { setLoading(false); }
+  };
+
+  const handleBulkRotationEnabled = async (enabled: boolean) => {
+    setLoading(true);
+    try {
+      await api.patch('/settings/profiles/managed/bulk/rotation', { ids: selectedProfileIds, enabled });
+      setProfiles(prev => prev.map(p => selectedProfileIds.includes(p.uuid) ? { ...p, rotationEnabled: enabled } : p));
+      setSelectedProfile(prev => prev && selectedProfileIds.includes(prev.uuid) ? { ...prev, rotationEnabled: enabled } : prev);
+      showMsg('success', `Ротация ${enabled ? 'включена' : 'приостановлена'} для ${selectedProfileIds.length} профилей`);
+    } catch (e: unknown) {
+      showMsg('error', getErrorMessage(e));
+    } finally { setLoading(false); }
   };
 
   const handleAddExisting = async () => {
@@ -451,6 +497,7 @@ export default function ProfilesPage() {
 
   const removeInbound = (idx: number) => {
     setLocalInbounds(prev => prev.filter((_, i) => i !== idx));
+    setSelectedInboundIndices([]);
   };
 
   const updateInbound = (idx: number, field: string, value: string) => {
@@ -694,10 +741,12 @@ export default function ProfilesPage() {
 
   const handleRemoveDomain = (domain: string) => {
     setLocalProfileDomains(prev => prev.filter(d => d !== domain));
+    setSelectedLocalDomains(prev => prev.filter(d => d !== domain));
   };
 
   const handleClearAllDomains = () => {
     setLocalProfileDomains([]);
+    setSelectedLocalDomains([]);
   };
 
   const handleDomainFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -755,6 +804,7 @@ export default function ProfilesPage() {
 
   const alreadyAddedUuids = new Set(profiles.map(p => p.uuid));
   const availableRwProfiles = rwProfiles.filter(p => !alreadyAddedUuids.has(p.uuid));
+  const filteredProfiles = profiles.filter(p => !profileSearch || p.name.toLowerCase().includes(profileSearch.toLowerCase()));
 
   return (
     <Box>
@@ -787,14 +837,31 @@ export default function ProfilesPage() {
         {/* Profile cards */}
         <Grid size={{ xs: 12, md: selectedProfile ? 4 : 12 }}>
           {profiles.length > 0 && (
+            <Stack direction="row" flexWrap="wrap" alignItems="center" spacing={1} sx={{ mb: 2 }}>
             <TextField
               size="small"
               placeholder="Поиск по названию профиля..."
               value={profileSearch}
               onChange={e => setProfileSearch(e.target.value)}
-              sx={{ mb: 2, maxWidth: 320 }}
+              sx={{ maxWidth: 320 }}
               slotProps={{ input: { sx: { fontSize: 14 } } }}
             />
+            <Checkbox size="small" aria-label="Выбрать все видимые профили"
+              checked={filteredProfiles.length > 0 && filteredProfiles.every(p => selectedProfileIds.includes(p.uuid))}
+              indeterminate={filteredProfiles.some(p => selectedProfileIds.includes(p.uuid)) && !filteredProfiles.every(p => selectedProfileIds.includes(p.uuid))}
+              onChange={e => setSelectedProfileIds(prev => e.target.checked
+                ? [...new Set([...prev, ...filteredProfiles.map(p => p.uuid)])]
+                : prev.filter(id => !filteredProfiles.some(p => p.uuid === id)))} />
+            <Typography variant="body2" color="text.secondary">Выбрать видимые</Typography>
+            </Stack>
+          )}
+          {selectedProfileIds.length > 0 && (
+            <Stack direction="row" flexWrap="wrap" spacing={1} sx={{ mb: 2 }}>
+              <Button size="small" startIcon={<Refresh />} onClick={handleBulkRotate} disabled={loading}>Ротировать ({selectedProfileIds.length})</Button>
+              <Button size="small" startIcon={<PlayArrow />} onClick={() => handleBulkRotationEnabled(true)} disabled={loading}>Включить ротацию</Button>
+              <Button size="small" startIcon={<PauseCircleFilled />} onClick={() => handleBulkRotationEnabled(false)} disabled={loading}>Пауза</Button>
+              <Button size="small" color="error" startIcon={<Delete />} onClick={() => { setBulkDelete(true); setDeleteFromRemnawave(false); setDeleteDialogOpen(true); }} disabled={loading}>Удалить ({selectedProfileIds.length})</Button>
+            </Stack>
           )}
           {profiles.length === 0 && (
             <Paper sx={{ p: 4, textAlign: 'center' }}>
@@ -804,7 +871,7 @@ export default function ProfilesPage() {
             </Paper>
           )}
           <Stack spacing={2}>
-            {profiles.filter(p => !profileSearch || p.name.toLowerCase().includes(profileSearch.toLowerCase())).map(p => (
+            {filteredProfiles.map(p => (
               <Paper
                 key={p.uuid}
                 onClick={() => handleSelectProfile(p)}
@@ -818,6 +885,11 @@ export default function ProfilesPage() {
                 }}
               >
                 <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                  <Checkbox size="small" aria-label={`Выбрать профиль ${p.name}`}
+                    checked={selectedProfileIds.includes(p.uuid)}
+                    onClick={e => e.stopPropagation()}
+                    onChange={() => setSelectedProfileIds(prev => prev.includes(p.uuid) ? prev.filter(id => id !== p.uuid) : [...prev, p.uuid])}
+                    sx={{ mr: 1, mt: -0.5, ml: -0.5 }} />
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     {/* Inline rename */}
                     {renamingUuid === p.uuid ? (
@@ -959,9 +1031,21 @@ export default function ProfilesPage() {
                   <Box>
                     <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ mb: 2, gap: 1 }}>
                       <Typography variant="h6">Инбаунды для ротации</Typography>
-                      <Button variant="outlined" startIcon={<Add />} onClick={addInbound} size="small">
-                        Добавить
-                      </Button>
+                      <Stack direction="row" spacing={1} flexWrap="wrap">
+                        {selectedInboundIndices.length > 0 && (
+                          <Button color="error" variant="outlined" startIcon={<Delete />} size="small"
+                            onClick={() => {
+                              const selected = new Set(selectedInboundIndices);
+                              setLocalInbounds(prev => prev.filter((_, index) => !selected.has(index)));
+                              setSelectedInboundIndices([]);
+                            }}>
+                            Удалить выбранные ({selectedInboundIndices.length})
+                          </Button>
+                        )}
+                        <Button variant="outlined" startIcon={<Add />} onClick={addInbound} size="small">
+                          Добавить
+                        </Button>
+                      </Stack>
                     </Stack>
                     <Divider sx={{ mb: 2 }} />
 
@@ -969,6 +1053,16 @@ export default function ProfilesPage() {
                       <Typography color="textSecondary" variant="body2">
                         Нет инбаундов. Нажмите "Добавить".
                       </Typography>
+                    )}
+
+                    {localInbounds.length > 1 && (
+                      <Stack direction="row" alignItems="center" sx={{ mb: 1 }}>
+                        <Checkbox size="small" aria-label="Выбрать все инбаунды"
+                          checked={selectedInboundIndices.length === localInbounds.length}
+                          indeterminate={selectedInboundIndices.length > 0 && selectedInboundIndices.length < localInbounds.length}
+                          onChange={event => setSelectedInboundIndices(event.target.checked ? localInbounds.map((_, index) => index) : [])} />
+                        <Typography variant="body2" color="text.secondary">Выбрать все инбаунды</Typography>
+                      </Stack>
                     )}
 
                     <Stack spacing={2}>
@@ -979,6 +1073,10 @@ export default function ProfilesPage() {
                           const sniEntry = sniData.find(s => s.tag === effectiveTag);
                           return (
                           <Box key={idx} sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                            <Checkbox size="small" aria-label={`Выбрать inbound ${idx + 1}`}
+                              checked={selectedInboundIndices.includes(idx)}
+                              onChange={() => setSelectedInboundIndices(prev => prev.includes(idx) ? prev.filter(index => index !== idx) : [...prev, idx])}
+                              sx={{ mt: 0.5 }} />
                             <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 } }}>
                               <InputLabel>Тип</InputLabel>
                               <Select
@@ -1564,6 +1662,12 @@ export default function ProfilesPage() {
                           Очистить всё
                         </Button>
                       )}
+                      {selectedLocalDomains.length > 0 && (
+                        <Button variant="outlined" size="small" color="error" startIcon={<Delete />}
+                          onClick={() => { setLocalProfileDomains(prev => prev.filter(d => !selectedLocalDomains.includes(d))); setSelectedLocalDomains([]); }}>
+                          Удалить выбранные ({selectedLocalDomains.length})
+                        </Button>
+                      )}
                     </Stack>
 
                     <input
@@ -1576,6 +1680,15 @@ export default function ProfilesPage() {
 
                     <Paper variant="outlined" sx={{ maxHeight: 360, overflowY: 'auto', mb: 2 }}>
                       <List dense>
+                        {localProfileDomains.length > 0 && (
+                          <ListItem>
+                            <Checkbox size="small" aria-label="Выбрать все домены профиля"
+                              checked={localProfileDomains.every(d => selectedLocalDomains.includes(d))}
+                              indeterminate={localProfileDomains.some(d => selectedLocalDomains.includes(d)) && !localProfileDomains.every(d => selectedLocalDomains.includes(d))}
+                              onChange={e => setSelectedLocalDomains(e.target.checked ? [...localProfileDomains] : [])} />
+                            <ListItemText primary="Выбрать все" />
+                          </ListItem>
+                        )}
                         {localProfileDomains.length === 0 && (
                           <Typography sx={{ p: 2 }} color="textSecondary" textAlign="center">
                             Нет доменов. Используется глобальный список.
@@ -1590,6 +1703,9 @@ export default function ProfilesPage() {
                               </IconButton>
                             }
                           >
+                            <Checkbox size="small" aria-label={`Выбрать домен ${d}`}
+                              checked={selectedLocalDomains.includes(d)}
+                              onChange={() => setSelectedLocalDomains(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d])} />
                             <ListItemText primary={d} />
                           </ListItem>
                         ))}
@@ -1622,10 +1738,10 @@ export default function ProfilesPage() {
 
       {/* Delete Dialog */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Удалить профиль</DialogTitle>
+        <DialogTitle>{bulkDelete ? 'Удалить выбранные профили' : 'Удалить профиль'}</DialogTitle>
         <DialogContent>
           <Typography>
-            Удалить профиль <strong>{profileToDelete?.name}</strong>?
+            {bulkDelete ? `Удалить ${selectedProfileIds.length} выбранных профилей?` : <>Удалить профиль <strong>{profileToDelete?.name}</strong>?</>}
           </Typography>
           <FormControlLabel
             control={

@@ -8,6 +8,8 @@ import { ScriptsService } from '../scripts/scripts.service';
 import { SYSCTL_CONTENT } from '../config/constants';
 import { randomId } from '../common/random-id';
 import type { CreateRemnawaveNodeBody } from '../remnawave/remnawave.types';
+import { connectSsh, parseSocks5ProxyUrl } from '../common/ssh-proxy';
+import { SecretsService } from '../secrets/secrets.service';
 
 export interface InstallNodeDto {
   name: string;
@@ -17,6 +19,9 @@ export interface InstallNodeDto {
   authType: 'password' | 'key';
   password?: string;
   sshKey?: string;
+  sshKeySecretId?: string;
+  passwordSecretId?: string;
+  proxyUrl?: string;
   profileUuid?: string;
   createNewProfile?: boolean;
   profileName?: string;
@@ -41,6 +46,7 @@ export class NodesService {
     private settingRepo: Repository<Setting>,
     private remnavaveService: RemnavaveService,
     private scriptsService: ScriptsService,
+    private secretsService: SecretsService,
   ) {}
 
   getJobStatus(
@@ -54,6 +60,21 @@ export class NodesService {
   async startInstall(
     dto: InstallNodeDto,
   ): Promise<{ jobId: string; nodeUuid: string }> {
+    const proxyUrl = await this.scriptsService.resolveSshProxyUrl(dto.proxyUrl);
+    if (proxyUrl) parseSocks5ProxyUrl(proxyUrl);
+    const connectionDto = { ...dto };
+    if (dto.authType === 'key' && dto.sshKeySecretId) {
+      connectionDto.sshKey =
+        (await this.secretsService.getValue(dto.sshKeySecretId)) || undefined;
+      if (!connectionDto.sshKey)
+        throw new Error('Selected SSH key secret was not found');
+    }
+    if (dto.authType === 'password' && dto.passwordSecretId) {
+      connectionDto.password =
+        (await this.secretsService.getValue(dto.passwordSecretId)) || undefined;
+      if (!connectionDto.password)
+        throw new Error('Selected SSH password secret was not found');
+    }
     const sshUser = dto.sshUser || 'root';
     const nodePort = dto.nodePort || 2222;
     const useSudo = sshUser !== 'root';
@@ -134,7 +155,7 @@ export class NodesService {
       );
     }
 
-    this.runSsh(dto, sshUser, commands, job)
+    this.runSsh(connectionDto, sshUser, commands, job, proxyUrl)
       .then(() => {
         this.scriptsService
           .addSshNodeFromInstall(dto, nodeUuid, dto.name)
@@ -166,6 +187,7 @@ export class NodesService {
     sshUser: string,
     commands: string[],
     job: Job,
+    proxyUrl?: string,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const conn = new Client();
@@ -208,7 +230,7 @@ export class NodesService {
         connectOptions.password = dto.password || '';
       }
 
-      conn.connect(connectOptions);
+      connectSsh(conn, connectOptions, proxyUrl);
     });
   }
 
