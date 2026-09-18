@@ -75,6 +75,7 @@ interface SshNode {
   sshKeySecretId?: string;
   proxyUrl?: string;
   hasProxyUrl?: boolean;
+  disableProxy?: boolean;
   categoryIds?: string[];
   hasPassword?: boolean;
   hasSshKey?: boolean;
@@ -505,6 +506,7 @@ function TerminalWindow({
 
 const blankNode = (): Partial<SshNode> => ({
   name: '', ip: '', sshPort: 22, sshUser: 'root', authType: 'password', password: '', sshKey: '',
+  disableProxy: false,
 });
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -517,6 +519,7 @@ export default function ScriptsPage() {
 
   // Data
   const [sshNodes, setSshNodes] = useState<SshNode[]>([]);
+  const [sshProxyConfigured, setSshProxyConfigured] = useState(false);
   const [scripts, setScripts] = useState<Script[]>([]);
   const [rwNodes, setRwNodes] = useState<RwNode[]>([]);
 
@@ -664,7 +667,8 @@ export default function ScriptsPage() {
       const { data } = await api.get('/settings');
       const raw = data?.node_categories;
       setCategories(raw ? JSON.parse(raw) : []);
-    } catch { setCategories([]); }
+      setSshProxyConfigured(data?.ssh_proxy_configured === 'true');
+    } catch { setCategories([]); setSshProxyConfigured(false); }
   }, []);
 
   const loadScriptDots = useCallback(async () => {
@@ -1400,7 +1404,13 @@ export default function ScriptsPage() {
                               size="small"
                               variant="outlined"
                             />
-                            {node.hasProxyUrl && <Chip label="SOCKS5" size="small" color="info" variant="outlined" sx={{ ml: 0.5 }} />}
+                            <Chip
+                              label={node.disableProxy ? 'Напрямую' : node.hasProxyUrl ? 'SOCKS5 ноды' : sshProxyConfigured ? 'Общий SOCKS5' : 'Напрямую'}
+                              size="small"
+                              color={node.disableProxy || (!node.hasProxyUrl && !sshProxyConfigured) ? 'default' : 'info'}
+                              variant="outlined"
+                              sx={{ ml: 0.5 }}
+                            />
                           </TableCell>
                           <TableCell>
                             <Stack direction="row" spacing={0.5} flexWrap="wrap">
@@ -1850,19 +1860,40 @@ export default function ScriptsPage() {
               />
             </Stack>
 
+            <Box>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={Boolean(nodeForm.disableProxy)}
+                    onChange={e => {
+                      setNodeForm(p => ({ ...p, disableProxy: e.target.checked }));
+                      setNodeFormDirty(true);
+                    }}
+                  />
+                }
+                label="Не использовать прокси"
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 4 }}>
+                SSH-подключения к этой ноде будут прямыми, даже если задан общий прокси или прокси ноды.
+              </Typography>
+            </Box>
+
             <TextField
               label="SOCKS5-прокси ноды"
               size="small"
               fullWidth
               placeholder="socks5://user:password@address:port"
               value={nodeForm.proxyUrl || ''}
+              disabled={Boolean(nodeForm.disableProxy)}
               onChange={e => { setNodeForm(p => ({ ...p, proxyUrl: e.target.value })); setClearNodeProxy(false); setNodeFormDirty(true); }}
-              helperText={nodeEditId && nodeForm.hasProxyUrl && !clearNodeProxy
+              helperText={nodeForm.disableProxy
+                ? 'Прокси ноды сохранится, но не будет использоваться, пока включено прямое подключение.'
+                : nodeEditId && nodeForm.hasProxyUrl && !clearNodeProxy
                 ? 'Прокси сохранён. Оставьте поле пустым, чтобы сохранить его. Прокси ноды имеет приоритет над общим.'
                 : 'Необязательно. Если оставить пустым, будет использован общий прокси из настроек, если он задан.'}
             />
             {nodeEditId && nodeForm.hasProxyUrl && (
-              <Button size="small" color={clearNodeProxy ? 'warning' : 'inherit'} sx={{ alignSelf: 'flex-start' }}
+              <Button size="small" color={clearNodeProxy ? 'warning' : 'inherit'} disabled={Boolean(nodeForm.disableProxy)} sx={{ alignSelf: 'flex-start' }}
                 onClick={() => { setClearNodeProxy(prev => !prev); setNodeForm(p => ({ ...p, proxyUrl: '' })); setNodeFormDirty(true); }}>
                 {clearNodeProxy ? 'Отменить сброс прокси' : 'Сбросить прокси ноды'}
               </Button>

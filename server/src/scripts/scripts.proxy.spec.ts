@@ -66,20 +66,94 @@ describe('SSH node proxy and secret references', () => {
           proxyUrl: encryptProxyUrl(nodeProxy),
         },
         { id: 'b', name: 'B', ip: 'b.example', authType: 'password' },
+        {
+          id: 'c',
+          name: 'C',
+          ip: 'c.example',
+          authType: 'password',
+          proxyUrl: encryptProxyUrl(nodeProxy),
+          disableProxy: true,
+        },
       ]),
     });
     expect(await service.getSshProxyUrlForNode('a')).toBe(nodeProxy);
     expect(await service.getSshProxyUrlForNode('b')).toBe(globalProxy);
+    expect(await service.getSshProxyUrlForNode('c')).toBeUndefined();
     expect((await service.getSshNodeForConnection('a'))?.proxyUrl).toBe(
       nodeProxy,
     );
     expect((await service.getSshNodeForConnection('b'))?.proxyUrl).toBe(
       globalProxy,
     );
+    expect(
+      (await service.getSshNodeForConnection('c'))?.proxyUrl,
+    ).toBeUndefined();
     const publicNodes = await service.getSshNodes();
     expect(publicNodes[0].hasProxyUrl).toBe(true);
     expect(publicNodes[0].proxyUrl).toBeUndefined();
     expect(JSON.stringify(publicNodes)).not.toContain('secret');
     expect(rows.get('ssh_nodes')).not.toContain('node:secret');
+  });
+
+  it('persists direct connection mode and restores the saved node proxy when disabled', async () => {
+    const nodeProxy = 'socks5://node:secret@node-proxy.example:1081';
+    const { service, rows } = harness({
+      ssh_proxy_url: encryptProxyUrl(
+        'socks5://global:secret@global.example:1080',
+      ),
+      ssh_nodes: JSON.stringify([
+        {
+          id: 'c',
+          name: 'C',
+          ip: 'c.example',
+          authType: 'password',
+          proxyUrl: encryptProxyUrl(nodeProxy),
+        },
+      ]),
+    });
+    await service.upsertSshNode({
+      id: 'c',
+      name: 'C',
+      ip: 'c.example',
+      authType: 'password',
+      disableProxy: true,
+    });
+    expect(await service.getSshProxyUrlForNode('c')).toBeUndefined();
+    expect(JSON.parse(rows.get('ssh_nodes') || '[]')[0].disableProxy).toBe(
+      true,
+    );
+    await service.upsertSshNode({
+      id: 'c',
+      name: 'C',
+      ip: 'c.example',
+      authType: 'password',
+      disableProxy: false,
+    });
+    expect(await service.getSshProxyUrlForNode('c')).toBe(nodeProxy);
+  });
+
+  it('connects a direct node without decrypting an unusable global proxy', async () => {
+    const { service } = harness({
+      ssh_proxy_url: 'enc:invalid:invalid:invalid',
+      ssh_nodes: JSON.stringify([
+        {
+          id: 'direct',
+          name: 'Direct',
+          ip: 'direct.example',
+          authType: 'password',
+          disableProxy: true,
+        },
+        {
+          id: 'other',
+          name: 'Other',
+          ip: 'other.example',
+          authType: 'password',
+          proxyUrl: 'enc:invalid:invalid:invalid',
+        },
+      ]),
+    });
+    expect(
+      (await service.getSshNodeForConnection('direct'))?.proxyUrl,
+    ).toBeUndefined();
   });
 });

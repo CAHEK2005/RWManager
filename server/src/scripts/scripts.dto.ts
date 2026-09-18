@@ -63,6 +63,10 @@ export class SshNodeDto {
   proxyUrl?: string;
 
   @IsOptional()
+  @IsBoolean()
+  disableProxy?: boolean;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   categoryIds?: string[];

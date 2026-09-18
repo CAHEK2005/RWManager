@@ -28,6 +28,7 @@ export interface SshNode {
   password?: string;
   sshKey?: string;
   proxyUrl?: string;
+  disableProxy?: boolean;
   hasProxyUrl?: boolean;
   passwordSecretId?: string;
   sshKeySecretId?: string;
@@ -554,7 +555,9 @@ export class ScriptsService implements OnModuleInit {
 
   async resolveSshProxyUrl(
     nodeProxyUrl?: string | null,
+    disableProxy = false,
   ): Promise<string | undefined> {
+    if (disableProxy) return undefined;
     if (nodeProxyUrl) return decryptProxyUrl(nodeProxyUrl);
     const setting = await this.settingRepo.findOne({
       where: { key: 'ssh_proxy_url' },
@@ -575,29 +578,35 @@ export class ScriptsService implements OnModuleInit {
     return resolved;
   }
 
-  private async loadSshNodesForExecution(): Promise<SshNode[]> {
-    const nodes = await this.loadStoredSshNodes();
-    const globalProxyUrl = await this.resolveSshProxyUrl();
+  private async loadSshNodesForExecution(
+    nodeIds?: string[],
+  ): Promise<SshNode[]> {
+    const storedNodes = await this.loadStoredSshNodes();
+    const nodes = nodeIds
+      ? storedNodes.filter((node) => nodeIds.includes(node.id))
+      : storedNodes;
+    let globalProxyUrl: Promise<string | undefined> | undefined;
     return Promise.all(
       nodes.map(async (node) => ({
         ...(await this.resolveSshNodeSecrets(node)),
-        proxyUrl: node.proxyUrl
-          ? decryptProxyUrl(node.proxyUrl)
-          : globalProxyUrl,
+        proxyUrl: node.disableProxy
+          ? undefined
+          : node.proxyUrl
+            ? decryptProxyUrl(node.proxyUrl)
+            : await (globalProxyUrl ??= this.resolveSshProxyUrl()),
       })),
     );
   }
 
   async getSshNodeForConnection(id: string): Promise<SshNode | null> {
-    const nodes = await this.loadSshNodesForExecution();
+    const nodes = await this.loadSshNodesForExecution([id]);
     return nodes.find((node) => node.id === id) ?? null;
   }
 
   async getSshProxyUrlForNode(id: string): Promise<string | undefined> {
     const nodes = await this.loadStoredSshNodes();
-    return this.resolveSshProxyUrl(
-      nodes.find((node) => node.id === id)?.proxyUrl,
-    );
+    const node = nodes.find((item) => item.id === id);
+    return this.resolveSshProxyUrl(node?.proxyUrl, node?.disableProxy);
   }
 
   private async saveSshCredentialSecret(
@@ -969,7 +978,7 @@ export class ScriptsService implements OnModuleInit {
     const script = scripts.find((s) => s.id === scriptId);
     if (!script) throw new Error('Скрипт не найден');
 
-    const nodes = await this.loadSshNodesForExecution();
+    const nodes = await this.loadSshNodesForExecution(nodeIds);
     const targetNodes = nodes.filter((n) => nodeIds.includes(n.id));
     if (!targetNodes.length) throw new Error('Не выбрано ни одной ноды');
 
@@ -1081,7 +1090,7 @@ export class ScriptsService implements OnModuleInit {
       return s;
     });
 
-    const nodes = await this.loadSshNodesForExecution();
+    const nodes = await this.loadSshNodesForExecution(nodeIds);
     const targetNodes = nodes.filter((n) => nodeIds.includes(n.id));
     if (!targetNodes.length) throw new Error('Не выбрано ни одной ноды');
 
