@@ -16,6 +16,12 @@ import {
   HYSTERIA2_SCRIPT_ID,
   HYSTERIA2_SETUP_SCRIPT,
 } from './hysteria2-script';
+import {
+  WARP_NATIVE_SCRIPT_ID,
+  WARP_NATIVE_SETUP_SCRIPT,
+  WARP_NATIVE_STATUS_SCRIPT,
+  WARP_NATIVE_STATUS_SCRIPT_ID,
+} from './warp-native-script';
 
 export interface SshNode {
   id: string;
@@ -209,8 +215,23 @@ cd /opt/remnanode && docker compose up -d --force-recreate`,
     content: `cd /opt/remnanode && docker compose ps && echo "--- Logs ---" && docker compose logs --tail=30`,
   },
   {
+    id: WARP_NATIVE_SCRIPT_ID,
+    name: 'Установка WARP Native (без ключа)',
+    description:
+      'Автоматически устанавливает distillium/warp-native на Debian/Ubuntu, регистрирует бесплатный WARP и запускает интерфейс WireGuard warp',
+    isBuiltIn: true,
+    content: WARP_NATIVE_SETUP_SCRIPT,
+  },
+  {
+    id: WARP_NATIVE_STATUS_SCRIPT_ID,
+    name: 'Статус WARP Native',
+    description: 'Показывает состояние сервиса wg-quick@warp и интерфейса warp',
+    isBuiltIn: true,
+    content: WARP_NATIVE_STATUS_SCRIPT,
+  },
+  {
     id: 'builtin-setup-warp',
-    name: 'Установка WARP',
+    name: 'Установка WARP SOCKS5 (warp-cli)',
     description:
       'Устанавливает Cloudflare WARP, регистрирует учётную запись и настраивает SOCKS5-прокси на указанном порту (по умолчанию 40000)',
     isBuiltIn: true,
@@ -218,14 +239,14 @@ cd /opt/remnanode && docker compose up -d --force-recreate`,
   },
   {
     id: 'builtin-warp-status',
-    name: 'Статус WARP',
+    name: 'Статус WARP SOCKS5 (warp-cli)',
     description: 'Показывает текущий статус Cloudflare WARP и настройки прокси',
     isBuiltIn: true,
     content: WARP_STATUS_SCRIPT,
   },
   {
     id: 'builtin-uninstall-warp',
-    name: 'Удаление WARP',
+    name: 'Удаление WARP SOCKS5 (warp-cli)',
     description:
       'Отключает, удаляет регистрацию и деинсталлирует Cloudflare WARP',
     isBuiltIn: true,
