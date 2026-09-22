@@ -627,7 +627,10 @@ export function upsertHysteria2ReconfigureGroup(
         },
       );
     }
-    fail('group_not_found', 'Группа Hysteria2 не найдена');
+    fail(
+      'group_not_found',
+      'Группа Hysteria2 не найдена. Сначала запустите встроенный скрипт «Настройка Hysteria2» на всех нодах группы.',
+    );
   }
 
   const existingNodeIds = [...group.nodeIds].sort(compareStrings);
