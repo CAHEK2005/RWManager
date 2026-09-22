@@ -331,9 +331,9 @@ else
       delete pending_blanks
       pending_blank_count = 0
     }
-    function flush_pending_blanks(index) {
-      for (index = 1; index <= pending_blank_count; index++) {
-        print pending_blanks[index]
+    function flush_pending_blanks(i) {
+      for (i = 1; i <= pending_blank_count; i++) {
+        print pending_blanks[i]
       }
       discard_pending_blanks()
     }
