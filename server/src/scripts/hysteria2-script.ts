@@ -3,9 +3,9 @@ export const HYSTERIA2_RECONFIGURE_SCRIPT_ID =
   'builtin-reconfigure-hysteria2-domain';
 
 const HYSTERIA2_DOMAIN_INPUT =
-  '{{ hysteria_domain | Домен Hysteria2 (только A-запись на эту ноду) }}';
+  '{{ hysteria_domain | Общий домен Hysteria2 (A-записи всех выбранных нод) }}';
 const HYSTERIA2_NEW_DOMAIN_INPUT =
-  '{{ hysteria_new_domain | Новый домен Hysteria2 (только A-запись на эту ноду) }}';
+  '{{ hysteria_new_domain | Новый общий домен Hysteria2 (A-записи всех выбранных нод) }}';
 
 export const HYSTERIA2_CADDY_HELPER_SCRIPT = `#!/usr/bin/env bash
 set -Eeuo pipefail
@@ -62,13 +62,17 @@ install -d -m 755 "$CADDY_WEBROOT/.well-known/acme-challenge"
 
 SAME_DOMAIN_MARKER="# BEGIN RWM HYSTERIA ACME (selfsteal domain)"
 DOMAIN_MARKER="# BEGIN RWM HYSTERIA ACME: $HYSTERIA_DOMAIN"
+CLUSTER_DOMAIN_MARKER="# BEGIN RWM HYSTERIA CLUSTER ACME: $HYSTERIA_DOMAIN"
+CLUSTER_SITE_MARKER="# BEGIN RWM HYSTERIA CLUSTER ACME SITE: $HYSTERIA_DOMAIN"
 CADDY_TMP=$(mktemp "$CADDY_DIR/Caddyfile.rwm.XXXXXX")
 # Старые managed-маршруты сохраняем: они могут быть нужны прежнему сертификату
 # при откате смены домена.
 cp -p "$CADDY_FILE" "$CADDY_TMP"
 
 if grep -qFx "SELF_STEAL_DOMAIN=$HYSTERIA_DOMAIN" "$CADDY_ENV"; then
-  if ! grep -qF "$SAME_DOMAIN_MARKER" "$CADDY_TMP"; then
+  if grep -qF "$CLUSTER_DOMAIN_MARKER" "$CADDY_TMP"; then
+    :
+  elif ! grep -qF "$SAME_DOMAIN_MARKER" "$CADDY_TMP"; then
     PATCHED_CADDY=$(mktemp "$CADDY_DIR/Caddyfile.rwm.XXXXXX")
     if ! awk '
       BEGIN { replaced = 0 }
@@ -98,6 +102,8 @@ if grep -qFx "SELF_STEAL_DOMAIN=$HYSTERIA_DOMAIN" "$CADDY_ENV"; then
     fi
     mv "$PATCHED_CADDY" "$CADDY_TMP"
   fi
+elif grep -qFx "$CLUSTER_SITE_MARKER" "$CADDY_TMP"; then
+  :
 elif ! grep -qFx "$DOMAIN_MARKER" "$CADDY_TMP"; then
   cat >> "$CADDY_TMP" <<CADDY_ACME_EOF
 
@@ -415,6 +421,7 @@ LINEAGE_MARKER="$LINEAGE_MARKER_DIR/$HYSTERIA_DOMAIN"
 HYSTERIA_REQUIRE_MANAGED_LINEAGE="\${HYSTERIA_REQUIRE_MANAGED_LINEAGE:-0}"
 HYSTERIA_RECONFIGURE_MODE="\${HYSTERIA_RECONFIGURE_MODE:-0}"
 HYSTERIA_PREVIOUS_DOMAIN_FOR_RECOVERY="\${HYSTERIA_PREVIOUS_DOMAIN_FOR_RECOVERY:-}"
+HYSTERIA_CLUSTER_MANAGED="\${HYSTERIA_CLUSTER_MANAGED:-0}"
 CERT_DEPLOY_DIR="/opt/hysteria2-certs"
 CERT_MOUNT_SOURCE="$CERT_DEPLOY_DIR/current"
 RESTART_MARKER="$CERTBOT_DIR/.hysteria2-restart-required"
@@ -764,6 +771,10 @@ case "$HYSTERIA_RECONFIGURE_MODE" in
   0|1) ;;
   *) fail "HYSTERIA_RECONFIGURE_MODE должен быть 0 или 1" ;;
 esac
+case "$HYSTERIA_CLUSTER_MANAGED" in
+  0|1) ;;
+  *) fail "HYSTERIA_CLUSTER_MANAGED должен быть 0 или 1" ;;
+esac
 if [ "$HYSTERIA_RECONFIGURE_MODE" -eq 1 ]; then
   is_valid_hostname "$HYSTERIA_PREVIOUS_DOMAIN_FOR_RECOVERY" \\
     || fail "Не задан корректный предыдущий домен для восстановления"
@@ -919,12 +930,18 @@ CERTBOT_COMPOSE_EOF
 docker compose -f "$STAGE_DIR/docker-compose.hysteria2.yml" config --quiet \\
   || fail "Сгенерирован некорректный Certbot compose"
 
-cat > "$STAGE_DIR/rwm-hysteria2-certbot.cron" <<'CRON_EOF'
+if [ "$HYSTERIA_CLUSTER_MANAGED" -eq 1 ]; then
+  cat > "$STAGE_DIR/rwm-hysteria2-certbot.cron" <<'CRON_EOF'
+# Managed by RWManager backend: cluster renewal is coordinated centrally.
+CRON_EOF
+else
+  cat > "$STAGE_DIR/rwm-hysteria2-certbot.cron" <<'CRON_EOF'
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 17 3,15 * * * root /opt/certbot/renew-hysteria2.sh >> /opt/certbot/renew.log 2>&1
 CRON_EOF
+fi
 
 cat > "$STAGE_DIR/remnanode.override.candidate.yml" <<REMNANODE_OVERRIDE_EOF
 $OVERRIDE_MARKER
@@ -1139,7 +1156,11 @@ echo "=== Hysteria2: подготовка ноды завершена ==="
 echo "certificateFile: /etc/hysteria2/fullchain.pem"
 echo "keyFile:         /etc/hysteria2/privkey.pem"
 echo "TCP-порты selfsteal/Caddy не меняются; Hysteria2 может использовать отдельный UDP/443."
-echo "Важно: домен должен иметь A-запись на эту ноду без AAAA-записи, так как selfsteal Caddy слушает IPv4."
+if [ "$HYSTERIA_CLUSTER_MANAGED" -eq 1 ]; then
+  echo "Сертификат и продление управляются централизованно RWManager для всех DNS-нод домена."
+else
+  echo "Важно: домен должен иметь A-запись только на эту ноду без AAAA-записи, так как используется локальный HTTP-01."
+fi
 echo "[INFO] Пути выше существуют внутри remnanode. Если ваша версия Remnawave читает TLS-файлы на панели, сертификат нужно также безопасно доставить и смонтировать в контейнер панели."
 
 UDP_443_LISTENERS=""
