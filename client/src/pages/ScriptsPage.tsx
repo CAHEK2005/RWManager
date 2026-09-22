@@ -1291,6 +1291,27 @@ export default function ScriptsPage() {
     );
   };
 
+  const selectHysteriaCluster = (clusterId: string) => {
+    const cluster = hysteriaClusters.find((item) => item.id === clusterId);
+    if (!cluster) {
+      setSelectedNodeIds([]);
+      return;
+    }
+    const nodeIds = cluster.nodeIds.filter((id) => sshNodes.some((node) => node.id === id));
+    setSelectedNodeIds(nodeIds);
+    if (perNodeVarsMode) {
+      setVarValuesPerNode((prev) => {
+        const next = { ...prev };
+        for (const nodeId of nodeIds) {
+          next[nodeId] =
+            next[nodeId] ||
+            Object.fromEntries(scriptVars.map((v) => [v.name, varValues[v.name] || '']));
+        }
+        return next;
+      });
+    }
+  };
+
   const startPolling = (jobId: string) => {
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(async () => {
@@ -3552,6 +3573,30 @@ export default function ScriptsPage() {
                   </Button>
                 </Stack>
               </Stack>
+              {hysteriaClusters.length > 0 && (
+                <FormControl size="small" fullWidth sx={{ mb: 1.5 }}>
+                  <InputLabel id="hysteria-cluster-run-label">Группа Hysteria2</InputLabel>
+                  <Select
+                    labelId="hysteria-cluster-run-label"
+                    label="Группа Hysteria2"
+                    value={
+                      hysteriaClusters.find(
+                        (cluster) =>
+                          cluster.nodeIds.length === selectedNodeIds.length &&
+                          cluster.nodeIds.every((id) => selectedNodeIds.includes(id)),
+                      )?.id || ''
+                    }
+                    onChange={(event) => selectHysteriaCluster(event.target.value)}
+                  >
+                    <MenuItem value="">Выберите вручную</MenuItem>
+                    {hysteriaClusters.map((cluster) => (
+                      <MenuItem key={cluster.id} value={cluster.id}>
+                        {cluster.domain} ({cluster.nodeIds.length} нод)
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
               {categories.length > 0 && (
                 <Stack
                   direction="row"
