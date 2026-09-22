@@ -1265,7 +1265,7 @@ export class ScriptsService implements OnModuleInit {
         job.status = 'success';
       } catch (error) {
         const message = this.maskSecrets(
-          `[ERROR] ${this.errorMessage(error)}`,
+          `[CLUSTER] Общая ошибка выбранной группы: ${this.errorMessage(error)}`,
           sensitiveValues,
         );
         for (const result of job.results) {
