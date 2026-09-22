@@ -145,3 +145,21 @@ export class ExecuteSequenceDto {
     Record<string, Record<string, string>>
   >;
 }
+
+export class ImportHysteria2ClusterDto {
+  @IsArray()
+  @IsString({ each: true })
+  nodeIds: string[];
+
+  @IsString()
+  @MinLength(3)
+  domain: string;
+
+  @IsString()
+  @MinLength(3)
+  email: string;
+
+  @IsOptional()
+  @IsString()
+  coordinatorNodeId?: string;
+}

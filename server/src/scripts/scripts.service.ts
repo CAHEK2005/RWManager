@@ -1326,6 +1326,106 @@ export class ScriptsService implements OnModuleInit {
     return parsed as Hysteria2ClusterState;
   }
 
+  async getHysteria2Clusters(): Promise<Hysteria2ClusterGroup[]> {
+    const state = await this.loadHysteria2ClusterState();
+    return state.groups.map((group) => ({
+      ...group,
+      nodeIds: [...group.nodeIds],
+    }));
+  }
+
+  async importHysteria2Cluster(input: {
+    nodeIds: string[];
+    domain: string;
+    email: string;
+    coordinatorNodeId?: string;
+  }): Promise<Hysteria2ClusterGroup> {
+    return this.withHysteriaClusterLock(
+      HYSTERIA2_CLUSTER_LOCK_KEY,
+      async () => {
+        const domain = normalizeHysteriaDomain(input.domain);
+        const email = normalizeHysteriaEmail(input.email);
+        const nodes = await this.loadSshNodesForExecution(input.nodeIds);
+        if (
+          !input.nodeIds.length ||
+          nodes.length !== input.nodeIds.length ||
+          new Set(input.nodeIds).size !== input.nodeIds.length
+        ) {
+          throw new Error('Не все выбранные ноды найдены в SSH-реестре.');
+        }
+        const state = await this.loadHysteria2ClusterState();
+        const sortedNodeIds = [...input.nodeIds].sort();
+        const existing = state.groups.find(
+          (group) =>
+            group.domain === domain &&
+            [...group.nodeIds].sort().join('\0') === sortedNodeIds.join('\0'),
+        );
+        if (existing) return existing;
+
+        const dnsValidation = await this.resolveHysteria2ClusterDns(
+          domain,
+          nodes,
+        );
+        const initial = upsertHysteria2SetupGroup(state, {
+          groupId: randomId(),
+          domain,
+          email,
+          nodeIds: nodes.map((node) => node.id),
+          now: new Date().toISOString(),
+        });
+        let group = initial.group;
+        if (input.coordinatorNodeId) {
+          if (!group.nodeIds.includes(input.coordinatorNodeId)) {
+            throw new Error('Coordinator должен входить в выбранную группу.');
+          }
+          group = { ...group, coordinatorNodeId: input.coordinatorNodeId };
+        } else {
+          group = {
+            ...group,
+            coordinatorNodeId: await this.selectInitialHysteria2Coordinator(
+              group,
+              nodes,
+            ),
+          };
+        }
+        const coordinator = nodes.find(
+          (node) => node.id === group.coordinatorNodeId,
+        );
+        if (!coordinator) throw new Error('Coordinator нода не найдена.');
+        const bundle = await this.readAndValidateHysteria2Certificate(
+          coordinator,
+          dnsValidation.domain,
+        );
+        const importedGroup: Hysteria2ClusterGroup = {
+          ...group,
+          certificateFingerprint: bundle.fingerprint,
+          certificateNotAfter: bundle.notAfter,
+          lastRenewalAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        const nextState = this.replaceHysteria2ClusterGroup(
+          state,
+          importedGroup,
+        );
+        await this.saveHysteria2ClusterState(nextState);
+        return importedGroup;
+      },
+    );
+  }
+
+  async deleteHysteria2Cluster(id: string): Promise<void> {
+    await this.withHysteriaClusterLock(HYSTERIA2_CLUSTER_LOCK_KEY, async () => {
+      const state = await this.loadHysteria2ClusterState();
+      if (!state.groups.some((group) => group.id === id)) {
+        throw new Error('Группа Hysteria2 не найдена.');
+      }
+      await this.saveHysteria2ClusterState({
+        ...state,
+        groups: state.groups.filter((group) => group.id !== id),
+      });
+    });
+  }
+
   private async saveHysteria2ClusterState(
     state: Hysteria2ClusterState,
   ): Promise<void> {
@@ -1491,14 +1591,13 @@ export class ScriptsService implements OnModuleInit {
             .get('/opt/certbot/hysteria2.env')
             ?.toString('utf8');
           const certificatePem = files.get(HYSTERIA2_CERTIFICATE_PATH);
-          if (
-            !environment
-              ?.split(/\r?\n/)
-              .some(
-                (line) => line.trim() === `HYSTERIA_DOMAIN=${group.domain}`,
-              ) ||
-            !certificatePem
-          ) {
+          const configuredDomain = environment
+            ?.split(/\r?\n/)
+            .map((line) => line.trim())
+            .find((line) => line.startsWith('HYSTERIA_DOMAIN='))
+            ?.slice('HYSTERIA_DOMAIN='.length)
+            .replace(/^['"]|['"]$/g, '');
+          if (configuredDomain !== group.domain || !certificatePem) {
             return;
           }
           const certificate = new X509Certificate(certificatePem);

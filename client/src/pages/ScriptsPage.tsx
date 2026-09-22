@@ -1,10 +1,41 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert, Box, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions,
-  DialogContent, DialogTitle, Divider, FormControl, FormControlLabel,
-  IconButton, InputLabel, Menu, MenuItem, Paper, Radio, RadioGroup, Select,
-  Snackbar, Stack, Switch, Tab, Table, TableBody, TableCell, TableHead,
-  TableRow, Tabs, TextField, Tooltip, Typography, useMediaQuery, useTheme,
+  Alert,
+  Box,
+  Button,
+  Checkbox,
+  Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  FormControl,
+  FormControlLabel,
+  IconButton,
+  InputLabel,
+  Menu,
+  MenuItem,
+  Paper,
+  Radio,
+  RadioGroup,
+  Select,
+  Snackbar,
+  Stack,
+  Switch,
+  Tab,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Tabs,
+  TextField,
+  Tooltip,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import Add from '@mui/icons-material/Add';
 import CheckCircle from '@mui/icons-material/CheckCircle';
@@ -171,7 +202,10 @@ function formatDuration(ms: number): string {
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString('ru-RU', {
-    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
@@ -186,6 +220,17 @@ interface ScriptJob {
   scriptName: string;
   status: 'running' | 'success' | 'error';
   results: NodeResult[];
+}
+
+interface Hysteria2Cluster {
+  id: string;
+  domain: string;
+  email: string;
+  nodeIds: string[];
+  coordinatorNodeId: string;
+  certificateFingerprint?: string;
+  certificateNotAfter?: string;
+  lastRenewalAt?: string;
 }
 
 interface TerminalSession {
@@ -311,7 +356,7 @@ function TerminalWindow({
       term.dispose();
       instances.delete(session.id);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.id]);
 
   // Re-fit when un-minimized
@@ -320,7 +365,7 @@ function TerminalWindow({
       const inst = instanceRef.current.get(session.id);
       if (inst) setTimeout(() => inst.fit.fit(), 50);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.minimized]);
 
   // Global mouse handlers for drag + resize
@@ -333,12 +378,21 @@ function TerminalWindow({
         });
       }
       if (isResizing.current) {
-        const newW = Math.max(TERM_MIN_W, resizeStart.current.w + e.clientX - resizeStart.current.x);
-        const newH = Math.max(TERM_MIN_H + TERM_HEADER_H, resizeStart.current.h + e.clientY - resizeStart.current.y);
+        const newW = Math.max(
+          TERM_MIN_W,
+          resizeStart.current.w + e.clientX - resizeStart.current.x,
+        );
+        const newH = Math.max(
+          TERM_MIN_H + TERM_HEADER_H,
+          resizeStart.current.h + e.clientY - resizeStart.current.y,
+        );
         onResize(session.id, { width: newW, height: newH });
       }
     };
-    const onUp = () => { isDragging.current = false; isResizing.current = false; };
+    const onUp = () => {
+      isDragging.current = false;
+      isResizing.current = false;
+    };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
     return () => {
@@ -350,7 +404,10 @@ function TerminalWindow({
   const handleTitleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('button')) return;
     isDragging.current = true;
-    dragOffset.current = { x: e.clientX - session.position.x, y: e.clientY - session.position.y };
+    dragOffset.current = {
+      x: e.clientX - session.position.x,
+      y: e.clientY - session.position.y,
+    };
     e.preventDefault();
   };
 
@@ -369,8 +426,13 @@ function TerminalWindow({
   const handlePopup = async () => {
     const popup = window.open('about:blank', '_blank', 'width=900,height=600');
     try {
-      const { data } = await api.post('/terminal/ticket', { nodeId: session.nodeId });
-      const params = new URLSearchParams({ ticket: data.ticket, nodeName: session.nodeName });
+      const { data } = await api.post('/terminal/ticket', {
+        nodeId: session.nodeId,
+      });
+      const params = new URLSearchParams({
+        ticket: data.ticket,
+        nodeName: session.nodeName,
+      });
       if (popup) popup.location.href = `/terminal-popup?${params.toString()}`;
       onClose(session.id);
     } catch {
@@ -384,17 +446,42 @@ function TerminalWindow({
   if (isMobile) {
     return (
       <Dialog fullScreen open TransitionProps={{ unmountOnExit: false }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#1a1a1a' }}>
-          <Box sx={{
-            display: 'flex', alignItems: 'center', px: 2,
-            height: 48, bgcolor: '#111', flexShrink: 0,
-            borderBottom: '1px solid rgba(255,255,255,0.1)',
-          }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            bgcolor: '#1a1a1a',
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              px: 2,
+              height: 48,
+              bgcolor: '#111',
+              flexShrink: 0,
+              borderBottom: '1px solid rgba(255,255,255,0.1)',
+            }}
+          >
             <Terminal sx={{ color: '#4caf50', fontSize: 16, mr: 1 }} />
-            <Typography sx={{ color: '#e0e0e0', flex: 1, fontSize: '0.875rem', fontWeight: 500 }}>
+            <Typography
+              sx={{
+                color: '#e0e0e0',
+                flex: 1,
+                fontSize: '0.875rem',
+                fontWeight: 500,
+              }}
+            >
               {session.nodeName}
             </Typography>
-            <IconButton size="small" aria-label="Закрыть терминал" onClick={() => onClose(session.id)} sx={{ color: '#9e9e9e' }}>
+            <IconButton
+              size="small"
+              aria-label="Закрыть терминал"
+              onClick={() => onClose(session.id)}
+              sx={{ color: '#9e9e9e' }}
+            >
               <Close sx={{ fontSize: 20 }} />
             </IconButton>
           </Box>
@@ -436,11 +523,24 @@ function TerminalWindow({
         }}
       >
         <Terminal sx={{ color: '#4caf50', fontSize: 16, mr: 0.5 }} />
-        <Typography variant="caption" sx={{ flex: 1, color: '#e0e0e0', fontSize: '0.8rem', fontWeight: 500 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            flex: 1,
+            color: '#e0e0e0',
+            fontSize: '0.8rem',
+            fontWeight: 500,
+          }}
+        >
           {session.nodeName}
         </Typography>
         <Tooltip title="Открыть в отдельном окне">
-          <IconButton size="small" aria-label="Открыть терминал в отдельном окне" onClick={handlePopup} sx={{ color: '#9e9e9e', p: 0.3 }}>
+          <IconButton
+            size="small"
+            aria-label="Открыть терминал в отдельном окне"
+            onClick={handlePopup}
+            sx={{ color: '#9e9e9e', p: 0.3 }}
+          >
             <OpenInNew sx={{ fontSize: 15 }} />
           </IconButton>
         </Tooltip>
@@ -451,11 +551,20 @@ function TerminalWindow({
             onClick={() => onMinimizeToggle(session.id)}
             sx={{ color: '#9e9e9e', p: 0.3 }}
           >
-            {session.minimized ? <CropSquare sx={{ fontSize: 15 }} /> : <Remove sx={{ fontSize: 15 }} />}
+            {session.minimized ? (
+              <CropSquare sx={{ fontSize: 15 }} />
+            ) : (
+              <Remove sx={{ fontSize: 15 }} />
+            )}
           </IconButton>
         </Tooltip>
         <Tooltip title="Закрыть">
-          <IconButton size="small" aria-label="Закрыть терминал" onClick={() => onClose(session.id)} sx={{ color: '#9e9e9e', p: 0.3 }}>
+          <IconButton
+            size="small"
+            aria-label="Закрыть терминал"
+            onClick={() => onClose(session.id)}
+            sx={{ color: '#9e9e9e', p: 0.3 }}
+          >
             <Close sx={{ fontSize: 15 }} />
           </IconButton>
         </Tooltip>
@@ -494,7 +603,12 @@ function TerminalWindow({
           }}
         >
           <svg width="10" height="10" viewBox="0 0 10 10">
-            <path d="M9 1 L1 9 M9 5 L5 9 M9 9 L9 9" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round"/>
+            <path
+              d="M9 1 L1 9 M9 5 L5 9 M9 9 L9 9"
+              stroke="rgba(255,255,255,0.8)"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
           </svg>
         </Box>
       )}
@@ -505,7 +619,13 @@ function TerminalWindow({
 // ─── Blank node form ──────────────────────────────────────────────────────────
 
 const blankNode = (): Partial<SshNode> => ({
-  name: '', ip: '', sshPort: 22, sshUser: 'root', authType: 'password', password: '', sshKey: '',
+  name: '',
+  ip: '',
+  sshPort: 22,
+  sshUser: 'root',
+  authType: 'password',
+  password: '',
+  sshKey: '',
   disableProxy: false,
 });
 
@@ -519,6 +639,7 @@ export default function ScriptsPage() {
 
   // Data
   const [sshNodes, setSshNodes] = useState<SshNode[]>([]);
+  const [hysteriaClusters, setHysteriaClusters] = useState<Hysteria2Cluster[]>([]);
   const [sshProxyConfigured, setSshProxyConfigured] = useState(false);
   const [scripts, setScripts] = useState<Script[]>([]);
   const [rwNodes, setRwNodes] = useState<RwNode[]>([]);
@@ -532,6 +653,13 @@ export default function ScriptsPage() {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [bulkBusy, setBulkBusy] = useState(false);
 
+  const [clusterImportOpen, setClusterImportOpen] = useState(false);
+  const [clusterImportNodeIds, setClusterImportNodeIds] = useState<string[]>([]);
+  const [clusterImportDomain, setClusterImportDomain] = useState('');
+  const [clusterImportEmail, setClusterImportEmail] = useState('');
+  const [clusterImportCoordinator, setClusterImportCoordinator] = useState('');
+  const [clusterImportBusy, setClusterImportBusy] = useState(false);
+
   // Snackbar
   const { msg, showMsg, closeMsg } = useAlert();
 
@@ -544,7 +672,7 @@ export default function ScriptsPage() {
   // ── Script content expand ─────────────────────────────────────────────────
   const [expandedScripts, setExpandedScripts] = useState<Set<string>>(new Set());
   const toggleExpand = (id: string) =>
-    setExpandedScripts(prev => {
+    setExpandedScripts((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -553,7 +681,11 @@ export default function ScriptsPage() {
 
   // ── Script dialog ─────────────────────────────────────────────────────────
   const [scriptDialog, setScriptDialog] = useState(false);
-  const [scriptForm, setScriptForm] = useState<Partial<Script>>({ name: '', description: '', content: '' });
+  const [scriptForm, setScriptForm] = useState<Partial<Script>>({
+    name: '',
+    description: '',
+    content: '',
+  });
   const [scriptEditId, setScriptEditId] = useState<string | null>(null);
   const [urlInput, setUrlInput] = useState('');
   const [urlLoading, setUrlLoading] = useState(false);
@@ -575,10 +707,17 @@ export default function ScriptsPage() {
   const [secrets, setSecrets] = useState<Secret[]>([]);
   const [secretDialog, setSecretDialog] = useState(false);
   const [secretEditId, setSecretEditId] = useState<string | null>(null);
-  const [secretForm, setSecretForm] = useState<SecretFormState>({ name: '', type: 'password', value: '', description: '' });
+  const [secretForm, setSecretForm] = useState<SecretFormState>({
+    name: '',
+    type: 'password',
+    value: '',
+    description: '',
+  });
   // Universal secret picker dialog
   const [secretPickerOpen, setSecretPickerOpen] = useState(false);
-  const [secretPickerCallback, setSecretPickerCallback] = useState<((v: string, id: string) => void) | null>(null);
+  const [secretPickerCallback, setSecretPickerCallback] = useState<
+    ((v: string, id: string) => void) | null
+  >(null);
 
   // ── History ───────────────────────────────────────────────────────────────
   const [scriptHistoryDots, setScriptHistoryDots] = useState<
@@ -595,33 +734,59 @@ export default function ScriptsPage() {
   // ── Categories ────────────────────────────────────────────────────────────
   const [categories, setCategories] = useState<NodeCategory[]>([]);
   const [catDialog, setCatDialog] = useState(false);
-  const [catForm, setCatForm] = useState<{ id?: string; name: string; color: string }>({ name: '', color: '#1976d2' });
+  const [catForm, setCatForm] = useState<{
+    id?: string;
+    name: string;
+    color: string;
+  }>({ name: '', color: '#1976d2' });
   const [catEditId, setCatEditId] = useState<string | null>(null);
 
   // ── Per-node vars (single run) ────────────────────────────────────────────
   const [perNodeVarsMode, setPerNodeVarsMode] = useState(false);
-  const [varValuesPerNode, setVarValuesPerNode] = useState<Record<string, Record<string, string>>>({});
+  const [varValuesPerNode, setVarValuesPerNode] = useState<Record<string, Record<string, string>>>(
+    {},
+  );
 
   // ── Script Queue ──────────────────────────────────────────────────────────
   const [scriptQueue, setScriptQueue] = useState<Script[]>([]);
   const [queueDialogOpen, setQueueDialogOpen] = useState(false);
   const [queueSelectedNodeIds, setQueueSelectedNodeIds] = useState<string[]>([]);
-  const [varValuesPerScript, setVarValuesPerScript] = useState<Record<string, Record<string, string>>>({});
+  const [varValuesPerScript, setVarValuesPerScript] = useState<
+    Record<string, Record<string, string>>
+  >({});
   // ── Per-node vars (queue run) ─────────────────────────────────────────────
   const [perNodeVarsQueueMode, setPerNodeVarsQueueMode] = useState(false);
-  const [varValuesPerScriptPerNode, setVarValuesPerScriptPerNode] = useState<Record<string, Record<string, Record<string, string>>>>({});
+  const [varValuesPerScriptPerNode, setVarValuesPerScriptPerNode] = useState<
+    Record<string, Record<string, Record<string, string>>>
+  >({});
 
   // ── Overflow menus ────────────────────────────────────────────────────────
-  const [nodeRowMenu, setNodeRowMenu] = useState<{ el: HTMLElement; nodeId: string; nodeName: string } | null>(null);
-  const [secretRowMenu, setSecretRowMenu] = useState<{ el: HTMLElement; id: string; name: string } | null>(null);
+  const [nodeRowMenu, setNodeRowMenu] = useState<{
+    el: HTMLElement;
+    nodeId: string;
+    nodeName: string;
+  } | null>(null);
+  const [secretRowMenu, setSecretRowMenu] = useState<{
+    el: HTMLElement;
+    id: string;
+    name: string;
+  } | null>(null);
 
   // ── Confirm dialogs ───────────────────────────────────────────────────────
-  const [confirmDel, setConfirmDel] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({ open: false, title: '', message: '', onConfirm: () => {} });
+  const [confirmDel, setConfirmDel] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({ open: false, title: '', message: '', onConfirm: () => {} });
   const askDelete = (title: string, message: string, onConfirm: () => void) =>
     setConfirmDel({ open: true, title, message, onConfirm });
   const [closeConfirm, setCloseConfirm] = useState(false);
   const pendingCloseRef = useRef<() => void>(() => {});
-  const askClose = (onConfirmed: () => void) => { pendingCloseRef.current = onConfirmed; setCloseConfirm(true); };
+  const askClose = (onConfirmed: () => void) => {
+    pendingCloseRef.current = onConfirmed;
+    setCloseConfirm(true);
+  };
   // isDirty per form dialog
   const [nodeFormDirty, setNodeFormDirty] = useState(false);
   const [catFormDirty, setCatFormDirty] = useState(false);
@@ -638,28 +803,45 @@ export default function ScriptsPage() {
     try {
       const { data } = await api.get('/scripts/ssh-nodes');
       setSshNodes(Array.isArray(data) ? data : []);
-    } catch { setSshNodes([]); }
+    } catch {
+      setSshNodes([]);
+    }
+  }, []);
+
+  const loadHysteriaClusters = useCallback(async () => {
+    try {
+      const { data } = await api.get('/scripts/hysteria2-clusters');
+      setHysteriaClusters(Array.isArray(data) ? data : []);
+    } catch {
+      setHysteriaClusters([]);
+    }
   }, []);
 
   const loadScripts = useCallback(async () => {
     try {
       const { data } = await api.get('/scripts/scripts');
       setScripts(Array.isArray(data) ? data : []);
-    } catch { setScripts([]); }
+    } catch {
+      setScripts([]);
+    }
   }, []);
 
   const loadRwNodes = useCallback(async () => {
     try {
       const { data } = await api.get('/settings/nodes');
       setRwNodes(Array.isArray(data) ? data : []);
-    } catch { setRwNodes([]); }
+    } catch {
+      setRwNodes([]);
+    }
   }, []);
 
   const loadSecrets = useCallback(async () => {
     try {
       const { data } = await api.get('/secrets');
       setSecrets(Array.isArray(data) ? data : []);
-    } catch { setSecrets([]); }
+    } catch {
+      setSecrets([]);
+    }
   }, []);
 
   const loadCategories = useCallback(async () => {
@@ -668,20 +850,30 @@ export default function ScriptsPage() {
       const raw = data?.node_categories;
       setCategories(raw ? JSON.parse(raw) : []);
       setSshProxyConfigured(data?.ssh_proxy_configured === 'true');
-    } catch { setCategories([]); setSshProxyConfigured(false); }
+    } catch {
+      setCategories([]);
+      setSshProxyConfigured(false);
+    }
   }, []);
 
   const loadScriptDots = useCallback(async () => {
     try {
       const { data } = await api.get('/scripts/history?page=1&limit=50');
-      const map: Record<string, { id: string; status: 'success' | 'error'; startedAt: string }[]> = {};
+      const map: Record<string, { id: string; status: 'success' | 'error'; startedAt: string }[]> =
+        {};
       for (const item of data.data as HistoryListItem[]) {
         if (!map[item.scriptId]) map[item.scriptId] = [];
         if (map[item.scriptId].length < 10)
-          map[item.scriptId].push({ id: item.id, status: item.status, startedAt: item.startedAt });
+          map[item.scriptId].push({
+            id: item.id,
+            status: item.status,
+            startedAt: item.startedAt,
+          });
       }
       setScriptHistoryDots(map);
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, []);
 
   const toggleScriptHistory = async (scriptId: string) => {
@@ -698,7 +890,9 @@ export default function ScriptsPage() {
       const { data } = await api.get(`/scripts/history/by-script/${scriptId}?page=1&limit=10`);
       setExpandedHistoryItems(data.data);
       setExpandedHistoryTotal(data.total);
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
     setExpandedHistoryLoading(false);
   };
 
@@ -706,10 +900,14 @@ export default function ScriptsPage() {
     const nextPage = expandedHistoryPage + 1;
     setExpandedHistoryLoading(true);
     try {
-      const { data } = await api.get(`/scripts/history/by-script/${scriptId}?page=${nextPage}&limit=10`);
-      setExpandedHistoryItems(prev => [...prev, ...data.data]);
+      const { data } = await api.get(
+        `/scripts/history/by-script/${scriptId}?page=${nextPage}&limit=10`,
+      );
+      setExpandedHistoryItems((prev) => [...prev, ...data.data]);
       setExpandedHistoryPage(nextPage);
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
     setExpandedHistoryLoading(false);
   };
 
@@ -719,19 +917,70 @@ export default function ScriptsPage() {
     try {
       const { data } = await api.get(`/scripts/history/${id}`);
       setHistoryDetail(data);
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
     setHistoryDetailLoading(false);
   };
 
   useEffect(() => {
     loadSshNodes();
+    loadHysteriaClusters();
     loadScripts();
     loadRwNodes();
     loadSecrets();
     loadCategories();
-  }, [loadCategories, loadRwNodes, loadScripts, loadSecrets, loadSshNodes]);
+  }, [loadCategories, loadHysteriaClusters, loadRwNodes, loadScripts, loadSecrets, loadSshNodes]);
 
   // ─── SSH Node handlers ────────────────────────────────────────────────────
+
+  const openHysteriaClusterImport = () => {
+    setClusterImportNodeIds(selectedNodeListIds.length ? selectedNodeListIds : []);
+    setClusterImportDomain('');
+    setClusterImportEmail('');
+    setClusterImportCoordinator('');
+    setClusterImportOpen(true);
+  };
+
+  const handleImportHysteriaCluster = async () => {
+    if (!clusterImportNodeIds.length || !clusterImportDomain.trim() || !clusterImportEmail.trim()) {
+      showMsg('error', 'Укажите домен, email и выберите ноды группы');
+      return;
+    }
+    try {
+      setClusterImportBusy(true);
+      await api.post('/scripts/hysteria2-clusters/import', {
+        nodeIds: clusterImportNodeIds,
+        domain: clusterImportDomain.trim().toLowerCase(),
+        email: clusterImportEmail.trim(),
+        coordinatorNodeId: clusterImportCoordinator || undefined,
+      });
+      setClusterImportOpen(false);
+      await loadHysteriaClusters();
+      showMsg('success', 'Группа Hysteria2 импортирована');
+    } catch (error: unknown) {
+      showMsg('error', getErrorMessage(error));
+    } finally {
+      setClusterImportBusy(false);
+    }
+  };
+
+  const handleDeleteHysteriaCluster = async (cluster: Hysteria2Cluster) => {
+    askDelete(
+      'Удалить группу из RWManager',
+      `Удалить группу ${cluster.domain} из списка? Конфигурация на нодах не изменится.`,
+      async () => {
+        setConfirmDel((prev) => ({ ...prev, open: false }));
+        try {
+          await api.delete(`/scripts/hysteria2-clusters/${cluster.id}`);
+          await loadHysteriaClusters();
+          showMsg('success', 'Группа удалена из RWManager');
+        } catch (error: unknown) {
+          showMsg('error', getErrorMessage(error));
+        }
+      },
+    );
+  };
 
   const openAddNode = () => {
     setNodeEditId(null);
@@ -776,7 +1025,7 @@ export default function ScriptsPage() {
 
   const handleDeleteNode = (id: string, name: string) => {
     askDelete('Удалить ноду', `Удалить ноду "${name}"?`, async () => {
-      setConfirmDel(d => ({ ...d, open: false }));
+      setConfirmDel((d) => ({ ...d, open: false }));
       try {
         await api.delete(`/scripts/ssh-nodes/${id}`);
         loadSshNodes();
@@ -786,41 +1035,59 @@ export default function ScriptsPage() {
     });
   };
 
-  const toggleSelected = (id: string, selected: string[], setSelected: React.Dispatch<React.SetStateAction<string[]>>) => {
-    setSelected(selected.includes(id) ? selected.filter(item => item !== id) : [...selected, id]);
+  const toggleSelected = (
+    id: string,
+    selected: string[],
+    setSelected: React.Dispatch<React.SetStateAction<string[]>>,
+  ) => {
+    setSelected(selected.includes(id) ? selected.filter((item) => item !== id) : [...selected, id]);
   };
 
-  const askBulkDelete = (kind: 'ssh-nodes' | 'scripts' | 'secrets' | 'categories', ids: string[], names: string[], after: () => Promise<unknown>) => {
+  const askBulkDelete = (
+    kind: 'ssh-nodes' | 'scripts' | 'secrets' | 'categories',
+    ids: string[],
+    names: string[],
+    after: () => Promise<unknown>,
+  ) => {
     if (!ids.length) return;
     const url = kind === 'secrets' ? '/secrets/bulk' : `/scripts/${kind}/bulk`;
-    const preview = names.slice(0, 5).join(', ') + (names.length > 5 ? ` и ещё ${names.length - 5}` : '');
-    const builtInCount = kind === 'scripts' ? scripts.filter(s => ids.includes(s.id) && s.isBuiltIn).length : 0;
+    const preview =
+      names.slice(0, 5).join(', ') + (names.length > 5 ? ` и ещё ${names.length - 5}` : '');
+    const builtInCount =
+      kind === 'scripts' ? scripts.filter((s) => ids.includes(s.id) && s.isBuiltIn).length : 0;
     const scriptNote = builtInCount ? ` ${builtInCount} встроенных скриптов будут скрыты.` : '';
-    askDelete('Удалить выбранное', `Удалить ${ids.length} выбранных элементов: ${preview}?${scriptNote}`, async () => {
-      setConfirmDel(d => ({ ...d, open: false }));
-      setBulkBusy(true);
-      try {
-        const { data } = await api.delete(url, { data: { ids } });
-        await after();
-        if (kind === 'ssh-nodes') setSelectedNodeListIds([]);
-        if (kind === 'scripts') { setSelectedScriptIds([]); setScriptQueue(prev => prev.filter(s => !ids.includes(s.id))); }
-        if (kind === 'secrets') setSelectedSecretIds([]);
-        if (kind === 'categories') setSelectedCategoryIds([]);
-        showMsg('success', `Удалено: ${data.deleted}`);
-      } catch (e: unknown) {
-        showMsg('error', getErrorMessage(e));
-        await after();
-      } finally {
-        setBulkBusy(false);
-      }
-    });
+    askDelete(
+      'Удалить выбранное',
+      `Удалить ${ids.length} выбранных элементов: ${preview}?${scriptNote}`,
+      async () => {
+        setConfirmDel((d) => ({ ...d, open: false }));
+        setBulkBusy(true);
+        try {
+          const { data } = await api.delete(url, { data: { ids } });
+          await after();
+          if (kind === 'ssh-nodes') setSelectedNodeListIds([]);
+          if (kind === 'scripts') {
+            setSelectedScriptIds([]);
+            setScriptQueue((prev) => prev.filter((s) => !ids.includes(s.id)));
+          }
+          if (kind === 'secrets') setSelectedSecretIds([]);
+          if (kind === 'categories') setSelectedCategoryIds([]);
+          showMsg('success', `Удалено: ${data.deleted}`);
+        } catch (e: unknown) {
+          showMsg('error', getErrorMessage(e));
+          await after();
+        } finally {
+          setBulkBusy(false);
+        }
+      },
+    );
   };
 
   const handleRwNodeSelect = (e: SelectChangeEvent<string>) => {
     const uuid = e.target.value;
-    const rw = rwNodes.find(n => n.uuid === uuid);
+    const rw = rwNodes.find((n) => n.uuid === uuid);
     if (rw) {
-      setNodeForm(prev => ({
+      setNodeForm((prev) => ({
         ...prev,
         rwNodeUuid: uuid,
         name: prev.name || rw.name,
@@ -846,9 +1113,14 @@ export default function ScriptsPage() {
   };
 
   const handleSaveCategory = async () => {
-    if (!catForm.name.trim()) { showMsg('error', 'Название обязательно'); return; }
+    if (!catForm.name.trim()) {
+      showMsg('error', 'Название обязательно');
+      return;
+    }
     const updated = catEditId
-      ? categories.map(c => c.id === catEditId ? { ...c, name: catForm.name, color: catForm.color } : c)
+      ? categories.map((c) =>
+          c.id === catEditId ? { ...c, name: catForm.name, color: catForm.color } : c,
+        )
       : [...categories, { id: crypto.randomUUID(), name: catForm.name, color: catForm.color }];
     try {
       await api.post('/settings', { node_categories: JSON.stringify(updated) });
@@ -861,18 +1133,23 @@ export default function ScriptsPage() {
 
   const handleDeleteCategory = (id: string, name: string) => {
     askDelete('Удалить категорию', `Удалить категорию "${name}"?`, async () => {
-      setConfirmDel(d => ({ ...d, open: false }));
-      const updated = categories.filter(c => c.id !== id);
+      setConfirmDel((d) => ({ ...d, open: false }));
+      const updated = categories.filter((c) => c.id !== id);
       try {
-        await api.post('/settings', { node_categories: JSON.stringify(updated) });
+        await api.post('/settings', {
+          node_categories: JSON.stringify(updated),
+        });
         setCategories(updated);
-        const updatedNodes = sshNodes.map(n => ({
+        const updatedNodes = sshNodes.map((n) => ({
           ...n,
-          categoryIds: (n.categoryIds || []).filter(cid => cid !== id),
+          categoryIds: (n.categoryIds || []).filter((cid) => cid !== id),
         }));
-        await Promise.all(updatedNodes
-          .filter((n, i) => JSON.stringify(n.categoryIds) !== JSON.stringify(sshNodes[i].categoryIds))
-          .map(n => api.patch(`/scripts/ssh-nodes/${n.id}`, n)),
+        await Promise.all(
+          updatedNodes
+            .filter(
+              (n, i) => JSON.stringify(n.categoryIds) !== JSON.stringify(sshNodes[i].categoryIds),
+            )
+            .map((n) => api.patch(`/scripts/ssh-nodes/${n.id}`, n)),
         );
         await loadSshNodes();
       } catch (e: unknown) {
@@ -882,11 +1159,11 @@ export default function ScriptsPage() {
   };
 
   const toggleNodeCategory = (catId: string) => {
-    setNodeForm(prev => {
+    setNodeForm((prev) => {
       const ids = prev.categoryIds || [];
       return {
         ...prev,
-        categoryIds: ids.includes(catId) ? ids.filter(id => id !== catId) : [...ids, catId],
+        categoryIds: ids.includes(catId) ? ids.filter((id) => id !== catId) : [...ids, catId],
       };
     });
   };
@@ -904,7 +1181,11 @@ export default function ScriptsPage() {
 
   const openEditScript = (s: Script) => {
     setScriptEditId(s.id);
-    setScriptForm({ name: s.name, description: s.description || '', content: s.content });
+    setScriptForm({
+      name: s.name,
+      description: s.description || '',
+      content: s.content,
+    });
     setUrlInput('');
     setUrlLoading(false);
     setScriptFormDirty(false);
@@ -916,7 +1197,7 @@ export default function ScriptsPage() {
     setUrlLoading(true);
     try {
       const { data } = await api.post('/scripts/fetch-url', { url: urlInput });
-      setScriptForm(p => ({ ...p, content: data.content }));
+      setScriptForm((p) => ({ ...p, content: data.content }));
       setUrlInput('');
     } catch (e: unknown) {
       showMsg('error', getErrorMessage(e));
@@ -949,7 +1230,7 @@ export default function ScriptsPage() {
       ? `Скрыть встроенный скрипт "${name}"? Его можно восстановить через откат.`
       : `Удалить скрипт "${name}"?`;
     askDelete(title, message, async () => {
-      setConfirmDel(d => ({ ...d, open: false }));
+      setConfirmDel((d) => ({ ...d, open: false }));
       try {
         await api.delete(`/scripts/scripts/${id}`);
         loadScripts();
@@ -960,16 +1241,20 @@ export default function ScriptsPage() {
   };
 
   const handleRevertScript = (id: string, name: string) => {
-    askDelete('Откатить скрипт', `Откатить "${name}" к оригинальной версии? Ваши изменения будут потеряны.`, async () => {
-      setConfirmDel(d => ({ ...d, open: false }));
-      try {
-        await api.post(`/scripts/scripts/${id}/revert`);
-        showMsg('success', 'Скрипт откатан к оригиналу');
-        loadScripts();
-      } catch (e: unknown) {
-        showMsg('error', getErrorMessage(e));
-      }
-    });
+    askDelete(
+      'Откатить скрипт',
+      `Откатить "${name}" к оригинальной версии? Ваши изменения будут потеряны.`,
+      async () => {
+        setConfirmDel((d) => ({ ...d, open: false }));
+        try {
+          await api.post(`/scripts/scripts/${id}/revert`);
+          showMsg('success', 'Скрипт откатан к оригиналу');
+          loadScripts();
+        } catch (e: unknown) {
+          showMsg('error', getErrorMessage(e));
+        }
+      },
+    );
   };
 
   const handleCloneScript = async (s: Script) => {
@@ -994,15 +1279,15 @@ export default function ScriptsPage() {
     setSelectedNodeIds([]);
     setRunJob(null);
     setScriptVars(vars);
-    setVarValues(Object.fromEntries(vars.map(v => [v.name, ''])));
+    setVarValues(Object.fromEntries(vars.map((v) => [v.name, ''])));
     setPerNodeVarsMode(false);
     setVarValuesPerNode({});
     setRunDialog(true);
   };
 
   const toggleNodeSelection = (id: string) => {
-    setSelectedNodeIds(prev =>
-      prev.includes(id) ? prev.filter(n => n !== id) : [...prev, id],
+    setSelectedNodeIds((prev) =>
+      prev.includes(id) ? prev.filter((n) => n !== id) : [...prev, id],
     );
   };
 
@@ -1031,9 +1316,16 @@ export default function ScriptsPage() {
     }
   }, [runJob]);
 
-  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
+  useEffect(
+    () => () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    },
+    [],
+  );
 
-  useEffect(() => { if (tab === 1) loadScriptDots(); }, [loadScriptDots, tab]);
+  useEffect(() => {
+    if (tab === 1) loadScriptDots();
+  }, [loadScriptDots, tab]);
 
   const handleRunScript = async () => {
     if (!runScript || !selectedNodeIds.length) {
@@ -1044,15 +1336,15 @@ export default function ScriptsPage() {
     if (perNodeVarsMode) {
       // Валидация: у каждой выбранной ноды заполнены все переменные
       for (const nodeId of selectedNodeIds) {
-        const node = sshNodes.find(n => n.id === nodeId);
-        const emptyVar = scriptVars.find(v => !varValuesPerNode[nodeId]?.[v.name]?.trim());
+        const node = sshNodes.find((n) => n.id === nodeId);
+        const emptyVar = scriptVars.find((v) => !varValuesPerNode[nodeId]?.[v.name]?.trim());
         if (emptyVar) {
           showMsg('error', `Заполните «${emptyVar.label}» для ноды «${node?.name ?? nodeId}»`);
           return;
         }
       }
     } else {
-      const emptyVar = scriptVars.find(v => !varValues[v.name]?.trim());
+      const emptyVar = scriptVars.find((v) => !varValues[v.name]?.trim());
       if (emptyVar) {
         showMsg('error', `Заполните переменную: ${emptyVar.label}`);
         return;
@@ -1080,7 +1372,10 @@ export default function ScriptsPage() {
   };
 
   const handleCloseRunDialog = () => {
-    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
     setRunDialog(false);
     setRunJob(null);
     setRunLoading(false);
@@ -1093,13 +1388,13 @@ export default function ScriptsPage() {
 
   // ─── Queue handlers ───────────────────────────────────────────────────────
 
-  const addToQueue = (s: Script) => setScriptQueue(prev => [...prev, s]);
+  const addToQueue = (s: Script) => setScriptQueue((prev) => [...prev, s]);
 
   const removeFromQueue = (index: number) =>
-    setScriptQueue(prev => prev.filter((_, i) => i !== index));
+    setScriptQueue((prev) => prev.filter((_, i) => i !== index));
 
   const moveQueueItem = (index: number, dir: 'up' | 'down') => {
-    setScriptQueue(prev => {
+    setScriptQueue((prev) => {
       const next = [...prev];
       const swap = dir === 'up' ? index - 1 : index + 1;
       if (swap < 0 || swap >= next.length) return prev;
@@ -1113,7 +1408,7 @@ export default function ScriptsPage() {
     for (const s of scriptQueue) {
       if (!initialVars[s.id]) {
         const vars = extractVariables(s.content);
-        initialVars[s.id] = Object.fromEntries(vars.map(v => [v.name, '']));
+        initialVars[s.id] = Object.fromEntries(vars.map((v) => [v.name, '']));
       }
     }
     setVarValuesPerScript(initialVars);
@@ -1124,7 +1419,10 @@ export default function ScriptsPage() {
   };
 
   const handleCloseQueueDialog = () => {
-    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
     setQueueDialogOpen(false);
     setRunJob(null);
     setRunLoading(false);
@@ -1134,16 +1432,24 @@ export default function ScriptsPage() {
   };
 
   const handleRunQueue = async () => {
-    if (!queueSelectedNodeIds.length) { showMsg('error', 'Выберите хотя бы одну ноду'); return; }
+    if (!queueSelectedNodeIds.length) {
+      showMsg('error', 'Выберите хотя бы одну ноду');
+      return;
+    }
 
     if (perNodeVarsQueueMode) {
       for (const s of scriptQueue) {
         const vars = extractVariables(s.content);
         for (const nodeId of queueSelectedNodeIds) {
-          const node = sshNodes.find(n => n.id === nodeId);
-          const emptyVar = vars.find(v => !varValuesPerScriptPerNode[s.id]?.[nodeId]?.[v.name]?.trim());
+          const node = sshNodes.find((n) => n.id === nodeId);
+          const emptyVar = vars.find(
+            (v) => !varValuesPerScriptPerNode[s.id]?.[nodeId]?.[v.name]?.trim(),
+          );
           if (emptyVar) {
-            showMsg('error', `Заполните «${emptyVar.label}» для ноды «${node?.name ?? nodeId}» (скрипт «${s.name}»)`);
+            showMsg(
+              'error',
+              `Заполните «${emptyVar.label}» для ноды «${node?.name ?? nodeId}» (скрипт «${s.name}»)`,
+            );
             return;
           }
         }
@@ -1151,7 +1457,7 @@ export default function ScriptsPage() {
     } else {
       for (const s of scriptQueue) {
         const vars = extractVariables(s.content);
-        const emptyVar = vars.find(v => !varValuesPerScript[s.id]?.[v.name]?.trim());
+        const emptyVar = vars.find((v) => !varValuesPerScript[s.id]?.[v.name]?.trim());
         if (emptyVar) {
           showMsg('error', `Заполните переменную «${emptyVar.label}» для скрипта «${s.name}»`);
           return;
@@ -1163,7 +1469,7 @@ export default function ScriptsPage() {
       setRunLoading(true);
       setRunJob(null);
       const payload: ExecuteSequencePayload = {
-        scriptIds: scriptQueue.map(s => s.id),
+        scriptIds: scriptQueue.map((s) => s.id),
         nodeIds: queueSelectedNodeIds,
         variablesPerScript: varValuesPerScript,
       };
@@ -1183,12 +1489,14 @@ export default function ScriptsPage() {
     currentIds: string[],
     setIds: React.Dispatch<React.SetStateAction<string[]>>,
   ) => {
-    const nodesInCat = sshNodes.filter(n => (n.categoryIds || []).includes(catId)).map(n => n.id);
-    const allSelected = nodesInCat.every(id => currentIds.includes(id));
+    const nodesInCat = sshNodes
+      .filter((n) => (n.categoryIds || []).includes(catId))
+      .map((n) => n.id);
+    const allSelected = nodesInCat.every((id) => currentIds.includes(id));
     if (allSelected) {
-      setIds(prev => prev.filter(id => !nodesInCat.includes(id)));
+      setIds((prev) => prev.filter((id) => !nodesInCat.includes(id)));
     } else {
-      setIds(prev => [...new Set([...prev, ...nodesInCat])]);
+      setIds((prev) => [...new Set([...prev, ...nodesInCat])]);
     }
   };
 
@@ -1203,7 +1511,12 @@ export default function ScriptsPage() {
 
   const openEditSecret = (s: Secret) => {
     setSecretEditId(s.id);
-    setSecretForm({ name: s.name, type: s.type, value: '', description: s.description || '' });
+    setSecretForm({
+      name: s.name,
+      type: s.type,
+      value: '',
+      description: s.description || '',
+    });
     setSecretFormDirty(false);
     setSecretDialog(true);
   };
@@ -1218,7 +1531,11 @@ export default function ScriptsPage() {
       return;
     }
     try {
-      const payload: SecretPayload = { name: secretForm.name, type: secretForm.type, description: secretForm.description };
+      const payload: SecretPayload = {
+        name: secretForm.name,
+        type: secretForm.type,
+        description: secretForm.description,
+      };
       if (secretForm.value.trim()) payload.value = secretForm.value;
       await api[secretEditId ? 'patch' : 'post'](
         secretEditId ? `/secrets/${secretEditId}` : '/secrets',
@@ -1234,7 +1551,7 @@ export default function ScriptsPage() {
 
   const handleDeleteSecret = (id: string, name: string) => {
     askDelete('Удалить секрет', `Удалить секрет "${name}"?`, async () => {
-      setConfirmDel(d => ({ ...d, open: false }));
+      setConfirmDel((d) => ({ ...d, open: false }));
       try {
         await api.delete(`/secrets/${id}`);
         loadSecrets();
@@ -1263,21 +1580,27 @@ export default function ScriptsPage() {
   // ─── Terminal handlers ────────────────────────────────────────────────────
 
   const openTerminal = useCallback((node: SshNode) => {
-    setTerminals(prev => [...prev, {
-      id: crypto.randomUUID(),
-      nodeId: node.id,
-      nodeName: node.name,
-      minimized: false,
-      position: { x: 80 + prev.length * 30, y: 80 + prev.length * 30 },
-      size: { width: 680, height: 420 },
-    }]);
+    setTerminals((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        nodeId: node.id,
+        nodeName: node.name,
+        minimized: false,
+        position: { x: 80 + prev.length * 30, y: 80 + prev.length * 30 },
+        size: { width: 680, height: 420 },
+      },
+    ]);
   }, []);
 
   const openTerminalPopup = useCallback(async (node: SshNode) => {
     const popup = window.open('about:blank', '_blank', 'width=900,height=600');
     try {
       const { data } = await api.post('/terminal/ticket', { nodeId: node.id });
-      const params = new URLSearchParams({ ticket: data.ticket, nodeName: node.name });
+      const params = new URLSearchParams({
+        ticket: data.ticket,
+        nodeName: node.name,
+      });
       if (popup) popup.location.href = `/terminal-popup?${params.toString()}`;
     } catch {
       popup?.close();
@@ -1285,179 +1608,310 @@ export default function ScriptsPage() {
   }, []);
 
   const closeTerminal = useCallback((id: string) => {
-    setTerminals(prev => prev.filter(t => t.id !== id));
+    setTerminals((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   const toggleMinimize = useCallback((id: string) => {
-    setTerminals(prev => prev.map(t => t.id === id ? { ...t, minimized: !t.minimized } : t));
+    setTerminals((prev) => prev.map((t) => (t.id === id ? { ...t, minimized: !t.minimized } : t)));
   }, []);
 
   const moveTerminal = useCallback((id: string, pos: { x: number; y: number }) => {
-    setTerminals(prev => prev.map(t => t.id === id ? { ...t, position: pos } : t));
+    setTerminals((prev) => prev.map((t) => (t.id === id ? { ...t, position: pos } : t)));
   }, []);
 
   const resizeTerminal = useCallback((id: string, size: { width: number; height: number }) => {
-    setTerminals(prev => prev.map(t => t.id === id ? { ...t, size } : t));
+    setTerminals((prev) => prev.map((t) => (t.id === id ? { ...t, size } : t)));
   }, []);
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
-  const filteredNodes = sshNodes.filter(n => !nodeSearch || n.name.toLowerCase().includes(nodeSearch.toLowerCase()) || n.ip.includes(nodeSearch));
-  const filteredScripts = scripts.filter(s => !scriptSearch || s.name.toLowerCase().includes(scriptSearch.toLowerCase()));
-  const selectedScripts = scripts.filter(s => selectedScriptIds.includes(s.id));
+  const filteredNodes = sshNodes.filter(
+    (n) =>
+      !nodeSearch ||
+      n.name.toLowerCase().includes(nodeSearch.toLowerCase()) ||
+      n.ip.includes(nodeSearch),
+  );
+  const filteredScripts = scripts.filter(
+    (s) => !scriptSearch || s.name.toLowerCase().includes(scriptSearch.toLowerCase()),
+  );
+  const selectedScripts = scripts.filter((s) => selectedScriptIds.includes(s.id));
 
   return (
     <Box>
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>Скрипты</Typography>
-        <Typography variant="body2" color="text.secondary">Ноды, bash-скрипты и хранилище секретов</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+          Скрипты
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Ноды, bash-скрипты и хранилище секретов
+        </Typography>
       </Box>
 
       <Paper>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs
+          value={tab}
+          onChange={(_, v) => setTab(v)}
+          sx={{ borderBottom: 1, borderColor: 'divider' }}
+        >
           <Tab label="Ноды" />
           <Tab label="Скрипты" />
           <Tab label="Секреты" />
         </Tabs>
 
         <Box sx={{ p: { xs: 2, md: 3 } }}>
-
           {/* ── Tab 0: SSH Nodes ── */}
           {tab === 0 && (
             <Box>
-              <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ mb: 2, gap: 1 }}>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                justifyContent="space-between"
+                alignItems={{ xs: 'flex-start', sm: 'center' }}
+                sx={{ mb: 2, gap: 1 }}
+              >
                 <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Ноды</Typography>
-                  <Typography variant="caption" color="text.secondary">Серверы для выполнения скриптов</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    Ноды
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Серверы для выполнения скриптов
+                  </Typography>
                 </Box>
                 <Stack direction="row" spacing={1}>
-                  <Button variant="outlined" startIcon={<Label />} size="small" onClick={openAddCategory}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<Label />}
+                    size="small"
+                    onClick={openAddCategory}
+                  >
                     Категории
                   </Button>
-                  <Button variant="contained" startIcon={<Add />} size="small" onClick={openAddNode}>
+                  <Button
+                    variant="contained"
+                    startIcon={<Add />}
+                    size="small"
+                    onClick={openAddNode}
+                  >
                     Добавить ноду
                   </Button>
                 </Stack>
               </Stack>
 
               {sshNodes.length > 0 && (
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }} sx={{ mb: 2 }}>
-                <TextField
-                  size="small"
-                  placeholder="Поиск по имени или IP..."
-                  value={nodeSearch}
-                  onChange={e => setNodeSearch(e.target.value)}
-                  sx={{ maxWidth: 320 }}
-                  slotProps={{ input: { sx: { fontSize: 14 } } }}
-                />
-                {selectedNodeListIds.length > 0 && (
-                  <Button size="small" color="error" startIcon={<Delete />} disabled={bulkBusy}
-                    onClick={() => askBulkDelete('ssh-nodes', selectedNodeListIds, sshNodes.filter(n => selectedNodeListIds.includes(n.id)).map(n => n.name), loadSshNodes)}>
-                    Удалить выбранные ({selectedNodeListIds.length})
-                  </Button>
-                )}
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={1}
+                  alignItems={{ sm: 'center' }}
+                  sx={{ mb: 2 }}
+                >
+                  <TextField
+                    size="small"
+                    placeholder="Поиск по имени или IP..."
+                    value={nodeSearch}
+                    onChange={(e) => setNodeSearch(e.target.value)}
+                    sx={{ maxWidth: 320 }}
+                    slotProps={{ input: { sx: { fontSize: 14 } } }}
+                  />
+                  {selectedNodeListIds.length > 0 && (
+                    <Button
+                      size="small"
+                      color="error"
+                      startIcon={<Delete />}
+                      disabled={bulkBusy}
+                      onClick={() =>
+                        askBulkDelete(
+                          'ssh-nodes',
+                          selectedNodeListIds,
+                          sshNodes
+                            .filter((n) => selectedNodeListIds.includes(n.id))
+                            .map((n) => n.name),
+                          loadSshNodes,
+                        )
+                      }
+                    >
+                      Удалить выбранные ({selectedNodeListIds.length})
+                    </Button>
+                  )}
                 </Stack>
               )}
 
               {sshNodes.length === 0 ? (
                 <Alert severity="info">
-                  Нет нод. Добавьте вручную или установите ноду через раздел «Ноды» — она появится здесь автоматически.
+                  Нет нод. Добавьте вручную или установите ноду через раздел «Ноды» — она появится
+                  здесь автоматически.
                 </Alert>
               ) : (
                 <Box sx={{ overflowX: 'auto' }}>
-                <Table size="small" sx={{ minWidth: 360 }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell padding="checkbox">
-                        <Checkbox size="small" aria-label="Выбрать все видимые ноды"
-                          checked={filteredNodes.length > 0 && filteredNodes.every(n => selectedNodeListIds.includes(n.id))}
-                          indeterminate={filteredNodes.some(n => selectedNodeListIds.includes(n.id)) && !filteredNodes.every(n => selectedNodeListIds.includes(n.id))}
-                          onChange={e => setSelectedNodeListIds(prev => e.target.checked
-                            ? [...new Set([...prev, ...filteredNodes.map(n => n.id)])]
-                            : prev.filter(id => !filteredNodes.some(n => n.id === id)))} />
-                      </TableCell>
-                      <TableCell>Имя</TableCell>
-                      <TableCell>IP</TableCell>
-                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>SSH-порт</TableCell>
-                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Пользователь</TableCell>
-                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Авторизация</TableCell>
-                      <TableCell>Категории</TableCell>
-                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Нода RW</TableCell>
-                      <TableCell align="right">Действия</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {filteredNodes.map(node => {
-                      const rw = rwNodes.find(r => r.uuid === node.rwNodeUuid);
-                      return (
-                        <TableRow key={node.id} hover>
-                          <TableCell padding="checkbox"><Checkbox size="small" aria-label={`Выбрать ноду ${node.name}`}
-                            checked={selectedNodeListIds.includes(node.id)}
-                            onChange={() => toggleSelected(node.id, selectedNodeListIds, setSelectedNodeListIds)} /></TableCell>
-                          <TableCell>{node.name}</TableCell>
-                          <TableCell>{node.ip}</TableCell>
-                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{node.sshPort}</TableCell>
-                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{node.sshUser}</TableCell>
-                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
-                            <Chip
-                              label={node.authType === 'key' ? 'SSH-ключ' : 'Пароль'}
-                              size="small"
-                              variant="outlined"
-                            />
-                            <Chip
-                              label={node.disableProxy ? 'Напрямую' : node.hasProxyUrl ? 'SOCKS5 ноды' : sshProxyConfigured ? 'Общий SOCKS5' : 'Напрямую'}
-                              size="small"
-                              color={node.disableProxy || (!node.hasProxyUrl && !sshProxyConfigured) ? 'default' : 'info'}
-                              variant="outlined"
-                              sx={{ ml: 0.5 }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                              {(node.categoryIds || []).map(cid => {
-                                const cat = categories.find(c => c.id === cid);
-                                return cat ? (
-                                  <Chip key={cid} label={cat.name} size="small"
-                                    sx={{ bgcolor: cat.color, color: '#fff', fontSize: '0.7rem' }} />
-                                ) : null;
-                              })}
-                            </Stack>
-                          </TableCell>
-                          <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
-                            {rw ? (
-                              <Chip label={rw.name} size="small" color="primary" variant="outlined" />
-                            ) : (
-                              <Typography variant="caption" color="textSecondary">—</Typography>
-                            )}
-                          </TableCell>
-                          <TableCell align="right">
-                            <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                              <Tooltip title="Открыть терминал">
-                                <IconButton size="small" color="primary" aria-label={`Открыть терминал ${node.name}`} onClick={() => openTerminal(node)}>
-                                  <Terminal sx={{ fontSize: 16 }} />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Изменить">
-                                <IconButton size="small" aria-label={`Изменить ноду ${node.name}`} onClick={() => openEditNode(node)}>
-                                  <Edit sx={{ fontSize: 16 }} />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Ещё">
-                                <IconButton
+                  <Table size="small" sx={{ minWidth: 360 }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            size="small"
+                            aria-label="Выбрать все видимые ноды"
+                            checked={
+                              filteredNodes.length > 0 &&
+                              filteredNodes.every((n) => selectedNodeListIds.includes(n.id))
+                            }
+                            indeterminate={
+                              filteredNodes.some((n) => selectedNodeListIds.includes(n.id)) &&
+                              !filteredNodes.every((n) => selectedNodeListIds.includes(n.id))
+                            }
+                            onChange={(e) =>
+                              setSelectedNodeListIds((prev) =>
+                                e.target.checked
+                                  ? [...new Set([...prev, ...filteredNodes.map((n) => n.id)])]
+                                  : prev.filter((id) => !filteredNodes.some((n) => n.id === id)),
+                              )
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>Имя</TableCell>
+                        <TableCell>IP</TableCell>
+                        <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                          SSH-порт
+                        </TableCell>
+                        <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                          Пользователь
+                        </TableCell>
+                        <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                          Авторизация
+                        </TableCell>
+                        <TableCell>Категории</TableCell>
+                        <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                          Нода RW
+                        </TableCell>
+                        <TableCell align="right">Действия</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredNodes.map((node) => {
+                        const rw = rwNodes.find((r) => r.uuid === node.rwNodeUuid);
+                        return (
+                          <TableRow key={node.id} hover>
+                            <TableCell padding="checkbox">
+                              <Checkbox
+                                size="small"
+                                aria-label={`Выбрать ноду ${node.name}`}
+                                checked={selectedNodeListIds.includes(node.id)}
+                                onChange={() =>
+                                  toggleSelected(
+                                    node.id,
+                                    selectedNodeListIds,
+                                    setSelectedNodeListIds,
+                                  )
+                                }
+                              />
+                            </TableCell>
+                            <TableCell>{node.name}</TableCell>
+                            <TableCell>{node.ip}</TableCell>
+                            <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                              {node.sshPort}
+                            </TableCell>
+                            <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                              {node.sshUser}
+                            </TableCell>
+                            <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                              <Chip
+                                label={node.authType === 'key' ? 'SSH-ключ' : 'Пароль'}
+                                size="small"
+                                variant="outlined"
+                              />
+                              <Chip
+                                label={
+                                  node.disableProxy
+                                    ? 'Напрямую'
+                                    : node.hasProxyUrl
+                                      ? 'SOCKS5 ноды'
+                                      : sshProxyConfigured
+                                        ? 'Общий SOCKS5'
+                                        : 'Напрямую'
+                                }
+                                size="small"
+                                color={
+                                  node.disableProxy || (!node.hasProxyUrl && !sshProxyConfigured)
+                                    ? 'default'
+                                    : 'info'
+                                }
+                                variant="outlined"
+                                sx={{ ml: 0.5 }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                                {(node.categoryIds || []).map((cid) => {
+                                  const cat = categories.find((c) => c.id === cid);
+                                  return cat ? (
+                                    <Chip
+                                      key={cid}
+                                      label={cat.name}
+                                      size="small"
+                                      sx={{
+                                        bgcolor: cat.color,
+                                        color: '#fff',
+                                        fontSize: '0.7rem',
+                                      }}
+                                    />
+                                  ) : null;
+                                })}
+                              </Stack>
+                            </TableCell>
+                            <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                              {rw ? (
+                                <Chip
+                                  label={rw.name}
                                   size="small"
-                                  aria-label={`Действия ноды ${node.name}`}
-                                  onClick={e => setNodeRowMenu({ el: e.currentTarget, nodeId: node.id, nodeName: node.name })}
-                                >
-                                  <MoreVert sx={{ fontSize: 16 }} />
-                                </IconButton>
-                              </Tooltip>
-                            </Stack>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                                  color="primary"
+                                  variant="outlined"
+                                />
+                              ) : (
+                                <Typography variant="caption" color="textSecondary">
+                                  —
+                                </Typography>
+                              )}
+                            </TableCell>
+                            <TableCell align="right">
+                              <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                                <Tooltip title="Открыть терминал">
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    aria-label={`Открыть терминал ${node.name}`}
+                                    onClick={() => openTerminal(node)}
+                                  >
+                                    <Terminal sx={{ fontSize: 16 }} />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Изменить">
+                                  <IconButton
+                                    size="small"
+                                    aria-label={`Изменить ноду ${node.name}`}
+                                    onClick={() => openEditNode(node)}
+                                  >
+                                    <Edit sx={{ fontSize: 16 }} />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Ещё">
+                                  <IconButton
+                                    size="small"
+                                    aria-label={`Действия ноды ${node.name}`}
+                                    onClick={(e) =>
+                                      setNodeRowMenu({
+                                        el: e.currentTarget,
+                                        nodeId: node.id,
+                                        nodeName: node.name,
+                                      })
+                                    }
+                                  >
+                                    <MoreVert sx={{ fontSize: 16 }} />
+                                  </IconButton>
+                                </Tooltip>
+                              </Stack>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 </Box>
               )}
             </Box>
@@ -1466,34 +1920,154 @@ export default function ScriptsPage() {
           {/* ── Tab 1: Scripts ── */}
           {tab === 1 && (
             <Box>
-              <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ mb: 2, gap: 1 }}>
+              <Paper variant="outlined" sx={{ p: 1.5, mb: 2, borderColor: 'info.main' }}>
+                <Stack
+                  direction={{ xs: 'column', md: 'row' }}
+                  justifyContent="space-between"
+                  alignItems={{ md: 'center' }}
+                  spacing={1}
+                >
+                  <Box>
+                    <Typography variant="subtitle2">Группы Hysteria2</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Группа создаётся после настройки или импорта старой конфигурации. Смена домена
+                      требует полного набора нод группы.
+                    </Typography>
+                  </Box>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={openHysteriaClusterImport}
+                    disabled={!sshNodes.length}
+                  >
+                    Импортировать старую настройку
+                  </Button>
+                </Stack>
+                {hysteriaClusters.length > 0 ? (
+                  <Stack spacing={0.75} sx={{ mt: 1.25 }}>
+                    {hysteriaClusters.map((cluster) => (
+                      <Stack
+                        key={cluster.id}
+                        direction={{ xs: 'column', sm: 'row' }}
+                        spacing={1}
+                        alignItems={{ sm: 'center' }}
+                      >
+                        <Chip
+                          size="small"
+                          color="success"
+                          variant="outlined"
+                          label={cluster.domain}
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                          {cluster.nodeIds.length} нод · coordinator:{' '}
+                          {sshNodes.find((node) => node.id === cluster.coordinatorNodeId)?.name ||
+                            cluster.coordinatorNodeId}
+                        </Typography>
+                        {cluster.certificateNotAfter && (
+                          <Typography variant="caption" color="text.secondary">
+                            до {formatDate(cluster.certificateNotAfter)}
+                          </Typography>
+                        )}
+                        <Button
+                          size="small"
+                          color="error"
+                          sx={{ ml: { sm: 'auto' } }}
+                          onClick={() => handleDeleteHysteriaCluster(cluster)}
+                        >
+                          Удалить из списка
+                        </Button>
+                      </Stack>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', mt: 1 }}
+                  >
+                    Зарегистрированных групп нет.
+                  </Typography>
+                )}
+              </Paper>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                justifyContent="space-between"
+                alignItems={{ xs: 'flex-start', sm: 'center' }}
+                sx={{ mb: 2, gap: 1 }}
+              >
                 <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Скрипты</Typography>
-                  <Typography variant="caption" color="text.secondary">Bash-скрипты для выполнения на нодах</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    Скрипты
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Bash-скрипты для выполнения на нодах
+                  </Typography>
                 </Box>
-                <Button variant="contained" startIcon={<Add />} size="small" onClick={openAddScript}>
+                <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  size="small"
+                  onClick={openAddScript}
+                >
                   Создать скрипт
                 </Button>
               </Stack>
 
               {scriptQueue.length > 0 && (
-                <Paper variant="outlined" sx={{ p: 1.5, mb: 2, borderColor: 'primary.main', bgcolor: 'action.hover' }}>
-                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-                    <Stack direction="row" spacing={0.5} flexWrap="wrap" alignItems="center" sx={{ flex: 1 }}>
-                      <Typography variant="caption" color="textSecondary" sx={{ mr: 0.5, whiteSpace: 'nowrap' }}>
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 1.5,
+                    mb: 2,
+                    borderColor: 'primary.main',
+                    bgcolor: 'action.hover',
+                  }}
+                >
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="flex-start"
+                    spacing={1}
+                  >
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                      flexWrap="wrap"
+                      alignItems="center"
+                      sx={{ flex: 1 }}
+                    >
+                      <Typography
+                        variant="caption"
+                        color="textSecondary"
+                        sx={{ mr: 0.5, whiteSpace: 'nowrap' }}
+                      >
                         Очередь:
                       </Typography>
                       {scriptQueue.map((s, i) => (
-                        <Chip key={i} label={`${i + 1}. ${s.name}`} size="small"
-                          onDelete={() => removeFromQueue(i)} />
+                        <Chip
+                          key={i}
+                          label={`${i + 1}. ${s.name}`}
+                          size="small"
+                          onDelete={() => removeFromQueue(i)}
+                        />
                       ))}
                     </Stack>
                     <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-                      <Button size="small" color="error" variant="text" onClick={() => setScriptQueue([])}>
+                      <Button
+                        size="small"
+                        color="error"
+                        variant="text"
+                        onClick={() => setScriptQueue([])}
+                      >
                         Очистить
                       </Button>
-                      <Button size="small" variant="contained" startIcon={<PlayArrow />}
-                        onClick={openQueueDialog} disabled={sshNodes.length === 0}>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        startIcon={<PlayArrow />}
+                        onClick={openQueueDialog}
+                        disabled={sshNodes.length === 0}
+                      >
                         Запустить ({scriptQueue.length})
                       </Button>
                     </Stack>
@@ -1503,51 +2077,95 @@ export default function ScriptsPage() {
 
               <Divider sx={{ mb: 2 }} />
 
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }} sx={{ mb: 2 }}>
-              <TextField
-                size="small"
-                placeholder="Поиск по названию скрипта..."
-                value={scriptSearch}
-                onChange={e => setScriptSearch(e.target.value)}
-                sx={{ maxWidth: 320 }}
-                slotProps={{ input: { sx: { fontSize: 14 } } }}
-              />
-              {selectedScriptIds.length > 0 && (
-                <Stack direction="row" spacing={1} flexWrap="wrap">
-                  <Button size="small" startIcon={<Add />} disabled={sshNodes.length === 0}
-                    onClick={() => { selectedScripts.forEach(addToQueue); setSelectedScriptIds([]); }}>
-                    В очередь ({selectedScriptIds.length})
-                  </Button>
-                  <Button size="small" color="error" startIcon={<Delete />} disabled={bulkBusy}
-                    onClick={() => askBulkDelete('scripts', selectedScriptIds, selectedScripts.map(s => s.name), loadScripts)}>
-                    Удалить выбранные ({selectedScriptIds.length})
-                  </Button>
-                </Stack>
-              )}
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1}
+                alignItems={{ sm: 'center' }}
+                sx={{ mb: 2 }}
+              >
+                <TextField
+                  size="small"
+                  placeholder="Поиск по названию скрипта..."
+                  value={scriptSearch}
+                  onChange={(e) => setScriptSearch(e.target.value)}
+                  sx={{ maxWidth: 320 }}
+                  slotProps={{ input: { sx: { fontSize: 14 } } }}
+                />
+                {selectedScriptIds.length > 0 && (
+                  <Stack direction="row" spacing={1} flexWrap="wrap">
+                    <Button
+                      size="small"
+                      startIcon={<Add />}
+                      disabled={sshNodes.length === 0}
+                      onClick={() => {
+                        selectedScripts.forEach(addToQueue);
+                        setSelectedScriptIds([]);
+                      }}
+                    >
+                      В очередь ({selectedScriptIds.length})
+                    </Button>
+                    <Button
+                      size="small"
+                      color="error"
+                      startIcon={<Delete />}
+                      disabled={bulkBusy}
+                      onClick={() =>
+                        askBulkDelete(
+                          'scripts',
+                          selectedScriptIds,
+                          selectedScripts.map((s) => s.name),
+                          loadScripts,
+                        )
+                      }
+                    >
+                      Удалить выбранные ({selectedScriptIds.length})
+                    </Button>
+                  </Stack>
+                )}
               </Stack>
 
               {filteredScripts.length > 0 && (
                 <Stack direction="row" alignItems="center" sx={{ mb: 1 }}>
-                  <Checkbox size="small" aria-label="Выбрать все видимые скрипты"
-                    checked={filteredScripts.every(s => selectedScriptIds.includes(s.id))}
-                    indeterminate={filteredScripts.some(s => selectedScriptIds.includes(s.id)) && !filteredScripts.every(s => selectedScriptIds.includes(s.id))}
-                    onChange={e => setSelectedScriptIds(prev => e.target.checked
-                      ? [...new Set([...prev, ...filteredScripts.map(s => s.id)])]
-                      : prev.filter(id => !filteredScripts.some(s => s.id === id)))} />
-                  <Typography variant="body2" color="text.secondary">Выбрать видимые скрипты</Typography>
+                  <Checkbox
+                    size="small"
+                    aria-label="Выбрать все видимые скрипты"
+                    checked={filteredScripts.every((s) => selectedScriptIds.includes(s.id))}
+                    indeterminate={
+                      filteredScripts.some((s) => selectedScriptIds.includes(s.id)) &&
+                      !filteredScripts.every((s) => selectedScriptIds.includes(s.id))
+                    }
+                    onChange={(e) =>
+                      setSelectedScriptIds((prev) =>
+                        e.target.checked
+                          ? [...new Set([...prev, ...filteredScripts.map((s) => s.id)])]
+                          : prev.filter((id) => !filteredScripts.some((s) => s.id === id)),
+                      )
+                    }
+                  />
+                  <Typography variant="body2" color="text.secondary">
+                    Выбрать видимые скрипты
+                  </Typography>
                 </Stack>
               )}
 
               <Stack spacing={2}>
-                {filteredScripts.map(s => (
+                {filteredScripts.map((s) => (
                   <Paper key={s.id} variant="outlined" sx={{ p: 2 }}>
                     <Stack direction="row" alignItems="flex-start" spacing={2}>
-                      <Checkbox size="small" aria-label={`Выбрать скрипт ${s.name}`}
+                      <Checkbox
+                        size="small"
+                        aria-label={`Выбрать скрипт ${s.name}`}
                         checked={selectedScriptIds.includes(s.id)}
-                        onChange={() => toggleSelected(s.id, selectedScriptIds, setSelectedScriptIds)} sx={{ p: 0.25 }} />
+                        onChange={() =>
+                          toggleSelected(s.id, selectedScriptIds, setSelectedScriptIds)
+                        }
+                        sx={{ p: 0.25 }}
+                      />
                       <Box sx={{ flex: 1 }}>
                         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                          <Typography variant="subtitle1" fontWeight={600}>{s.name}</Typography>
+                          <Typography variant="subtitle1" fontWeight={600}>
+                            {s.name}
+                          </Typography>
                           {s.isBuiltIn && !s.isModified && (
                             <Chip label="Встроенный" size="small" color="info" variant="outlined" />
                           )}
@@ -1564,7 +2182,12 @@ export default function ScriptsPage() {
                           size="small"
                           variant="text"
                           onClick={() => toggleExpand(s.id)}
-                          sx={{ px: 0, minWidth: 0, textTransform: 'none', color: 'text.secondary' }}
+                          sx={{
+                            px: 0,
+                            minWidth: 0,
+                            textTransform: 'none',
+                            color: 'text.secondary',
+                          }}
                         >
                           {expandedScripts.has(s.id) ? '▲ Скрыть' : '▼ Показать скрипт'}
                         </Button>
@@ -1591,18 +2214,38 @@ export default function ScriptsPage() {
                     </Stack>
                     {/* History dots */}
                     {scriptHistoryDots[s.id]?.length > 0 && (
-                      <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 1, mb: 0.5 }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5, fontSize: '0.65rem' }}>
+                      <Stack
+                        direction="row"
+                        spacing={0.5}
+                        alignItems="center"
+                        sx={{ mt: 1, mb: 0.5 }}
+                      >
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ mr: 0.5, fontSize: '0.65rem' }}
+                        >
                           Запуски:
                         </Typography>
-                        {[...scriptHistoryDots[s.id]].reverse().map(dot => (
-                          <Tooltip key={dot.id} title={`${dot.status === 'success' ? 'Успешно' : 'Ошибка'} · ${formatDate(dot.startedAt)}`}>
+                        {[...scriptHistoryDots[s.id]].reverse().map((dot) => (
+                          <Tooltip
+                            key={dot.id}
+                            title={`${dot.status === 'success' ? 'Успешно' : 'Ошибка'} · ${formatDate(dot.startedAt)}`}
+                          >
                             <Box
-                              onClick={e => { e.stopPropagation(); openHistoryDetail(dot.id); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openHistoryDetail(dot.id);
+                              }}
                               sx={{
-                                width: 8, height: 8, borderRadius: '50%', flexShrink: 0, cursor: 'pointer',
+                                width: 8,
+                                height: 8,
+                                borderRadius: '50%',
+                                flexShrink: 0,
+                                cursor: 'pointer',
                                 bgcolor: dot.status === 'success' ? 'success.main' : 'error.main',
-                                transition: 'transform 0.1s', '&:hover': { transform: 'scale(1.5)' },
+                                transition: 'transform 0.1s',
+                                '&:hover': { transform: 'scale(1.5)' },
                               }}
                             />
                           </Tooltip>
@@ -1611,22 +2254,47 @@ export default function ScriptsPage() {
                     )}
 
                     {/* Card footer */}
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap"
-                      sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: 'divider', gap: 1 }}>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      flexWrap="wrap"
+                      sx={{
+                        mt: 1.5,
+                        pt: 1.5,
+                        borderTop: 1,
+                        borderColor: 'divider',
+                        gap: 1,
+                      }}
+                    >
                       <Stack direction="row" spacing={1}>
-                        <Button size="small" variant="contained" startIcon={<PlayArrow />}
-                          onClick={() => openRunDialog(s)} disabled={sshNodes.length === 0}>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          startIcon={<PlayArrow />}
+                          onClick={() => openRunDialog(s)}
+                          disabled={sshNodes.length === 0}
+                        >
                           Запустить
                         </Button>
-                        <Button size="small" variant="outlined" startIcon={<Add />}
-                          onClick={() => addToQueue(s)} disabled={sshNodes.length === 0}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<Add />}
+                          onClick={() => addToQueue(s)}
+                          disabled={sshNodes.length === 0}
+                        >
                           В очередь
                         </Button>
                         <Button
-                          size="small" variant="text"
+                          size="small"
+                          variant="text"
                           startIcon={<History sx={{ fontSize: 14 }} />}
                           onClick={() => toggleScriptHistory(s.id)}
-                          sx={{ color: expandedHistoryScript === s.id ? 'primary.main' : 'text.secondary' }}
+                          sx={{
+                            color:
+                              expandedHistoryScript === s.id ? 'primary.main' : 'text.secondary',
+                          }}
                         >
                           История
                         </Button>
@@ -1634,25 +2302,43 @@ export default function ScriptsPage() {
                       <Stack direction="row" spacing={0.5}>
                         {s.isBuiltIn && s.isModified && (
                           <Tooltip title="Откатить к оригиналу">
-                            <IconButton size="small" aria-label={`Откатить скрипт ${s.name}`} onClick={() => handleRevertScript(s.id, s.name)}
-                              sx={{ color: 'warning.main' }}>
+                            <IconButton
+                              size="small"
+                              aria-label={`Откатить скрипт ${s.name}`}
+                              onClick={() => handleRevertScript(s.id, s.name)}
+                              sx={{ color: 'warning.main' }}
+                            >
                               <Restore sx={{ fontSize: 16 }} />
                             </IconButton>
                           </Tooltip>
                         )}
                         <Tooltip title="Клонировать">
-                          <IconButton size="small" aria-label={`Клонировать скрипт ${s.name}`} onClick={() => handleCloneScript(s)}>
+                          <IconButton
+                            size="small"
+                            aria-label={`Клонировать скрипт ${s.name}`}
+                            onClick={() => handleCloneScript(s)}
+                          >
                             <ContentCopy sx={{ fontSize: 16 }} />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Изменить">
-                          <IconButton size="small" aria-label={`Изменить скрипт ${s.name}`} onClick={() => openEditScript(s)}>
+                          <IconButton
+                            size="small"
+                            aria-label={`Изменить скрипт ${s.name}`}
+                            onClick={() => openEditScript(s)}
+                          >
                             <Edit sx={{ fontSize: 16 }} />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title={s.isBuiltIn ? 'Скрыть' : 'Удалить'}>
-                          <IconButton size="small" aria-label={s.isBuiltIn ? `Скрыть скрипт ${s.name}` : `Удалить скрипт ${s.name}`} onClick={() => handleDeleteScript(s.id, s.name, s.isBuiltIn)}
-                            sx={{ color: 'error.main' }}>
+                          <IconButton
+                            size="small"
+                            aria-label={
+                              s.isBuiltIn ? `Скрыть скрипт ${s.name}` : `Удалить скрипт ${s.name}`
+                            }
+                            onClick={() => handleDeleteScript(s.id, s.name, s.isBuiltIn)}
+                            sx={{ color: 'error.main' }}
+                          >
                             <Delete sx={{ fontSize: 16 }} />
                           </IconButton>
                         </Tooltip>
@@ -1661,45 +2347,116 @@ export default function ScriptsPage() {
 
                     {/* Expandable history panel */}
                     {expandedHistoryScript === s.id && (
-                      <Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: 'divider' }}>
-                        {expandedHistoryLoading && !expandedHistoryItems.length
-                          ? <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress size={20} /></Box>
-                          : !expandedHistoryItems.length
-                            ? <Typography variant="caption" color="text.secondary">История запусков пуста</Typography>
-                            : (
-                              <Stack spacing={0}>
-                                {expandedHistoryItems.map(item => (
-                                  <Box key={item.id} onClick={() => openHistoryDetail(item.id)}
-                                    sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.75,
-                                      borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}>
-                                    <Box sx={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                                      bgcolor: item.status === 'success' ? 'success.main' : 'error.main' }} />
-                                    <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, minWidth: 90 }}>
-                                      {formatDate(item.startedAt)}
-                                    </Typography>
-                                    <Chip label={`${item.successCount}/${item.nodeCount}`} size="small" variant="outlined"
-                                      color={item.successCount === item.nodeCount ? 'success' : item.successCount === 0 ? 'error' : 'warning'}
-                                      sx={{ height: 18, fontSize: '0.65rem' }} />
-                                    <Typography variant="caption"
-                                      color={item.status === 'success' ? 'text.secondary' : 'error.main'}
-                                      sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                      {item.logPreview || (item.status === 'success' ? 'Выполнено успешно' : 'Ошибка')}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
-                                      {formatDuration(item.durationMs)}
-                                    </Typography>
-                                  </Box>
-                                ))}
-                                {expandedHistoryItems.length < expandedHistoryTotal && (
-                                  <Button size="small" variant="text" sx={{ alignSelf: 'flex-start', mt: 0.5 }}
-                                    disabled={expandedHistoryLoading}
-                                    onClick={e => { e.stopPropagation(); loadMoreHistory(s.id); }}>
-                                    Загрузить ещё ({Math.min(10, expandedHistoryTotal - expandedHistoryItems.length)})
-                                  </Button>
-                                )}
-                              </Stack>
-                            )
-                        }
+                      <Box
+                        sx={{
+                          mt: 1.5,
+                          pt: 1.5,
+                          borderTop: 1,
+                          borderColor: 'divider',
+                        }}
+                      >
+                        {expandedHistoryLoading && !expandedHistoryItems.length ? (
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              justifyContent: 'center',
+                              py: 2,
+                            }}
+                          >
+                            <CircularProgress size={20} />
+                          </Box>
+                        ) : !expandedHistoryItems.length ? (
+                          <Typography variant="caption" color="text.secondary">
+                            История запусков пуста
+                          </Typography>
+                        ) : (
+                          <Stack spacing={0}>
+                            {expandedHistoryItems.map((item) => (
+                              <Box
+                                key={item.id}
+                                onClick={() => openHistoryDetail(item.id)}
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1,
+                                  px: 1,
+                                  py: 0.75,
+                                  borderRadius: 1,
+                                  cursor: 'pointer',
+                                  '&:hover': { bgcolor: 'action.hover' },
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    width: 7,
+                                    height: 7,
+                                    borderRadius: '50%',
+                                    flexShrink: 0,
+                                    bgcolor:
+                                      item.status === 'success' ? 'success.main' : 'error.main',
+                                  }}
+                                />
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{ flexShrink: 0, minWidth: 90 }}
+                                >
+                                  {formatDate(item.startedAt)}
+                                </Typography>
+                                <Chip
+                                  label={`${item.successCount}/${item.nodeCount}`}
+                                  size="small"
+                                  variant="outlined"
+                                  color={
+                                    item.successCount === item.nodeCount
+                                      ? 'success'
+                                      : item.successCount === 0
+                                        ? 'error'
+                                        : 'warning'
+                                  }
+                                  sx={{ height: 18, fontSize: '0.65rem' }}
+                                />
+                                <Typography
+                                  variant="caption"
+                                  color={
+                                    item.status === 'success' ? 'text.secondary' : 'error.main'
+                                  }
+                                  sx={{
+                                    flex: 1,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {item.logPreview ||
+                                    (item.status === 'success' ? 'Выполнено успешно' : 'Ошибка')}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{ flexShrink: 0 }}
+                                >
+                                  {formatDuration(item.durationMs)}
+                                </Typography>
+                              </Box>
+                            ))}
+                            {expandedHistoryItems.length < expandedHistoryTotal && (
+                              <Button
+                                size="small"
+                                variant="text"
+                                sx={{ alignSelf: 'flex-start', mt: 0.5 }}
+                                disabled={expandedHistoryLoading}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  loadMoreHistory(s.id);
+                                }}
+                              >
+                                Загрузить ещё (
+                                {Math.min(10, expandedHistoryTotal - expandedHistoryItems.length)})
+                              </Button>
+                            )}
+                          </Stack>
+                        )}
                       </Box>
                     )}
                   </Paper>
@@ -1711,35 +2468,76 @@ export default function ScriptsPage() {
           {/* ── Tab 2: Secrets ── */}
           {tab === 2 && (
             <Box>
-              <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} sx={{ mb: 2, gap: 1 }}>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                justifyContent="space-between"
+                alignItems={{ xs: 'flex-start', sm: 'center' }}
+                sx={{ mb: 2, gap: 1 }}
+              >
                 <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Секреты</Typography>
-                  <Typography variant="caption" color="text.secondary">Зашифрованное хранилище паролей, ключей и токенов</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    Секреты
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Зашифрованное хранилище паролей, ключей и токенов
+                  </Typography>
                 </Box>
-                <Button variant="contained" startIcon={<Add />} size="small" onClick={openAddSecret}>
+                <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  size="small"
+                  onClick={openAddSecret}
+                >
                   Добавить секрет
                 </Button>
               </Stack>
 
               {selectedSecretIds.length > 0 && (
-                <Button size="small" color="error" startIcon={<Delete />} disabled={bulkBusy} sx={{ mb: 1 }}
-                  onClick={() => askBulkDelete('secrets', selectedSecretIds, secrets.filter(s => selectedSecretIds.includes(s.id)).map(s => s.name), loadSecrets)}>
+                <Button
+                  size="small"
+                  color="error"
+                  startIcon={<Delete />}
+                  disabled={bulkBusy}
+                  sx={{ mb: 1 }}
+                  onClick={() =>
+                    askBulkDelete(
+                      'secrets',
+                      selectedSecretIds,
+                      secrets.filter((s) => selectedSecretIds.includes(s.id)).map((s) => s.name),
+                      loadSecrets,
+                    )
+                  }
+                >
                   Удалить выбранные ({selectedSecretIds.length})
                 </Button>
               )}
 
               {secrets.length === 0 ? (
                 <Alert severity="info">
-                  Нет сохранённых секретов. Добавьте SSH-ключи, пароли или токены, чтобы использовать их как переменные при запуске скриптов.
+                  Нет сохранённых секретов. Добавьте SSH-ключи, пароли или токены, чтобы
+                  использовать их как переменные при запуске скриптов.
                 </Alert>
               ) : (
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell padding="checkbox"><Checkbox size="small" aria-label="Выбрать все секреты"
-                        checked={secrets.length > 0 && secrets.every(s => selectedSecretIds.includes(s.id))}
-                        indeterminate={secrets.some(s => selectedSecretIds.includes(s.id)) && !secrets.every(s => selectedSecretIds.includes(s.id))}
-                        onChange={e => setSelectedSecretIds(e.target.checked ? secrets.map(s => s.id) : [])} /></TableCell>
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          size="small"
+                          aria-label="Выбрать все секреты"
+                          checked={
+                            secrets.length > 0 &&
+                            secrets.every((s) => selectedSecretIds.includes(s.id))
+                          }
+                          indeterminate={
+                            secrets.some((s) => selectedSecretIds.includes(s.id)) &&
+                            !secrets.every((s) => selectedSecretIds.includes(s.id))
+                          }
+                          onChange={(e) =>
+                            setSelectedSecretIds(e.target.checked ? secrets.map((s) => s.id) : [])
+                          }
+                        />
+                      </TableCell>
                       <TableCell>Название</TableCell>
                       <TableCell>Тип</TableCell>
                       <TableCell>Описание</TableCell>
@@ -1748,11 +2546,18 @@ export default function ScriptsPage() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {secrets.map(s => (
+                    {secrets.map((s) => (
                       <TableRow key={s.id} hover>
-                        <TableCell padding="checkbox"><Checkbox size="small" aria-label={`Выбрать секрет ${s.name}`}
-                          checked={selectedSecretIds.includes(s.id)}
-                          onChange={() => toggleSelected(s.id, selectedSecretIds, setSelectedSecretIds)} /></TableCell>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            size="small"
+                            aria-label={`Выбрать секрет ${s.name}`}
+                            checked={selectedSecretIds.includes(s.id)}
+                            onChange={() =>
+                              toggleSelected(s.id, selectedSecretIds, setSelectedSecretIds)
+                            }
+                          />
+                        </TableCell>
                         <TableCell>
                           <Stack direction="row" spacing={1} alignItems="center">
                             <VpnKey fontSize="small" color="action" />
@@ -1761,13 +2566,23 @@ export default function ScriptsPage() {
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={s.type === 'ssh-key' ? 'SSH-ключ' : s.type === 'password' ? 'Пароль' : s.type === 'token' ? 'Токен' : 'Другое'}
+                            label={
+                              s.type === 'ssh-key'
+                                ? 'SSH-ключ'
+                                : s.type === 'password'
+                                  ? 'Пароль'
+                                  : s.type === 'token'
+                                    ? 'Токен'
+                                    : 'Другое'
+                            }
                             size="small"
                             variant="outlined"
                           />
                         </TableCell>
                         <TableCell>
-                          <Typography variant="caption" color="textSecondary">{s.description || '—'}</Typography>
+                          <Typography variant="caption" color="textSecondary">
+                            {s.description || '—'}
+                          </Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="caption" color="textSecondary">
@@ -1777,7 +2592,11 @@ export default function ScriptsPage() {
                         <TableCell align="right">
                           <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                             <Tooltip title="Изменить">
-                              <IconButton size="small" aria-label={`Изменить секрет ${s.name}`} onClick={() => openEditSecret(s)}>
+                              <IconButton
+                                size="small"
+                                aria-label={`Изменить секрет ${s.name}`}
+                                onClick={() => openEditSecret(s)}
+                              >
                                 <Edit sx={{ fontSize: 16 }} />
                               </IconButton>
                             </Tooltip>
@@ -1785,7 +2604,13 @@ export default function ScriptsPage() {
                               <IconButton
                                 size="small"
                                 aria-label={`Действия секрета ${s.name}`}
-                                onClick={e => setSecretRowMenu({ el: e.currentTarget, id: s.id, name: s.name })}
+                                onClick={(e) =>
+                                  setSecretRowMenu({
+                                    el: e.currentTarget,
+                                    id: s.id,
+                                    name: s.name,
+                                  })
+                                }
                               >
                                 <MoreVert sx={{ fontSize: 16 }} />
                               </IconButton>
@@ -1799,16 +2624,113 @@ export default function ScriptsPage() {
               )}
             </Box>
           )}
-
         </Box>
       </Paper>
 
+      <Dialog
+        open={clusterImportOpen}
+        onClose={() => !clusterImportBusy && setClusterImportOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Импорт старой настройки Hysteria2</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Alert severity="info">
+              Импорт только регистрирует существующий Certbot lineage в RWManager. Ноды не
+              перенастраиваются. После импорта запустите «Настройка Hysteria2» для выбранной группы.
+            </Alert>
+            <TextField
+              size="small"
+              fullWidth
+              label="Общий домен Hysteria2"
+              value={clusterImportDomain}
+              onChange={(e) => setClusterImportDomain(e.target.value)}
+              placeholder="balancer-nl-01.dataridge.cloud"
+            />
+            <TextField
+              size="small"
+              fullWidth
+              label="Email Certbot"
+              value={clusterImportEmail}
+              onChange={(e) => setClusterImportEmail(e.target.value)}
+            />
+            <FormControl size="small" fullWidth>
+              <InputLabel>Coordinator (необязательно)</InputLabel>
+              <Select
+                value={clusterImportCoordinator}
+                label="Coordinator (необязательно)"
+                onChange={(e) => setClusterImportCoordinator(e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>Автоматически найти по существующему сертификату</em>
+                </MenuItem>
+                {sshNodes
+                  .filter((node) => clusterImportNodeIds.includes(node.id))
+                  .map((node) => (
+                    <MenuItem key={node.id} value={node.id}>
+                      {node.name} ({node.ip})
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
+            <Typography variant="caption" color="text.secondary">
+              Выберите все ноды, на которые указывает A-запись домена.
+            </Typography>
+            <Stack spacing={0.25} sx={{ maxHeight: 220, overflowY: 'auto' }}>
+              {sshNodes.map((node) => (
+                <FormControlLabel
+                  key={node.id}
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={clusterImportNodeIds.includes(node.id)}
+                      onChange={() =>
+                        setClusterImportNodeIds((prev) =>
+                          prev.includes(node.id)
+                            ? prev.filter((id) => id !== node.id)
+                            : [...prev, node.id],
+                        )
+                      }
+                    />
+                  }
+                  label={`${node.name} — ${node.ip}`}
+                />
+              ))}
+            </Stack>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setClusterImportOpen(false)} disabled={clusterImportBusy}>
+            Отмена
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleImportHysteriaCluster}
+            disabled={clusterImportBusy}
+          >
+            {clusterImportBusy ? <CircularProgress size={18} /> : 'Импортировать'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* ── SSH Node Dialog ── */}
-      <Dialog open={nodeDialog} onClose={(_e, reason) => {
-        if ((reason === 'backdropClick' || reason === 'escapeKeyDown') && nodeFormDirty) {
-          askClose(() => { setNodeDialog(false); setNodeFormDirty(false); });
-        } else { setNodeDialog(false); setNodeFormDirty(false); }
-      }} maxWidth="sm" fullWidth>
+      <Dialog
+        open={nodeDialog}
+        onClose={(_e, reason) => {
+          if ((reason === 'backdropClick' || reason === 'escapeKeyDown') && nodeFormDirty) {
+            askClose(() => {
+              setNodeDialog(false);
+              setNodeFormDirty(false);
+            });
+          } else {
+            setNodeDialog(false);
+            setNodeFormDirty(false);
+          }
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>{nodeEditId ? 'Изменить ноду' : 'Добавить ноду'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -1820,9 +2742,13 @@ export default function ScriptsPage() {
                   label="Привязать к ноде Remnawave"
                   onChange={handleRwNodeSelect}
                 >
-                  <MenuItem value=""><em>— не привязывать —</em></MenuItem>
-                  {rwNodes.map(n => (
-                    <MenuItem key={n.uuid} value={n.uuid}>{n.name} ({n.address})</MenuItem>
+                  <MenuItem value="">
+                    <em>— не привязывать —</em>
+                  </MenuItem>
+                  {rwNodes.map((n) => (
+                    <MenuItem key={n.uuid} value={n.uuid}>
+                      {n.name} ({n.address})
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -1833,14 +2759,20 @@ export default function ScriptsPage() {
               size="small"
               fullWidth
               value={nodeForm.name || ''}
-              onChange={e => { setNodeForm(p => ({ ...p, name: e.target.value })); setNodeFormDirty(true); }}
+              onChange={(e) => {
+                setNodeForm((p) => ({ ...p, name: e.target.value }));
+                setNodeFormDirty(true);
+              }}
             />
             <TextField
               label="IP-адрес"
               size="small"
               fullWidth
               value={nodeForm.ip || ''}
-              onChange={e => { setNodeForm(p => ({ ...p, ip: e.target.value })); setNodeFormDirty(true); }}
+              onChange={(e) => {
+                setNodeForm((p) => ({ ...p, ip: e.target.value }));
+                setNodeFormDirty(true);
+              }}
             />
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
@@ -1848,14 +2780,19 @@ export default function ScriptsPage() {
                 size="small"
                 type="number"
                 value={nodeForm.sshPort || 22}
-                onChange={e => setNodeForm(p => ({ ...p, sshPort: Number(e.target.value) }))}
+                onChange={(e) =>
+                  setNodeForm((p) => ({
+                    ...p,
+                    sshPort: Number(e.target.value),
+                  }))
+                }
                 sx={{ width: { xs: '100%', sm: 120 } }}
               />
               <TextField
                 label="Пользователь"
                 size="small"
                 value={nodeForm.sshUser || ''}
-                onChange={e => setNodeForm(p => ({ ...p, sshUser: e.target.value }))}
+                onChange={(e) => setNodeForm((p) => ({ ...p, sshUser: e.target.value }))}
                 sx={{ flex: 1 }}
               />
             </Stack>
@@ -1865,8 +2802,11 @@ export default function ScriptsPage() {
                 control={
                   <Checkbox
                     checked={Boolean(nodeForm.disableProxy)}
-                    onChange={e => {
-                      setNodeForm(p => ({ ...p, disableProxy: e.target.checked }));
+                    onChange={(e) => {
+                      setNodeForm((p) => ({
+                        ...p,
+                        disableProxy: e.target.checked,
+                      }));
                       setNodeFormDirty(true);
                     }}
                   />
@@ -1874,7 +2814,8 @@ export default function ScriptsPage() {
                 label="Не использовать прокси"
               />
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 4 }}>
-                SSH-подключения к этой ноде будут прямыми, даже если задан общий прокси или прокси ноды.
+                SSH-подключения к этой ноде будут прямыми, даже если задан общий прокси или прокси
+                ноды.
               </Typography>
             </Box>
 
@@ -1885,16 +2826,31 @@ export default function ScriptsPage() {
               placeholder="socks5://user:password@address:port"
               value={nodeForm.proxyUrl || ''}
               disabled={Boolean(nodeForm.disableProxy)}
-              onChange={e => { setNodeForm(p => ({ ...p, proxyUrl: e.target.value })); setClearNodeProxy(false); setNodeFormDirty(true); }}
-              helperText={nodeForm.disableProxy
-                ? 'Прокси ноды сохранится, но не будет использоваться, пока включено прямое подключение.'
-                : nodeEditId && nodeForm.hasProxyUrl && !clearNodeProxy
-                ? 'Прокси сохранён. Оставьте поле пустым, чтобы сохранить его. Прокси ноды имеет приоритет над общим.'
-                : 'Необязательно. Если оставить пустым, будет использован общий прокси из настроек, если он задан.'}
+              onChange={(e) => {
+                setNodeForm((p) => ({ ...p, proxyUrl: e.target.value }));
+                setClearNodeProxy(false);
+                setNodeFormDirty(true);
+              }}
+              helperText={
+                nodeForm.disableProxy
+                  ? 'Прокси ноды сохранится, но не будет использоваться, пока включено прямое подключение.'
+                  : nodeEditId && nodeForm.hasProxyUrl && !clearNodeProxy
+                    ? 'Прокси сохранён. Оставьте поле пустым, чтобы сохранить его. Прокси ноды имеет приоритет над общим.'
+                    : 'Необязательно. Если оставить пустым, будет использован общий прокси из настроек, если он задан.'
+              }
             />
             {nodeEditId && nodeForm.hasProxyUrl && (
-              <Button size="small" color={clearNodeProxy ? 'warning' : 'inherit'} disabled={Boolean(nodeForm.disableProxy)} sx={{ alignSelf: 'flex-start' }}
-                onClick={() => { setClearNodeProxy(prev => !prev); setNodeForm(p => ({ ...p, proxyUrl: '' })); setNodeFormDirty(true); }}>
+              <Button
+                size="small"
+                color={clearNodeProxy ? 'warning' : 'inherit'}
+                disabled={Boolean(nodeForm.disableProxy)}
+                sx={{ alignSelf: 'flex-start' }}
+                onClick={() => {
+                  setClearNodeProxy((prev) => !prev);
+                  setNodeForm((p) => ({ ...p, proxyUrl: '' }));
+                  setNodeFormDirty(true);
+                }}
+              >
                 {clearNodeProxy ? 'Отменить сброс прокси' : 'Сбросить прокси ноды'}
               </Button>
             )}
@@ -1903,9 +2859,18 @@ export default function ScriptsPage() {
               <RadioGroup
                 row
                 value={nodeForm.authType || 'password'}
-                onChange={e => setNodeForm(p => ({ ...p, authType: e.target.value as 'password' | 'key' }))}
+                onChange={(e) =>
+                  setNodeForm((p) => ({
+                    ...p,
+                    authType: e.target.value as 'password' | 'key',
+                  }))
+                }
               >
-                <FormControlLabel value="password" control={<Radio size="small" />} label="Пароль" />
+                <FormControlLabel
+                  value="password"
+                  control={<Radio size="small" />}
+                  label="Пароль"
+                />
                 <FormControlLabel value="key" control={<Radio size="small" />} label="SSH-ключ" />
               </RadioGroup>
             </FormControl>
@@ -1917,19 +2882,38 @@ export default function ScriptsPage() {
                 type="password"
                 fullWidth
                 value={nodeForm.password || ''}
-                onChange={e => setNodeForm(p => ({ ...p, password: e.target.value, passwordSecretId: undefined }))}
-                slotProps={{ input: { endAdornment: secrets.length > 0 ? (
-                  <Tooltip title="Вставить из секретов">
-                    <IconButton
-                      size="small"
-                      edge="end"
-                      aria-label="Вставить пароль ноды из секретов"
-                      onClick={() => openSecretPicker((v, id) => setNodeForm(p => ({ ...p, password: v, passwordSecretId: id })))}
-                    >
-                      <LockOpen fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                ) : undefined }}}
+                onChange={(e) =>
+                  setNodeForm((p) => ({
+                    ...p,
+                    password: e.target.value,
+                    passwordSecretId: undefined,
+                  }))
+                }
+                slotProps={{
+                  input: {
+                    endAdornment:
+                      secrets.length > 0 ? (
+                        <Tooltip title="Вставить из секретов">
+                          <IconButton
+                            size="small"
+                            edge="end"
+                            aria-label="Вставить пароль ноды из секретов"
+                            onClick={() =>
+                              openSecretPicker((v, id) =>
+                                setNodeForm((p) => ({
+                                  ...p,
+                                  password: v,
+                                  passwordSecretId: id,
+                                })),
+                              )
+                            }
+                          >
+                            <LockOpen fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      ) : undefined,
+                  },
+                }}
               />
             ) : (
               <Box>
@@ -1937,32 +2921,55 @@ export default function ScriptsPage() {
                   ref={keyFileInputRef}
                   type="file"
                   style={{ display: 'none' }}
-                  onChange={e => {
+                  onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
                     const reader = new FileReader();
-                    reader.onload = ev => {
-                      setNodeForm(p => ({ ...p, sshKey: ev.target?.result as string, sshKeySecretId: undefined }));
+                    reader.onload = (ev) => {
+                      setNodeForm((p) => ({
+                        ...p,
+                        sshKey: ev.target?.result as string,
+                        sshKeySecretId: undefined,
+                      }));
                     };
                     reader.readAsText(file);
                     e.target.value = '';
                   }}
                 />
-                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
-                  <Typography variant="caption" color="textSecondary">Приватный SSH-ключ</Typography>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  sx={{ mb: 0.5 }}
+                >
+                  <Typography variant="caption" color="textSecondary">
+                    Приватный SSH-ключ
+                  </Typography>
                   <Stack direction="row" spacing={0.5} alignItems="center">
                     {secrets.length > 0 && (
                       <Tooltip title="Вставить из секретов">
                         <IconButton
                           size="small"
                           aria-label="Вставить SSH-ключ ноды из секретов"
-                          onClick={() => openSecretPicker((v, id) => setNodeForm(p => ({ ...p, sshKey: v, sshKeySecretId: id })))}
+                          onClick={() =>
+                            openSecretPicker((v, id) =>
+                              setNodeForm((p) => ({
+                                ...p,
+                                sshKey: v,
+                                sshKeySecretId: id,
+                              })),
+                            )
+                          }
                         >
                           <LockOpen fontSize="small" />
                         </IconButton>
                       </Tooltip>
                     )}
-                    <Button size="small" startIcon={<UploadFile />} onClick={() => keyFileInputRef.current?.click()}>
+                    <Button
+                      size="small"
+                      startIcon={<UploadFile />}
+                      onClick={() => keyFileInputRef.current?.click()}
+                    >
                       Загрузить из файла
                     </Button>
                   </Stack>
@@ -1974,19 +2981,33 @@ export default function ScriptsPage() {
                   fullWidth
                   placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
                   value={nodeForm.sshKey || ''}
-                  onChange={e => setNodeForm(p => ({ ...p, sshKey: e.target.value, sshKeySecretId: undefined }))}
-                  slotProps={{ input: { style: { fontFamily: 'monospace', fontSize: '0.75rem' } } }}
+                  onChange={(e) =>
+                    setNodeForm((p) => ({
+                      ...p,
+                      sshKey: e.target.value,
+                      sshKeySecretId: undefined,
+                    }))
+                  }
+                  slotProps={{
+                    input: {
+                      style: { fontFamily: 'monospace', fontSize: '0.75rem' },
+                    },
+                  }}
                 />
               </Box>
             )}
 
             {categories.length > 0 && (
               <Box>
-                <Typography variant="caption" color="textSecondary" sx={{ display: 'block', mb: 0.5 }}>
+                <Typography
+                  variant="caption"
+                  color="textSecondary"
+                  sx={{ display: 'block', mb: 0.5 }}
+                >
                   Категории
                 </Typography>
                 <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                  {categories.map(cat => {
+                  {categories.map((cat) => {
                     const selected = (nodeForm.categoryIds || []).includes(cat.id);
                     return (
                       <Chip
@@ -2011,84 +3032,183 @@ export default function ScriptsPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setNodeDialog(false)}>Отмена</Button>
-          <Button variant="contained" onClick={handleSaveNode}>Сохранить</Button>
+          <Button variant="contained" onClick={handleSaveNode}>
+            Сохранить
+          </Button>
         </DialogActions>
       </Dialog>
 
       {/* ── Categories Dialog ── */}
-      <Dialog open={catDialog} onClose={(_e, reason) => {
-        if ((reason === 'backdropClick' || reason === 'escapeKeyDown') && catFormDirty) {
-          askClose(() => { setCatDialog(false); setCatFormDirty(false); });
-        } else { setCatDialog(false); setCatFormDirty(false); }
-      }} maxWidth="xs" fullWidth>
+      <Dialog
+        open={catDialog}
+        onClose={(_e, reason) => {
+          if ((reason === 'backdropClick' || reason === 'escapeKeyDown') && catFormDirty) {
+            askClose(() => {
+              setCatDialog(false);
+              setCatFormDirty(false);
+            });
+          } else {
+            setCatDialog(false);
+            setCatFormDirty(false);
+          }
+        }}
+        maxWidth="xs"
+        fullWidth
+      >
         <DialogTitle>Категории нод</DialogTitle>
         <DialogContent>
-            <Stack spacing={1} sx={{ mt: 1 }}>
-              {categories.length === 0 && (
-                <Typography variant="body2" color="textSecondary">Нет категорий. Создайте первую.</Typography>
-              )}
-              {categories.length > 0 && (
-                <Stack direction="row" alignItems="center" justifyContent="space-between">
-                  <Stack direction="row" alignItems="center">
-                    <Checkbox size="small" aria-label="Выбрать все категории"
-                      checked={categories.every(c => selectedCategoryIds.includes(c.id))}
-                      indeterminate={categories.some(c => selectedCategoryIds.includes(c.id)) && !categories.every(c => selectedCategoryIds.includes(c.id))}
-                      onChange={e => setSelectedCategoryIds(e.target.checked ? categories.map(c => c.id) : [])} />
-                    <Typography variant="body2">Выбрать все</Typography>
-                  </Stack>
-                  {selectedCategoryIds.length > 0 && (
-                    <Button size="small" color="error" startIcon={<Delete />} disabled={bulkBusy}
-                      onClick={() => askBulkDelete('categories', selectedCategoryIds,
-                        categories.filter(c => selectedCategoryIds.includes(c.id)).map(c => c.name),
-                        async () => { await Promise.all([loadCategories(), loadSshNodes()]); })}>
-                      Удалить ({selectedCategoryIds.length})
-                    </Button>
-                  )}
+          <Stack spacing={1} sx={{ mt: 1 }}>
+            {categories.length === 0 && (
+              <Typography variant="body2" color="textSecondary">
+                Нет категорий. Создайте первую.
+              </Typography>
+            )}
+            {categories.length > 0 && (
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Stack direction="row" alignItems="center">
+                  <Checkbox
+                    size="small"
+                    aria-label="Выбрать все категории"
+                    checked={categories.every((c) => selectedCategoryIds.includes(c.id))}
+                    indeterminate={
+                      categories.some((c) => selectedCategoryIds.includes(c.id)) &&
+                      !categories.every((c) => selectedCategoryIds.includes(c.id))
+                    }
+                    onChange={(e) =>
+                      setSelectedCategoryIds(e.target.checked ? categories.map((c) => c.id) : [])
+                    }
+                  />
+                  <Typography variant="body2">Выбрать все</Typography>
                 </Stack>
-              )}
-              {categories.map(cat => (
-                <Stack key={cat.id} direction="row" spacing={1} alignItems="center">
-                  <Checkbox size="small" aria-label={`Выбрать категорию ${cat.name}`}
-                    checked={selectedCategoryIds.includes(cat.id)}
-                    onChange={() => toggleSelected(cat.id, selectedCategoryIds, setSelectedCategoryIds)} />
-                  <Box sx={{ width: 20, height: 20, borderRadius: '50%', bgcolor: cat.color, flexShrink: 0 }} />
-                <Typography variant="body2" sx={{ flex: 1 }}>{cat.name}</Typography>
-                <IconButton size="small" aria-label={`Изменить категорию ${cat.name}`} onClick={() => openEditCategory(cat)}><Edit fontSize="small" /></IconButton>
-                <IconButton size="small" color="error" aria-label={`Удалить категорию ${cat.name}`} onClick={() => handleDeleteCategory(cat.id, cat.name)}><Delete fontSize="small" /></IconButton>
+                {selectedCategoryIds.length > 0 && (
+                  <Button
+                    size="small"
+                    color="error"
+                    startIcon={<Delete />}
+                    disabled={bulkBusy}
+                    onClick={() =>
+                      askBulkDelete(
+                        'categories',
+                        selectedCategoryIds,
+                        categories
+                          .filter((c) => selectedCategoryIds.includes(c.id))
+                          .map((c) => c.name),
+                        async () => {
+                          await Promise.all([loadCategories(), loadSshNodes()]);
+                        },
+                      )
+                    }
+                  >
+                    Удалить ({selectedCategoryIds.length})
+                  </Button>
+                )}
+              </Stack>
+            )}
+            {categories.map((cat) => (
+              <Stack key={cat.id} direction="row" spacing={1} alignItems="center">
+                <Checkbox
+                  size="small"
+                  aria-label={`Выбрать категорию ${cat.name}`}
+                  checked={selectedCategoryIds.includes(cat.id)}
+                  onChange={() =>
+                    toggleSelected(cat.id, selectedCategoryIds, setSelectedCategoryIds)
+                  }
+                />
+                <Box
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: '50%',
+                    bgcolor: cat.color,
+                    flexShrink: 0,
+                  }}
+                />
+                <Typography variant="body2" sx={{ flex: 1 }}>
+                  {cat.name}
+                </Typography>
+                <IconButton
+                  size="small"
+                  aria-label={`Изменить категорию ${cat.name}`}
+                  onClick={() => openEditCategory(cat)}
+                >
+                  <Edit fontSize="small" />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  color="error"
+                  aria-label={`Удалить категорию ${cat.name}`}
+                  onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                >
+                  <Delete fontSize="small" />
+                </IconButton>
               </Stack>
             ))}
             <Divider sx={{ my: 1 }} />
-            <Typography variant="subtitle2">{catEditId ? 'Изменить категорию' : 'Новая категория'}</Typography>
+            <Typography variant="subtitle2">
+              {catEditId ? 'Изменить категорию' : 'Новая категория'}
+            </Typography>
             <Stack direction="row" spacing={1} alignItems="center">
               <TextField
                 label="Название"
                 size="small"
                 value={catForm.name}
-                onChange={e => { setCatForm(p => ({ ...p, name: e.target.value })); setCatFormDirty(true); }}
+                onChange={(e) => {
+                  setCatForm((p) => ({ ...p, name: e.target.value }));
+                  setCatFormDirty(true);
+                }}
                 sx={{ flex: 1 }}
               />
               <Tooltip title="Выбрать цвет">
-                <Box sx={{ position: 'relative', width: 40, height: 40, flexShrink: 0 }}>
+                <Box
+                  sx={{
+                    position: 'relative',
+                    width: 40,
+                    height: 40,
+                    flexShrink: 0,
+                  }}
+                >
                   <Box
                     component="input"
                     type="color"
                     value={catForm.color}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setCatForm(p => ({ ...p, color: e.target.value })); setCatFormDirty(true); }}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      setCatForm((p) => ({ ...p, color: e.target.value }));
+                      setCatFormDirty(true);
+                    }}
                     sx={{
-                      position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer',
-                      width: '100%', height: '100%', border: 'none', padding: 0,
+                      position: 'absolute',
+                      inset: 0,
+                      opacity: 0,
+                      cursor: 'pointer',
+                      width: '100%',
+                      height: '100%',
+                      border: 'none',
+                      padding: 0,
                     }}
                   />
-                  <Box sx={{
-                    width: 40, height: 40, borderRadius: 1, bgcolor: catForm.color,
-                    border: '2px solid', borderColor: 'divider', pointerEvents: 'none',
-                  }} />
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 1,
+                      bgcolor: catForm.color,
+                      border: '2px solid',
+                      borderColor: 'divider',
+                      pointerEvents: 'none',
+                    }}
+                  />
                 </Box>
               </Tooltip>
             </Stack>
             <Stack direction="row" spacing={1} justifyContent="flex-end">
               {catEditId && (
-                <Button size="small" onClick={() => { setCatEditId(null); setCatForm({ name: '', color: '#1976d2' }); }}>
+                <Button
+                  size="small"
+                  onClick={() => {
+                    setCatEditId(null);
+                    setCatForm({ name: '', color: '#1976d2' });
+                  }}
+                >
                   Отмена
                 </Button>
               )}
@@ -2104,11 +3224,22 @@ export default function ScriptsPage() {
       </Dialog>
 
       {/* ── Script Dialog ── */}
-      <Dialog open={scriptDialog} onClose={(_e, reason) => {
-        if ((reason === 'backdropClick' || reason === 'escapeKeyDown') && scriptFormDirty) {
-          askClose(() => { setScriptDialog(false); setScriptFormDirty(false); });
-        } else { setScriptDialog(false); setScriptFormDirty(false); }
-      }} maxWidth="md" fullWidth>
+      <Dialog
+        open={scriptDialog}
+        onClose={(_e, reason) => {
+          if ((reason === 'backdropClick' || reason === 'escapeKeyDown') && scriptFormDirty) {
+            askClose(() => {
+              setScriptDialog(false);
+              setScriptFormDirty(false);
+            });
+          } else {
+            setScriptDialog(false);
+            setScriptFormDirty(false);
+          }
+        }}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>{scriptEditId ? 'Изменить скрипт' : 'Новый скрипт'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -2117,14 +3248,17 @@ export default function ScriptsPage() {
               size="small"
               fullWidth
               value={scriptForm.name || ''}
-              onChange={e => { setScriptForm(p => ({ ...p, name: e.target.value })); setScriptFormDirty(true); }}
+              onChange={(e) => {
+                setScriptForm((p) => ({ ...p, name: e.target.value }));
+                setScriptFormDirty(true);
+              }}
             />
             <TextField
               label="Описание"
               size="small"
               fullWidth
               value={scriptForm.description || ''}
-              onChange={e => setScriptForm(p => ({ ...p, description: e.target.value }))}
+              onChange={(e) => setScriptForm((p) => ({ ...p, description: e.target.value }))}
             />
             <Stack direction="row" spacing={1} alignItems="flex-start">
               <TextField
@@ -2132,8 +3266,8 @@ export default function ScriptsPage() {
                 size="small"
                 placeholder="https://example.com/script.sh"
                 value={urlInput}
-                onChange={e => setUrlInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleLoadFromUrl()}
+                onChange={(e) => setUrlInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleLoadFromUrl()}
                 sx={{ flex: 1 }}
               />
               <Button
@@ -2154,23 +3288,43 @@ export default function ScriptsPage() {
               rows={12}
               fullWidth
               value={scriptForm.content || ''}
-              onChange={e => { setScriptForm(p => ({ ...p, content: e.target.value })); setScriptFormDirty(true); }}
-              slotProps={{ input: { style: { fontFamily: 'monospace', fontSize: '0.8rem' } } }}
+              onChange={(e) => {
+                setScriptForm((p) => ({ ...p, content: e.target.value }));
+                setScriptFormDirty(true);
+              }}
+              slotProps={{
+                input: {
+                  style: { fontFamily: 'monospace', fontSize: '0.8rem' },
+                },
+              }}
             />
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setScriptDialog(false)}>Отмена</Button>
-          <Button variant="contained" onClick={handleSaveScript}>Сохранить</Button>
+          <Button variant="contained" onClick={handleSaveScript}>
+            Сохранить
+          </Button>
         </DialogActions>
       </Dialog>
 
       {/* ── Secrets Dialog ── */}
-      <Dialog open={secretDialog} onClose={(_e, reason) => {
-        if ((reason === 'backdropClick' || reason === 'escapeKeyDown') && secretFormDirty) {
-          askClose(() => { setSecretDialog(false); setSecretFormDirty(false); });
-        } else { setSecretDialog(false); setSecretFormDirty(false); }
-      }} maxWidth="sm" fullWidth>
+      <Dialog
+        open={secretDialog}
+        onClose={(_e, reason) => {
+          if ((reason === 'backdropClick' || reason === 'escapeKeyDown') && secretFormDirty) {
+            askClose(() => {
+              setSecretDialog(false);
+              setSecretFormDirty(false);
+            });
+          } else {
+            setSecretDialog(false);
+            setSecretFormDirty(false);
+          }
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>{secretEditId ? 'Изменить секрет' : 'Новый секрет'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -2179,7 +3333,10 @@ export default function ScriptsPage() {
               size="small"
               fullWidth
               value={secretForm.name}
-              onChange={e => { setSecretForm(p => ({ ...p, name: e.target.value })); setSecretFormDirty(true); }}
+              onChange={(e) => {
+                setSecretForm((p) => ({ ...p, name: e.target.value }));
+                setSecretFormDirty(true);
+              }}
               placeholder="Например: SSH-ключ для node-01"
             />
             <FormControl size="small" fullWidth>
@@ -2187,7 +3344,7 @@ export default function ScriptsPage() {
               <Select
                 value={secretForm.type}
                 label="Тип"
-                onChange={e => setSecretForm(p => ({ ...p, type: e.target.value }))}
+                onChange={(e) => setSecretForm((p) => ({ ...p, type: e.target.value }))}
               >
                 <MenuItem value="password">Пароль</MenuItem>
                 <MenuItem value="ssh-key">SSH-ключ</MenuItem>
@@ -2200,20 +3357,33 @@ export default function ScriptsPage() {
                 ref={secretFileInputRef}
                 type="file"
                 style={{ display: 'none' }}
-                onChange={e => {
+                onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
                   const reader = new FileReader();
-                  reader.onload = ev => setSecretForm(p => ({ ...p, value: ev.target?.result as string }));
+                  reader.onload = (ev) =>
+                    setSecretForm((p) => ({
+                      ...p,
+                      value: ev.target?.result as string,
+                    }));
                   reader.readAsText(file);
                   e.target.value = '';
                 }}
               />
-              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
+              <Stack
+                direction="row"
+                justifyContent="space-between"
+                alignItems="center"
+                sx={{ mb: 0.5 }}
+              >
                 <Typography variant="caption" color="textSecondary">
                   {secretEditId ? 'Новое значение (пусто = не менять)' : 'Значение'}
                 </Typography>
-                <Button size="small" startIcon={<UploadFile />} onClick={() => secretFileInputRef.current?.click()}>
+                <Button
+                  size="small"
+                  startIcon={<UploadFile />}
+                  onClick={() => secretFileInputRef.current?.click()}
+                >
                   Загрузить из файла
                 </Button>
               </Stack>
@@ -2224,9 +3394,25 @@ export default function ScriptsPage() {
                 rows={secretForm.type === 'ssh-key' ? 6 : 1}
                 type={secretForm.type !== 'ssh-key' ? 'password' : undefined}
                 value={secretForm.value}
-                onChange={e => { setSecretForm(p => ({ ...p, value: e.target.value })); setSecretFormDirty(true); }}
-                placeholder={secretForm.type === 'ssh-key' ? '-----BEGIN OPENSSH PRIVATE KEY-----' : undefined}
-                slotProps={secretForm.type === 'ssh-key' ? { input: { style: { fontFamily: 'monospace', fontSize: '0.75rem' } } } : undefined}
+                onChange={(e) => {
+                  setSecretForm((p) => ({ ...p, value: e.target.value }));
+                  setSecretFormDirty(true);
+                }}
+                placeholder={
+                  secretForm.type === 'ssh-key' ? '-----BEGIN OPENSSH PRIVATE KEY-----' : undefined
+                }
+                slotProps={
+                  secretForm.type === 'ssh-key'
+                    ? {
+                        input: {
+                          style: {
+                            fontFamily: 'monospace',
+                            fontSize: '0.75rem',
+                          },
+                        },
+                      }
+                    : undefined
+                }
               />
             </Box>
             <TextField
@@ -2234,13 +3420,15 @@ export default function ScriptsPage() {
               size="small"
               fullWidth
               value={secretForm.description}
-              onChange={e => setSecretForm(p => ({ ...p, description: e.target.value }))}
+              onChange={(e) => setSecretForm((p) => ({ ...p, description: e.target.value }))}
             />
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setSecretDialog(false)}>Отмена</Button>
-          <Button variant="contained" onClick={handleSaveSecret}>Сохранить</Button>
+          <Button variant="contained" onClick={handleSaveSecret}>
+            Сохранить
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -2257,28 +3445,45 @@ export default function ScriptsPage() {
                     Переменные скрипта:
                   </Typography>
                   <Stack spacing={1.5}>
-                    {scriptVars.map(v => (
+                    {scriptVars.map((v) => (
                       <TextField
                         key={v.name}
                         label={v.label}
                         size="small"
                         fullWidth
                         value={varValues[v.name] ?? ''}
-                        onChange={e => setVarValues(prev => ({ ...prev, [v.name]: e.target.value }))}
+                        onChange={(e) =>
+                          setVarValues((prev) => ({
+                            ...prev,
+                            [v.name]: e.target.value,
+                          }))
+                        }
                         slotProps={{
                           input: {
-                            style: { fontFamily: 'monospace', fontSize: '0.85rem' },
-                            endAdornment: secrets.length > 0 ? (
-                              <Tooltip title="Вставить из секретов">
-                                <IconButton
-                                  size="small"
-                                  edge="end"
-                                  aria-label={`Вставить значение ${v.label} из секретов`}
-                                  onClick={() => openSecretPicker(val => setVarValues(prev => ({ ...prev, [v.name]: val })))}>
-                                  <LockOpen fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            ) : undefined,
+                            style: {
+                              fontFamily: 'monospace',
+                              fontSize: '0.85rem',
+                            },
+                            endAdornment:
+                              secrets.length > 0 ? (
+                                <Tooltip title="Вставить из секретов">
+                                  <IconButton
+                                    size="small"
+                                    edge="end"
+                                    aria-label={`Вставить значение ${v.label} из секретов`}
+                                    onClick={() =>
+                                      openSecretPicker((val) =>
+                                        setVarValues((prev) => ({
+                                          ...prev,
+                                          [v.name]: val,
+                                        })),
+                                      )
+                                    }
+                                  >
+                                    <LockOpen fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              ) : undefined,
                           },
                         }}
                       />
@@ -2295,13 +3500,15 @@ export default function ScriptsPage() {
                       <Switch
                         size="small"
                         checked={perNodeVarsMode}
-                        onChange={e => {
+                        onChange={(e) => {
                           const next = e.target.checked;
                           setPerNodeVarsMode(next);
                           if (next) {
                             const init: Record<string, Record<string, string>> = {};
                             for (const nodeId of selectedNodeIds) {
-                              init[nodeId] = Object.fromEntries(scriptVars.map(v => [v.name, varValues[v.name] || '']));
+                              init[nodeId] = Object.fromEntries(
+                                scriptVars.map((v) => [v.name, varValues[v.name] || '']),
+                              );
                             }
                             setVarValuesPerNode(init);
                           } else {
@@ -2310,32 +3517,62 @@ export default function ScriptsPage() {
                         }}
                       />
                     }
-                    label={<Typography variant="body2">Индивидуальные переменные для каждой ноды</Typography>}
+                    label={
+                      <Typography variant="body2">
+                        Индивидуальные переменные для каждой ноды
+                      </Typography>
+                    }
                   />
                 </Stack>
               )}
 
               <Divider sx={{ mb: 2 }} />
-              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-                <Typography variant="subtitle2">
-                  Выберите ноды для запуска:
-                </Typography>
+              <Stack
+                direction="row"
+                justifyContent="space-between"
+                alignItems="center"
+                sx={{ mb: 1 }}
+              >
+                <Typography variant="subtitle2">Выберите ноды для запуска:</Typography>
                 <Stack direction="row" spacing={0.5}>
-                  <Button size="small" variant="text" onClick={() => setSelectedNodeIds(sshNodes.map(n => n.id))}>
+                  <Button
+                    size="small"
+                    variant="text"
+                    onClick={() => setSelectedNodeIds(sshNodes.map((n) => n.id))}
+                  >
                     Выбрать все
                   </Button>
-                  <Button size="small" variant="text" color="inherit" onClick={() => setSelectedNodeIds([])}>
+                  <Button
+                    size="small"
+                    variant="text"
+                    color="inherit"
+                    onClick={() => setSelectedNodeIds([])}
+                  >
                     Снять всё
                   </Button>
                 </Stack>
               </Stack>
               {categories.length > 0 && (
-                <Stack direction="row" spacing={0.5} flexWrap="wrap" alignItems="center" sx={{ mb: 1 }}>
-                  <Typography variant="caption" color="textSecondary">Категория:</Typography>
-                  {categories.map(cat => (
-                    <Chip key={cat.id} label={cat.name} size="small" clickable
+                <Stack
+                  direction="row"
+                  spacing={0.5}
+                  flexWrap="wrap"
+                  alignItems="center"
+                  sx={{ mb: 1 }}
+                >
+                  <Typography variant="caption" color="textSecondary">
+                    Категория:
+                  </Typography>
+                  {categories.map((cat) => (
+                    <Chip
+                      key={cat.id}
+                      label={cat.name}
+                      size="small"
+                      clickable
                       sx={{ bgcolor: cat.color, color: '#fff' }}
-                      onClick={() => selectNodesByCategory(cat.id, selectedNodeIds, setSelectedNodeIds)}
+                      onClick={() =>
+                        selectNodesByCategory(cat.id, selectedNodeIds, setSelectedNodeIds)
+                      }
                     />
                   ))}
                 </Stack>
@@ -2344,35 +3581,68 @@ export default function ScriptsPage() {
                 <Alert severity="warning">Нет нод. Добавьте ноды на вкладке «Ноды».</Alert>
               ) : (
                 <Stack spacing={1} sx={{ mb: 2 }}>
-                  {sshNodes.map(node => {
+                  {sshNodes.map((node) => {
                     const selected = selectedNodeIds.includes(node.id);
                     return (
-                      <Paper key={node.id} variant="outlined"
-                        sx={{ borderColor: selected ? 'primary.main' : undefined, bgcolor: selected ? 'action.selected' : undefined }}>
+                      <Paper
+                        key={node.id}
+                        variant="outlined"
+                        sx={{
+                          borderColor: selected ? 'primary.main' : undefined,
+                          bgcolor: selected ? 'action.selected' : undefined,
+                        }}
+                      >
                         {/* Заголовок ноды — кликабелен для выбора */}
-                        <Box sx={{ p: 1.5, cursor: 'pointer' }}
+                        <Box
+                          sx={{ p: 1.5, cursor: 'pointer' }}
                           onClick={() => {
                             if (perNodeVarsMode && !selected) {
-                              setVarValuesPerNode(prev => ({
+                              setVarValuesPerNode((prev) => ({
                                 ...prev,
-                                [node.id]: prev[node.id] || Object.fromEntries(scriptVars.map(v => [v.name, varValues[v.name] || ''])),
+                                [node.id]:
+                                  prev[node.id] ||
+                                  Object.fromEntries(
+                                    scriptVars.map((v) => [v.name, varValues[v.name] || '']),
+                                  ),
                               }));
                             }
                             toggleNodeSelection(node.id);
-                          }}>
+                          }}
+                        >
                           <Stack direction="row" spacing={1} alignItems="center">
-                            <Box sx={{
-                              width: 16, height: 16, borderRadius: '50%', border: '2px solid', flexShrink: 0,
-                              borderColor: selected ? 'primary.main' : 'text.disabled',
-                              bgcolor: selected ? 'primary.main' : 'transparent',
-                            }} />
-                            <Typography variant="body2" fontWeight={selected ? 600 : 400}>{node.name}</Typography>
-                            <Typography variant="caption" color="textSecondary">{node.ip}:{node.sshPort} ({node.sshUser})</Typography>
+                            <Box
+                              sx={{
+                                width: 16,
+                                height: 16,
+                                borderRadius: '50%',
+                                border: '2px solid',
+                                flexShrink: 0,
+                                borderColor: selected ? 'primary.main' : 'text.disabled',
+                                bgcolor: selected ? 'primary.main' : 'transparent',
+                              }}
+                            />
+                            <Typography variant="body2" fontWeight={selected ? 600 : 400}>
+                              {node.name}
+                            </Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              {node.ip}:{node.sshPort} ({node.sshUser})
+                            </Typography>
                             <Stack direction="row" spacing={0.3}>
-                              {(node.categoryIds || []).map(cid => {
-                                const cat = categories.find(c => c.id === cid);
-                                return cat ? <Chip key={cid} label={cat.name} size="small"
-                                  sx={{ bgcolor: cat.color, color: '#fff', fontSize: '0.65rem', height: 18 }} /> : null;
+                              {(node.categoryIds || []).map((cid) => {
+                                const cat = categories.find((c) => c.id === cid);
+                                return cat ? (
+                                  <Chip
+                                    key={cid}
+                                    label={cat.name}
+                                    size="small"
+                                    sx={{
+                                      bgcolor: cat.color,
+                                      color: '#fff',
+                                      fontSize: '0.65rem',
+                                      height: 18,
+                                    }}
+                                  />
+                                ) : null;
                               })}
                             </Stack>
                           </Stack>
@@ -2382,32 +3652,53 @@ export default function ScriptsPage() {
                           <Box sx={{ px: 2, pb: 1.5, pt: 0 }}>
                             <Divider sx={{ mb: 1 }} />
                             <Stack spacing={1}>
-                              {scriptVars.map(v => (
+                              {scriptVars.map((v) => (
                                 <TextField
                                   key={v.name}
                                   label={v.label}
                                   size="small"
                                   fullWidth
                                   value={varValuesPerNode[node.id]?.[v.name] ?? ''}
-                                  onChange={e => setVarValuesPerNode(prev => ({
-                                    ...prev,
-                                    [node.id]: { ...prev[node.id], [v.name]: e.target.value },
-                                  }))}
-                                  onClick={e => e.stopPropagation()}
+                                  onChange={(e) =>
+                                    setVarValuesPerNode((prev) => ({
+                                      ...prev,
+                                      [node.id]: {
+                                        ...prev[node.id],
+                                        [v.name]: e.target.value,
+                                      },
+                                    }))
+                                  }
+                                  onClick={(e) => e.stopPropagation()}
                                   slotProps={{
                                     input: {
-                                      style: { fontFamily: 'monospace', fontSize: '0.85rem' },
-                                      endAdornment: secrets.length > 0 ? (
-                                        <Tooltip title="Вставить из секретов">
-                                          <IconButton
-                                            size="small"
-                                            edge="end"
-                                            aria-label={`Вставить значение ${v.label} для ${node.name} из секретов`}
-                                            onClick={e => { e.stopPropagation(); openSecretPicker(val => setVarValuesPerNode(prev => ({ ...prev, [node.id]: { ...prev[node.id], [v.name]: val } }))); }}>
-                                            <LockOpen fontSize="small" />
-                                          </IconButton>
-                                        </Tooltip>
-                                      ) : undefined,
+                                      style: {
+                                        fontFamily: 'monospace',
+                                        fontSize: '0.85rem',
+                                      },
+                                      endAdornment:
+                                        secrets.length > 0 ? (
+                                          <Tooltip title="Вставить из секретов">
+                                            <IconButton
+                                              size="small"
+                                              edge="end"
+                                              aria-label={`Вставить значение ${v.label} для ${node.name} из секретов`}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                openSecretPicker((val) =>
+                                                  setVarValuesPerNode((prev) => ({
+                                                    ...prev,
+                                                    [node.id]: {
+                                                      ...prev[node.id],
+                                                      [v.name]: val,
+                                                    },
+                                                  })),
+                                                );
+                                              }}
+                                            >
+                                              <LockOpen fontSize="small" />
+                                            </IconButton>
+                                          </Tooltip>
+                                        ) : undefined,
                                     },
                                   }}
                                 />
@@ -2427,20 +3718,46 @@ export default function ScriptsPage() {
                 <Typography variant="subtitle2">Статус:</Typography>
                 {runJob.status === 'running' && <CircularProgress size={16} />}
                 <Chip
-                  label={runJob.status === 'running' ? 'Выполняется' : runJob.status === 'success' ? 'Успешно' : 'Ошибка'}
-                  color={runJob.status === 'running' ? 'default' : runJob.status === 'success' ? 'success' : 'error'}
+                  label={
+                    runJob.status === 'running'
+                      ? 'Выполняется'
+                      : runJob.status === 'success'
+                        ? 'Успешно'
+                        : 'Ошибка'
+                  }
+                  color={
+                    runJob.status === 'running'
+                      ? 'default'
+                      : runJob.status === 'success'
+                        ? 'success'
+                        : 'error'
+                  }
                   size="small"
                 />
               </Stack>
 
               <Stack spacing={2}>
-                {runJob.results.map(result => (
+                {runJob.results.map((result) => (
                   <Box key={result.nodeId}>
                     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                      <Typography variant="body2" fontWeight={600}>{result.nodeName}</Typography>
+                      <Typography variant="body2" fontWeight={600}>
+                        {result.nodeName}
+                      </Typography>
                       <Chip
-                        label={result.status === 'running' ? '...' : result.status === 'success' ? 'OK' : 'Ошибка'}
-                        color={result.status === 'running' ? 'default' : result.status === 'success' ? 'success' : 'error'}
+                        label={
+                          result.status === 'running'
+                            ? '...'
+                            : result.status === 'success'
+                              ? 'OK'
+                              : 'Ошибка'
+                        }
+                        color={
+                          result.status === 'running'
+                            ? 'default'
+                            : result.status === 'success'
+                              ? 'success'
+                              : 'error'
+                        }
                         size="small"
                       />
                     </Stack>
@@ -2492,55 +3809,88 @@ export default function ScriptsPage() {
         <DialogContent>
           {!runJob ? (
             <Box>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>Порядок выполнения:</Typography>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Порядок выполнения:
+              </Typography>
               <Stack spacing={1} sx={{ mb: 3 }}>
                 {scriptQueue.map((s, i) => (
                   <Paper key={i} variant="outlined" sx={{ p: 1.5 }}>
                     <Stack direction="row" spacing={1} alignItems="flex-start">
                       <Stack direction="column" sx={{ flexShrink: 0 }}>
-                        <IconButton size="small" aria-label={`Поднять скрипт ${s.name} в очереди`} disabled={i === 0} onClick={() => moveQueueItem(i, 'up')}>
+                        <IconButton
+                          size="small"
+                          aria-label={`Поднять скрипт ${s.name} в очереди`}
+                          disabled={i === 0}
+                          onClick={() => moveQueueItem(i, 'up')}
+                        >
                           <KeyboardArrowUp fontSize="small" />
                         </IconButton>
-                        <IconButton size="small" aria-label={`Опустить скрипт ${s.name} в очереди`} disabled={i === scriptQueue.length - 1} onClick={() => moveQueueItem(i, 'down')}>
+                        <IconButton
+                          size="small"
+                          aria-label={`Опустить скрипт ${s.name} в очереди`}
+                          disabled={i === scriptQueue.length - 1}
+                          onClick={() => moveQueueItem(i, 'down')}
+                        >
                           <KeyboardArrowDown fontSize="small" />
                         </IconButton>
                       </Stack>
                       <Box sx={{ flex: 1 }}>
                         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
                           <Chip label={String(i + 1)} size="small" color="primary" />
-                          <Typography variant="body2" fontWeight={600}>{s.name}</Typography>
-                          {s.isBuiltIn && <Chip label="Встроенный" size="small" color="info" variant="outlined" />}
+                          <Typography variant="body2" fontWeight={600}>
+                            {s.name}
+                          </Typography>
+                          {s.isBuiltIn && (
+                            <Chip label="Встроенный" size="small" color="info" variant="outlined" />
+                          )}
                         </Stack>
                         {extractVariables(s.content).length > 0 && (
                           <Stack spacing={1} sx={{ mt: 1 }}>
-                            {extractVariables(s.content).map(v => (
+                            {extractVariables(s.content).map((v) => (
                               <TextField
                                 key={v.name}
                                 label={v.label}
                                 size="small"
                                 fullWidth
                                 value={varValuesPerScript[s.id]?.[v.name] ?? ''}
-                                onChange={e => setVarValuesPerScript(prev => ({
-                                  ...prev,
-                                  [s.id]: { ...prev[s.id], [v.name]: e.target.value },
-                                }))}
+                                onChange={(e) =>
+                                  setVarValuesPerScript((prev) => ({
+                                    ...prev,
+                                    [s.id]: {
+                                      ...prev[s.id],
+                                      [v.name]: e.target.value,
+                                    },
+                                  }))
+                                }
                                 slotProps={{
                                   input: {
-                                    style: { fontFamily: 'monospace', fontSize: '0.85rem' },
-                                    endAdornment: secrets.length > 0 ? (
-                                      <Tooltip title="Вставить из секретов">
-                                        <IconButton
-                                          size="small"
-                                          edge="end"
-                                          aria-label={`Вставить значение ${v.label} для скрипта ${s.name} из секретов`}
-                                          onClick={() => openSecretPicker(val => setVarValuesPerScript(prev => ({
-                                            ...prev,
-                                            [s.id]: { ...prev[s.id], [v.name]: val },
-                                          })))}>
-                                          <LockOpen fontSize="small" />
-                                        </IconButton>
-                                      </Tooltip>
-                                    ) : undefined,
+                                    style: {
+                                      fontFamily: 'monospace',
+                                      fontSize: '0.85rem',
+                                    },
+                                    endAdornment:
+                                      secrets.length > 0 ? (
+                                        <Tooltip title="Вставить из секретов">
+                                          <IconButton
+                                            size="small"
+                                            edge="end"
+                                            aria-label={`Вставить значение ${v.label} для скрипта ${s.name} из секретов`}
+                                            onClick={() =>
+                                              openSecretPicker((val) =>
+                                                setVarValuesPerScript((prev) => ({
+                                                  ...prev,
+                                                  [s.id]: {
+                                                    ...prev[s.id],
+                                                    [v.name]: val,
+                                                  },
+                                                })),
+                                              )
+                                            }
+                                          >
+                                            <LockOpen fontSize="small" />
+                                          </IconButton>
+                                        </Tooltip>
+                                      ) : undefined,
                                   },
                                 }}
                               />
@@ -2548,7 +3898,12 @@ export default function ScriptsPage() {
                           </Stack>
                         )}
                       </Box>
-                      <IconButton size="small" color="error" aria-label={`Удалить скрипт ${s.name} из очереди`} onClick={() => removeFromQueue(i)}>
+                      <IconButton
+                        size="small"
+                        color="error"
+                        aria-label={`Удалить скрипт ${s.name} из очереди`}
+                        onClick={() => removeFromQueue(i)}
+                      >
                         <Delete fontSize="small" />
                       </IconButton>
                     </Stack>
@@ -2559,14 +3914,14 @@ export default function ScriptsPage() {
               <Divider sx={{ mb: 2 }} />
 
               {/* Toggle индивидуальных переменных для очереди */}
-              {scriptQueue.some(s => extractVariables(s.content).length > 0) && (
+              {scriptQueue.some((s) => extractVariables(s.content).length > 0) && (
                 <Stack direction="row" alignItems="center" sx={{ mb: 2 }}>
                   <FormControlLabel
                     control={
                       <Switch
                         size="small"
                         checked={perNodeVarsQueueMode}
-                        onChange={e => {
+                        onChange={(e) => {
                           const next = e.target.checked;
                           setPerNodeVarsQueueMode(next);
                           if (next) {
@@ -2576,7 +3931,12 @@ export default function ScriptsPage() {
                               if (!svars.length) continue;
                               init[s.id] = {};
                               for (const nodeId of queueSelectedNodeIds) {
-                                init[s.id][nodeId] = Object.fromEntries(svars.map(v => [v.name, varValuesPerScript[s.id]?.[v.name] || '']));
+                                init[s.id][nodeId] = Object.fromEntries(
+                                  svars.map((v) => [
+                                    v.name,
+                                    varValuesPerScript[s.id]?.[v.name] || '',
+                                  ]),
+                                );
                               }
                             }
                             setVarValuesPerScriptPerNode(init);
@@ -2586,19 +3946,39 @@ export default function ScriptsPage() {
                         }}
                       />
                     }
-                    label={<Typography variant="body2">Индивидуальные переменные для каждой ноды</Typography>}
+                    label={
+                      <Typography variant="body2">
+                        Индивидуальные переменные для каждой ноды
+                      </Typography>
+                    }
                   />
                 </Stack>
               )}
 
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>Выберите ноды для запуска:</Typography>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Выберите ноды для запуска:
+              </Typography>
               {categories.length > 0 && (
-                <Stack direction="row" spacing={0.5} flexWrap="wrap" alignItems="center" sx={{ mb: 1 }}>
-                  <Typography variant="caption" color="textSecondary">Категория:</Typography>
-                  {categories.map(cat => (
-                    <Chip key={cat.id} label={cat.name} size="small" clickable
+                <Stack
+                  direction="row"
+                  spacing={0.5}
+                  flexWrap="wrap"
+                  alignItems="center"
+                  sx={{ mb: 1 }}
+                >
+                  <Typography variant="caption" color="textSecondary">
+                    Категория:
+                  </Typography>
+                  {categories.map((cat) => (
+                    <Chip
+                      key={cat.id}
+                      label={cat.name}
+                      size="small"
+                      clickable
                       sx={{ bgcolor: cat.color, color: '#fff' }}
-                      onClick={() => selectNodesByCategory(cat.id, queueSelectedNodeIds, setQueueSelectedNodeIds)}
+                      onClick={() =>
+                        selectNodesByCategory(cat.id, queueSelectedNodeIds, setQueueSelectedNodeIds)
+                      }
                     />
                   ))}
                 </Stack>
@@ -2607,36 +3987,85 @@ export default function ScriptsPage() {
                 <Alert severity="warning">Нет нод.</Alert>
               ) : (
                 <Stack spacing={1}>
-                  {sshNodes.map(node => {
+                  {sshNodes.map((node) => {
                     const selected = queueSelectedNodeIds.includes(node.id);
-                    const scriptsWithVars = scriptQueue.filter(s => extractVariables(s.content).length > 0);
+                    const scriptsWithVars = scriptQueue.filter(
+                      (s) => extractVariables(s.content).length > 0,
+                    );
                     return (
-                      <Paper key={node.id} variant="outlined"
-                        sx={{ borderColor: selected ? 'primary.main' : undefined, bgcolor: selected ? 'action.selected' : undefined }}>
-                        <Box sx={{ p: 1.5, cursor: 'pointer' }}
+                      <Paper
+                        key={node.id}
+                        variant="outlined"
+                        sx={{
+                          borderColor: selected ? 'primary.main' : undefined,
+                          bgcolor: selected ? 'action.selected' : undefined,
+                        }}
+                      >
+                        <Box
+                          sx={{ p: 1.5, cursor: 'pointer' }}
                           onClick={() => {
                             if (perNodeVarsQueueMode && !selected) {
-                              setVarValuesPerScriptPerNode(prev => {
+                              setVarValuesPerScriptPerNode((prev) => {
                                 const next = { ...prev };
                                 for (const s of scriptQueue) {
                                   const svars = extractVariables(s.content);
                                   if (!svars.length) continue;
-                                  next[s.id] = { ...next[s.id], [node.id]: next[s.id]?.[node.id] || Object.fromEntries(svars.map(v => [v.name, varValuesPerScript[s.id]?.[v.name] || ''])) };
+                                  next[s.id] = {
+                                    ...next[s.id],
+                                    [node.id]:
+                                      next[s.id]?.[node.id] ||
+                                      Object.fromEntries(
+                                        svars.map((v) => [
+                                          v.name,
+                                          varValuesPerScript[s.id]?.[v.name] || '',
+                                        ]),
+                                      ),
+                                  };
                                 }
                                 return next;
                               });
                             }
-                            setQueueSelectedNodeIds(prev => prev.includes(node.id) ? prev.filter(id => id !== node.id) : [...prev, node.id]);
-                          }}>
+                            setQueueSelectedNodeIds((prev) =>
+                              prev.includes(node.id)
+                                ? prev.filter((id) => id !== node.id)
+                                : [...prev, node.id],
+                            );
+                          }}
+                        >
                           <Stack direction="row" spacing={1} alignItems="center">
-                            <Box sx={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid', borderColor: selected ? 'primary.main' : 'text.disabled', bgcolor: selected ? 'primary.main' : 'transparent', flexShrink: 0 }} />
-                            <Typography variant="body2" fontWeight={selected ? 600 : 400}>{node.name}</Typography>
-                            <Typography variant="caption" color="textSecondary">{node.ip}:{node.sshPort} ({node.sshUser})</Typography>
+                            <Box
+                              sx={{
+                                width: 16,
+                                height: 16,
+                                borderRadius: '50%',
+                                border: '2px solid',
+                                borderColor: selected ? 'primary.main' : 'text.disabled',
+                                bgcolor: selected ? 'primary.main' : 'transparent',
+                                flexShrink: 0,
+                              }}
+                            />
+                            <Typography variant="body2" fontWeight={selected ? 600 : 400}>
+                              {node.name}
+                            </Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              {node.ip}:{node.sshPort} ({node.sshUser})
+                            </Typography>
                             <Stack direction="row" spacing={0.3}>
-                              {(node.categoryIds || []).map(cid => {
-                                const cat = categories.find(c => c.id === cid);
-                                return cat ? <Chip key={cid} label={cat.name} size="small"
-                                  sx={{ bgcolor: cat.color, color: '#fff', fontSize: '0.65rem', height: 18 }} /> : null;
+                              {(node.categoryIds || []).map((cid) => {
+                                const cat = categories.find((c) => c.id === cid);
+                                return cat ? (
+                                  <Chip
+                                    key={cid}
+                                    label={cat.name}
+                                    size="small"
+                                    sx={{
+                                      bgcolor: cat.color,
+                                      color: '#fff',
+                                      fontSize: '0.65rem',
+                                      height: 18,
+                                    }}
+                                  />
+                                ) : null;
                               })}
                             </Stack>
                           </Stack>
@@ -2646,40 +4075,74 @@ export default function ScriptsPage() {
                           <Box sx={{ px: 2, pb: 1.5, pt: 0 }}>
                             <Divider sx={{ mb: 1 }} />
                             <Stack spacing={1.5}>
-                              {scriptsWithVars.map(s => {
+                              {scriptsWithVars.map((s) => {
                                 const svars = extractVariables(s.content);
                                 return (
                                   <Box key={s.id}>
-                                    <Typography variant="caption" color="textSecondary" sx={{ display: 'block', mb: 0.5 }}>
+                                    <Typography
+                                      variant="caption"
+                                      color="textSecondary"
+                                      sx={{ display: 'block', mb: 0.5 }}
+                                    >
                                       {s.name}
                                     </Typography>
                                     <Stack spacing={1}>
-                                      {svars.map(v => (
+                                      {svars.map((v) => (
                                         <TextField
                                           key={v.name}
                                           label={v.label}
                                           size="small"
                                           fullWidth
-                                          value={varValuesPerScriptPerNode[s.id]?.[node.id]?.[v.name] ?? ''}
-                                          onChange={e => setVarValuesPerScriptPerNode(prev => ({
-                                            ...prev,
-                                            [s.id]: { ...prev[s.id], [node.id]: { ...prev[s.id]?.[node.id], [v.name]: e.target.value } },
-                                          }))}
-                                          onClick={e => e.stopPropagation()}
+                                          value={
+                                            varValuesPerScriptPerNode[s.id]?.[node.id]?.[v.name] ??
+                                            ''
+                                          }
+                                          onChange={(e) =>
+                                            setVarValuesPerScriptPerNode((prev) => ({
+                                              ...prev,
+                                              [s.id]: {
+                                                ...prev[s.id],
+                                                [node.id]: {
+                                                  ...prev[s.id]?.[node.id],
+                                                  [v.name]: e.target.value,
+                                                },
+                                              },
+                                            }))
+                                          }
+                                          onClick={(e) => e.stopPropagation()}
                                           slotProps={{
                                             input: {
-                                              style: { fontFamily: 'monospace', fontSize: '0.85rem' },
-                                              endAdornment: secrets.length > 0 ? (
-                                                <Tooltip title="Вставить из секретов">
-                                                  <IconButton
-                                                    size="small"
-                                                    edge="end"
-                                                    aria-label={`Вставить значение ${v.label} для ${node.name} из секретов`}
-                                                    onClick={e => { e.stopPropagation(); openSecretPicker(val => setVarValuesPerScriptPerNode(prev => ({ ...prev, [s.id]: { ...prev[s.id], [node.id]: { ...prev[s.id]?.[node.id], [v.name]: val } } }))); }}>
-                                                    <LockOpen fontSize="small" />
-                                                  </IconButton>
-                                                </Tooltip>
-                                              ) : undefined,
+                                              style: {
+                                                fontFamily: 'monospace',
+                                                fontSize: '0.85rem',
+                                              },
+                                              endAdornment:
+                                                secrets.length > 0 ? (
+                                                  <Tooltip title="Вставить из секретов">
+                                                    <IconButton
+                                                      size="small"
+                                                      edge="end"
+                                                      aria-label={`Вставить значение ${v.label} для ${node.name} из секретов`}
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        openSecretPicker((val) =>
+                                                          setVarValuesPerScriptPerNode((prev) => ({
+                                                            ...prev,
+                                                            [s.id]: {
+                                                              ...prev[s.id],
+                                                              [node.id]: {
+                                                                ...prev[s.id]?.[node.id],
+                                                                [v.name]: val,
+                                                              },
+                                                            },
+                                                          })),
+                                                        );
+                                                      }}
+                                                    >
+                                                      <LockOpen fontSize="small" />
+                                                    </IconButton>
+                                                  </Tooltip>
+                                                ) : undefined,
                                             },
                                           }}
                                         />
@@ -2703,21 +4166,64 @@ export default function ScriptsPage() {
                 <Typography variant="subtitle2">Статус:</Typography>
                 {runJob.status === 'running' && <CircularProgress size={16} />}
                 <Chip
-                  label={runJob.status === 'running' ? 'Выполняется' : runJob.status === 'success' ? 'Успешно' : 'Ошибка'}
-                  color={runJob.status === 'running' ? 'default' : runJob.status === 'success' ? 'success' : 'error'}
+                  label={
+                    runJob.status === 'running'
+                      ? 'Выполняется'
+                      : runJob.status === 'success'
+                        ? 'Успешно'
+                        : 'Ошибка'
+                  }
+                  color={
+                    runJob.status === 'running'
+                      ? 'default'
+                      : runJob.status === 'success'
+                        ? 'success'
+                        : 'error'
+                  }
                   size="small"
                 />
               </Stack>
               <Stack spacing={2}>
-                {runJob.results.map(result => (
+                {runJob.results.map((result) => (
                   <Box key={result.nodeId}>
                     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                      <Typography variant="body2" fontWeight={600}>{result.nodeName}</Typography>
-                      <Chip label={result.status === 'running' ? '...' : result.status === 'success' ? 'OK' : 'Ошибка'}
-                        color={result.status === 'running' ? 'default' : result.status === 'success' ? 'success' : 'error'}
-                        size="small" />
+                      <Typography variant="body2" fontWeight={600}>
+                        {result.nodeName}
+                      </Typography>
+                      <Chip
+                        label={
+                          result.status === 'running'
+                            ? '...'
+                            : result.status === 'success'
+                              ? 'OK'
+                              : 'Ошибка'
+                        }
+                        color={
+                          result.status === 'running'
+                            ? 'default'
+                            : result.status === 'success'
+                              ? 'success'
+                              : 'error'
+                        }
+                        size="small"
+                      />
                     </Stack>
-                    <Box component="pre" sx={{ fontSize: '0.7rem', bgcolor: 'action.hover', borderRadius: 1, p: 1.5, overflowX: 'auto', maxHeight: 300, overflowY: 'auto', m: 0, fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                    <Box
+                      component="pre"
+                      sx={{
+                        fontSize: '0.7rem',
+                        bgcolor: 'action.hover',
+                        borderRadius: 1,
+                        p: 1.5,
+                        overflowX: 'auto',
+                        maxHeight: 300,
+                        overflowY: 'auto',
+                        m: 0,
+                        fontFamily: 'monospace',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-all',
+                      }}
+                    >
                       {result.logs.join('\n') || '...'}
                     </Box>
                   </Box>
@@ -2732,10 +4238,12 @@ export default function ScriptsPage() {
             {runJob && runJob.status !== 'running' ? 'Закрыть' : 'Отмена'}
           </Button>
           {!runJob && (
-            <Button variant="contained"
+            <Button
+              variant="contained"
               startIcon={runLoading ? <CircularProgress size={16} /> : <PlayArrow />}
               disabled={runLoading || queueSelectedNodeIds.length === 0 || scriptQueue.length === 0}
-              onClick={handleRunQueue}>
+              onClick={handleRunQueue}
+            >
               Запустить ({scriptQueue.length})
             </Button>
           )}
@@ -2743,17 +4251,28 @@ export default function ScriptsPage() {
       </Dialog>
 
       {/* Secret picker dialog */}
-      <Dialog open={secretPickerOpen} onClose={() => setSecretPickerOpen(false)} maxWidth="xs" fullWidth>
+      <Dialog
+        open={secretPickerOpen}
+        onClose={() => setSecretPickerOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
         <DialogTitle>Выбрать секрет</DialogTitle>
         <DialogContent dividers sx={{ p: 0 }}>
-          {secrets.map(s => (
+          {secrets.map((s) => (
             <MenuItem key={s.id} onClick={() => handlePickSecret(s.id)}>
               <Stack direction="row" spacing={1} alignItems="center">
                 <VpnKey fontSize="small" color="action" />
                 <Box>
                   <Typography variant="body2">{s.name}</Typography>
                   <Typography variant="caption" color="textSecondary">
-                    {s.type === 'ssh-key' ? 'SSH-ключ' : s.type === 'password' ? 'Пароль' : s.type === 'token' ? 'Токен' : 'Другое'}
+                    {s.type === 'ssh-key'
+                      ? 'SSH-ключ'
+                      : s.type === 'password'
+                        ? 'Пароль'
+                        : s.type === 'token'
+                          ? 'Токен'
+                          : 'Другое'}
                     {s.description ? ` — ${s.description}` : ''}
                   </Typography>
                 </Box>
@@ -2771,19 +4290,26 @@ export default function ScriptsPage() {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <MenuItem onClick={() => {
-          const node = sshNodes.find(n => n.id === nodeRowMenu?.nodeId);
-          setNodeRowMenu(null);
-          if (node) openTerminalPopup(node);
-        }}>
-          <OpenInNew sx={{ fontSize: 16, mr: 1 }} />Открыть терминал в окне
+        <MenuItem
+          onClick={() => {
+            const node = sshNodes.find((n) => n.id === nodeRowMenu?.nodeId);
+            setNodeRowMenu(null);
+            if (node) openTerminalPopup(node);
+          }}
+        >
+          <OpenInNew sx={{ fontSize: 16, mr: 1 }} />
+          Открыть терминал в окне
         </MenuItem>
-        <MenuItem sx={{ color: 'error.main' }} onClick={() => {
-          const { nodeId, nodeName } = nodeRowMenu || {};
-          setNodeRowMenu(null);
-          if (nodeId && nodeName) handleDeleteNode(nodeId, nodeName);
-        }}>
-          <Delete sx={{ fontSize: 16, mr: 1 }} />Удалить
+        <MenuItem
+          sx={{ color: 'error.main' }}
+          onClick={() => {
+            const { nodeId, nodeName } = nodeRowMenu || {};
+            setNodeRowMenu(null);
+            if (nodeId && nodeName) handleDeleteNode(nodeId, nodeName);
+          }}
+        >
+          <Delete sx={{ fontSize: 16, mr: 1 }} />
+          Удалить
         </MenuItem>
       </Menu>
 
@@ -2795,12 +4321,16 @@ export default function ScriptsPage() {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <MenuItem sx={{ color: 'error.main' }} onClick={() => {
-          const { id, name } = secretRowMenu || {};
-          setSecretRowMenu(null);
-          if (id && name) handleDeleteSecret(id, name);
-        }}>
-          <Delete sx={{ fontSize: 16, mr: 1 }} />Удалить
+        <MenuItem
+          sx={{ color: 'error.main' }}
+          onClick={() => {
+            const { id, name } = secretRowMenu || {};
+            setSecretRowMenu(null);
+            if (id && name) handleDeleteSecret(id, name);
+          }}
+        >
+          <Delete sx={{ fontSize: 16, mr: 1 }} />
+          Удалить
         </MenuItem>
       </Menu>
 
@@ -2811,7 +4341,7 @@ export default function ScriptsPage() {
         confirmLabel="Удалить"
         confirmColor="error"
         onConfirm={confirmDel.onConfirm}
-        onCancel={() => setConfirmDel(d => ({ ...d, open: false }))}
+        onCancel={() => setConfirmDel((d) => ({ ...d, open: false }))}
       />
 
       <ConfirmDialog
@@ -2820,7 +4350,10 @@ export default function ScriptsPage() {
         message="Введённые данные будут потеряны."
         confirmLabel="Закрыть"
         confirmColor="warning"
-        onConfirm={() => { setCloseConfirm(false); pendingCloseRef.current(); }}
+        onConfirm={() => {
+          setCloseConfirm(false);
+          pendingCloseRef.current();
+        }}
         onCancel={() => setCloseConfirm(false)}
       />
 
@@ -2836,7 +4369,12 @@ export default function ScriptsPage() {
       </Snackbar>
 
       {/* ── History Detail Dialog ── */}
-      <Dialog open={Boolean(historyDetail || historyDetailLoading)} onClose={() => setHistoryDetail(null)} maxWidth="md" fullWidth>
+      <Dialog
+        open={Boolean(historyDetail || historyDetailLoading)}
+        onClose={() => setHistoryDetail(null)}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>
           <Stack direction="row" spacing={1} alignItems="center">
             <History sx={{ color: 'text.secondary', fontSize: 20 }} />
@@ -2867,13 +4405,17 @@ export default function ScriptsPage() {
           )}
           {historyDetail && (
             <Stack spacing={2}>
-              {historyDetail.nodeResults.map(result => (
+              {historyDetail.nodeResults.map((result) => (
                 <Box key={result.nodeId}>
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
-                    {result.status === 'success'
-                      ? <CheckCircle sx={{ fontSize: 16, color: 'success.main' }} />
-                      : <ErrorOutline sx={{ fontSize: 16, color: 'error.main' }} />}
-                    <Typography variant="body2" fontWeight={600}>{result.nodeName}</Typography>
+                    {result.status === 'success' ? (
+                      <CheckCircle sx={{ fontSize: 16, color: 'success.main' }} />
+                    ) : (
+                      <ErrorOutline sx={{ fontSize: 16, color: 'error.main' }} />
+                    )}
+                    <Typography variant="body2" fontWeight={600}>
+                      {result.nodeName}
+                    </Typography>
                     <Chip
                       label={result.status === 'success' ? 'OK' : 'Ошибка'}
                       color={result.status === 'success' ? 'success' : 'error'}

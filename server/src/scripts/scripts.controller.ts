@@ -25,6 +25,7 @@ import {
   FetchUrlDto,
   ScriptDto,
   SshNodeDto,
+  ImportHysteria2ClusterDto,
 } from './scripts.dto';
 
 @Controller('scripts')
@@ -187,6 +188,30 @@ export class ScriptsController {
       );
     } catch (e) {
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Get('hysteria2-clusters')
+  getHysteria2Clusters() {
+    return this.scriptsService.getHysteria2Clusters();
+  }
+
+  @Post('hysteria2-clusters/import')
+  async importHysteria2Cluster(@Body() body: ImportHysteria2ClusterDto) {
+    try {
+      return await this.scriptsService.importHysteria2Cluster(body);
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Delete('hysteria2-clusters/:id')
+  async deleteHysteria2Cluster(@Param('id') id: string) {
+    try {
+      await this.scriptsService.deleteHysteria2Cluster(id);
+      return { success: true };
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
 
