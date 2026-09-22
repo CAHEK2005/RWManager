@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Client, type ConnectConfig } from 'ssh2';
 import { promises as dns } from 'node:dns';
+import { isIP } from 'node:net';
 import {
   createPrivateKey,
   createPublicKey,
@@ -1415,15 +1416,39 @@ export class ScriptsService implements OnModuleInit {
         `Для домена ${domain} найдены AAAA-записи. Текущая кластерная настройка Hysteria2 поддерживает только A-записи; удалите AAAA перед запуском.`,
       );
     }
+    const nodeAddresses = await Promise.all(
+      nodes.map(async (node) => ({
+        nodeId: node.id,
+        address: await this.resolveHysteria2NodeAddress(node),
+      })),
+    );
     return validateHysteria2ClusterDns({
       domain,
       resolvedIpv4,
       resolvedIpv6,
-      nodes: nodes.map((node) => ({
-        nodeId: node.id,
-        address: normalizeIpAddress(node.ip),
-      })),
+      nodes: nodeAddresses,
     });
+  }
+
+  private async resolveHysteria2NodeAddress(node: SshNode): Promise<string> {
+    if (isIP(node.ip)) return normalizeIpAddress(node.ip);
+    let addresses: string[];
+    try {
+      addresses = await dns.resolve4(node.ip);
+    } catch {
+      throw new Error(
+        `Не удалось определить IPv4-адрес SSH-ноды ${node.name}: ${node.ip}`,
+      );
+    }
+    const uniqueAddresses = [
+      ...new Set(addresses.map((address) => normalizeIpAddress(address))),
+    ];
+    if (uniqueAddresses.length !== 1) {
+      throw new Error(
+        `SSH-адрес ноды ${node.name} (${node.ip}) должен резолвиться ровно в один IPv4-адрес для DNS-балансировки Hysteria2.`,
+      );
+    }
+    return uniqueAddresses[0];
   }
 
   private certificateHasExactDomain(
@@ -1623,7 +1648,9 @@ export class ScriptsService implements OnModuleInit {
       group.domain,
       options.nodes,
     );
-    const coordinatorAddress = normalizeIpAddress(coordinator.ip);
+    const coordinatorAddress =
+      dnsValidation.nodes.find((node) => node.nodeId === coordinator.id)
+        ?.address ?? (await this.resolveHysteria2NodeAddress(coordinator));
     const followers = options.nodes.filter(
       (node) => node.id !== coordinator.id,
     );
