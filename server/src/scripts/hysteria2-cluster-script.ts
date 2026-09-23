@@ -526,6 +526,7 @@ TRANSACTION_ACTIVE=0
 COMMITTED=0
 CERT_CHANGED=0
 COMPOSE_CHANGED=0
+CADDY_CHANGED=0
 
 fail() {
   echo "[ERROR] $*" >&2
@@ -615,6 +616,56 @@ verify_live_mount() {
     [ -n "$host_hash" ] && [ "$host_hash" = "$container_hash" ] || return 1
   done
   openssl x509 -in "$CURRENT_LINK/fullchain.pem" -checkhost "$DOMAIN" -noout >/dev/null 2>&1
+}
+
+configure_follower_caddy() {
+  local caddy_dir="/opt/caddy"
+  local caddy_file="$caddy_dir/Caddyfile"
+  local caddy_compose="$caddy_dir/docker-compose.yml"
+  local caddy_cert_dir="$caddy_dir/certs"
+  local caddy_cert="$caddy_cert_dir/$DOMAIN.crt"
+  local caddy_key="$caddy_cert_dir/$DOMAIN.key"
+
+  # Caddy is optional on a Hysteria node. When self-steal is installed, make
+  # the follower use the coordinator's certificate instead of starting its
+  # own ACME order against a round-robin DNS name.
+  [ -f "$caddy_file" ] && [ -f "$caddy_compose" ] || return 0
+  command -v python3 >/dev/null 2>&1 || fail "python3 нужен для настройки сертификата Caddy"
+  install -d -o root -g root -m 700 "$caddy_cert_dir"
+  install -o root -g root -m 644 "$CURRENT_LINK/fullchain.pem" "$caddy_cert"
+  install -o root -g root -m 600 "$CURRENT_LINK/privkey.pem" "$caddy_key"
+
+  python3 - "$caddy_file" "$caddy_compose" "$DOMAIN" <<'PY'
+import pathlib, re, sys
+
+caddy_file, compose_file, domain = map(pathlib.Path, sys.argv[1:])
+domain = str(domain)
+
+compose = compose_file.read_text()
+mount = "      - ./certs:/etc/caddy/certs:ro"
+if "/etc/caddy/certs" not in compose:
+    marker = "      - caddy_config:/config"
+    if marker not in compose:
+        raise SystemExit("не найден caddy_config mount в docker-compose.yml")
+    compose = compose.replace(marker, marker + "\n" + mount, 1)
+    compose_file.write_text(compose)
+
+caddy = caddy_file.read_text()
+tls = f"\ttls /etc/caddy/certs/{domain}.crt /etc/caddy/certs/{domain}.key"
+if "/etc/caddy/certs/" not in caddy:
+    match = re.search(r"^https://\\{\\$SELF_STEAL_DOMAIN\\} \\{\\s*$", caddy, re.MULTILINE)
+    if not match:
+        raise SystemExit("не найден HTTPS self-steal site в Caddyfile")
+    caddy = caddy[:match.end()] + "\n" + tls + caddy[match.end():]
+    caddy_file.write_text(caddy)
+PY
+
+  (cd "$caddy_dir" && docker compose -f "$caddy_compose" config >/dev/null) \
+    || fail "Caddy compose-конфигурация невалидна после добавления сертификата"
+  (cd "$caddy_dir" && docker compose -f "$caddy_compose" up -d --force-recreate caddy) \
+    || fail "Не удалось перезапустить Caddy с единым сертификатом"
+  CADDY_CHANGED=1
+  echo "Caddy follower переведён на централизованный сертификат: $DOMAIN"
 }
 
 [ "$(id -u)" -eq 0 ] || fail "Скрипт нужно запускать от root или через sudo"
@@ -745,6 +796,8 @@ else
   echo "Сертификат и read-only mount уже актуальны; remnanode не перезапускается."
 fi
 [ "$LIVE_MOUNT_OK" -eq 1 ] || fail "remnanode не использует опубликованный read-only сертификат"
+
+configure_follower_caddy
 
 # Cluster renewal is coordinated by RWManager. A per-node Certbot cron would
 # create independent orders and eventually hit duplicate-certificate limits.

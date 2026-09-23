@@ -111,6 +111,11 @@ describe('Hysteria2 cluster shell builders', () => {
     expect(script).toContain('.RW == false');
     expect(script).toContain('restore_previous_state');
     expect(script).toContain('rm -f -- "$CRON_FILE"');
+    expect(script).toContain('configure_follower_caddy');
+    expect(script).toContain('./certs:/etc/caddy/certs:ro');
+    expect(script).toContain('tls = f');
+    expect(script).toContain('/etc/caddy/certs/{domain}.crt');
+    expect(script).toContain('docker compose -f "$caddy_compose" up -d --force-recreate caddy');
   });
 
   it('rejects unsafe domains, non-literal coordinators and malformed payloads', () => {
