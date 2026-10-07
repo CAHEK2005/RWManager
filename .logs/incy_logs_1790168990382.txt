@@ -1,0 +1,1075 @@
+=== incy.log · 2026-09-23 16:09:19 ===
+2026-09-23 16:09:05.222 [SESSION] Финляндия XHTTP · TUN_PROXY
+2026-09-23 16:09:05.224 [DEBUG/TUNNEL] Регистрация защиты сокетов...
+2026-09-23 16:09:05.224 [DEBUG/TUNNEL] Инициализация geo файлов...
+2026-09-23 16:09:05.224 [DEBUG/TUNNEL] Создание VPN интерфейса (killSwitch=false, mode=TUN_PROXY)...
+2026-09-23 16:09:05.226 [INFO/TUNNEL] VPN bypass: co***.go***.an***.pr***.gearhead (Android Auto)
+2026-09-23 16:09:05.232 [INFO/TUNNEL] VPN интерфейс создан, fd: 127
+2026-09-23 16:09:05.233 [DEBUG/TUNNEL] Mixed: 127.0.0.1:10808
+2026-09-23 16:09:05.234 [DEBUG/CONFIG] Xray конфиг сохранён: /data/user/0/ll***.it***.incy/files/logs/xray_co***.json (12215 байт)
+2026-09-23 16:09:05.234 [DEBUG/CONFIG] Inbounds: [socks:10808, http:10809] | Outbound: vless | Mode: TUN_PROXY
+2026-09-23 16:09:05.237 [DEBUG/TUNNEL] Memory: No Limit Mode (GC=100)
+2026-09-23 16:09:05.237 [DEBUG/TUNNEL] Запуск VPN (TUN_PROXY), addr: 127.0.0.1:10808, fragment: false, xrayTun: false
+2026/09/23 13:09:05.240702 [Debug] app/log: Logger started
+2026/09/23 13:09:05.240801 [Info] app/dns: DNS: created localhost client
+2026/09/23 13:09:05.241046 [Info] app/dns: DNS: created UDP client initialized for x.x.x.x:53
+2026/09/23 13:09:05.241052 [Info] app/dns: DNS: created UDP client initialized for x.x.x.x:53
+2026/09/23 13:09:05.241274 [Debug] app/stats: create new counter inbound>>>socks>>>traffic>>>uplink
+2026/09/23 13:09:05.241281 [Debug] app/stats: create new counter inbound>>>socks>>>traffic>>>downlink
+2026/09/23 13:09:05.241287 [Debug] app/proxyman/inbound: creating stream worker on 0.0.0.0:10808
+2026/09/23 13:09:05.241289 [Debug] app/stats: create new counter inbound>>>http>>>traffic>>>uplink
+2026/09/23 13:09:05.241291 [Debug] app/stats: create new counter inbound>>>http>>>traffic>>>downlink
+2026/09/23 13:09:05.241293 [Debug] app/proxyman/inbound: creating stream worker on 0.0.0.0:10809
+2026/09/23 13:09:05.241295 [Debug] app/stats: create new counter outbound>>>proxy>>>traffic>>>uplink
+2026/09/23 13:09:05.241297 [Debug] app/stats: create new counter outbound>>>proxy>>>traffic>>>downlink
+2026/09/23 13:09:05.241298 [Debug] app/stats: create new counter outbound>>>direct>>>traffic>>>uplink
+2026/09/23 13:09:05.241300 [Debug] app/stats: create new counter outbound>>>direct>>>traffic>>>downlink
+2026/09/23 13:09:05.241302 [Debug] app/stats: create new counter outbound>>>block>>>traffic>>>uplink
+2026/09/23 13:09:05.241303 [Debug] app/stats: create new counter outbound>>>block>>>traffic>>>downlink
+2026/09/23 13:09:05.241447 [Info] transport/internet/tcp: listening TCP on 0.0.0.0:10808
+2026/09/23 13:09:05.241638 [Info] transport/internet/tcp: listening TCP on 0.0.0.0:10809
+2026/09/23 13:09:05.241648 [Warning] core: Xray 26.9.9 started
+2026-09-23 16:09:05.248 [INFO/TUNNEL] ✅ VPN подключен успешно (режим: TUN_PROXY)
+2026/09/23 13:09:05.673761 [Info] [4068750615] proxy/socks: TCP Connect request to tcp:x.x.x.x:80
+2026/09/23 13:09:05.675921 [Info] [4068750615] app/dispatcher: sniffed domain: c.wh***.net
+2026/09/23 13:09:05.675954 [Info] [4068750615] app/dispatcher: default route for tcp:c.wh***.net:80
+2026/09/23 13:09:05.675962 [Debug] [4068750615] transport/internet/splithttp: XMUX: creating xmuxClient because xmuxClients is empty
+2026/09/23 13:09:05.675974 [Info] [4068750615] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:05.675984 [Info] [1213612977] proxy/socks: client UDP connection from udp:127.0.0.1:44221
+2026/09/23 13:09:05.676170 [Debug] [1213612977] proxy/socks: send packet to udp:x.x.x.x:53 with 36 bytes
+2026/09/23 13:09:05.676180 [Debug] [1213612977] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:05.676188 [Info] [1213612977] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:05.676194 [Debug] [1213612977] proxy/socks: send packet to udp:x.x.x.x:53 with 36 bytes
+2026/09/23 13:09:05.676229 [Debug] [1213612977] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:05.676235 [Info] [1213612977] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:05.676243 [Debug] [1213612977] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:05.676249 [Info] [1213612977] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:05.676255 [Debug] [4068750615] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:05.676260 [Debug] [1213612977] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:05.682895 [Info] [3412225009] proxy/socks: client UDP connection from udp:127.0.0.1:60029
+2026/09/23 13:09:05.683018 [Debug] [3412225009] proxy/socks: send packet to udp:x.x.x.x:53 with 34 bytes
+2026/09/23 13:09:05.683047 [Debug] [3412225009] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:05.683057 [Info] [3412225009] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:05.683066 [Debug] [3412225009] proxy/socks: send packet to udp:x.x.x.x:53 with 34 bytes
+2026/09/23 13:09:05.683073 [Debug] [3412225009] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:05.683081 [Info] [3412225009] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:05.683090 [Debug] [3412225009] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:05.683098 [Info] [3412225009] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:05.683241 [Debug] [3412225009] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:05.690026 [Info] [2109869895] proxy/socks: client UDP connection from udp:127.0.0.1:39859
+2026/09/23 13:09:05.690053 [Debug] [2109869895] proxy/socks: send packet to udp:x.x.x.x:53 with 34 bytes
+2026/09/23 13:09:05.690059 [Debug] [2109869895] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:05.690065 [Info] [2109869895] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:05.690069 [Debug] [2109869895] proxy/socks: send packet to udp:x.x.x.x:53 with 34 bytes
+2026/09/23 13:09:05.690073 [Debug] [2109869895] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:05.690077 [Info] [2109869895] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:05.690364 [Info] [2109869895] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:05.748782 [Info] [2651662545] proxy/socks: client UDP connection from udp:127.0.0.1:55602
+2026/09/23 13:09:05.748810 [Debug] [2651662545] proxy/socks: send packet to udp:x.x.x.x:53 with 27 bytes
+2026/09/23 13:09:05.748815 [Debug] [2651662545] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:05.748818 [Info] [2651662545] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:05.748821 [Debug] [2651662545] proxy/socks: send packet to udp:x.x.x.x:53 with 27 bytes
+2026/09/23 13:09:05.748827 [Debug] [2651662545] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:05.749062 [Info] [2651662545] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:05.749068 [Info] [2651662545] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:05.751694 [Info] [2909604792] proxy/socks: client UDP connection from udp:127.0.0.1:49992
+2026/09/23 13:09:05.752658 [Debug] [2909604792] proxy/socks: send packet to udp:x.x.x.x:53 with 32 bytes
+2026/09/23 13:09:05.753082 [Debug] [2909604792] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:05.753096 [Info] [2909604792] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:05.753101 [Debug] [2909604792] proxy/socks: send packet to udp:x.x.x.x:53 with 32 bytes
+2026/09/23 13:09:05.753104 [Debug] [2909604792] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:05.753107 [Info] [2909604792] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:05.753111 [Info] [2909604792] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:05.806789 [Info] [4068750615] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:05.806819 [Info] [4068750615] proxy/vless/outbound: tunneling request to tcp:c.wh***.net:80 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:05.806937 [Info] [2651662545] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:05.806943 [Info] [2651662545] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:05.806946 [Info] [2651662545] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:05.810509 [Info] [1213612977] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:05.810528 [Info] [1213612977] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:05.810532 [Info] [1213612977] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:05.917003 [Info] [3412225009] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:05.917024 [Info] [2909604792] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:05.917032 [Info] [3412225009] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:05.917034 [Info] [2909604792] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:05.917040 [Info] [2909604792] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:05.917043 [Info] [3412225009] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:05.917046 [Info] [2109869895] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:05.917048 [Info] [2109869895] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:05.917050 [Info] [2109869895] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:06.218366 [Info] [2127522735] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:06.218705 [Info] [1073178626] proxy/socks: client UDP connection from udp:127.0.0.1:55152
+2026/09/23 13:09:06.218743 [Debug] [1073178626] proxy/socks: send packet to udp:x.x.x.x:53 with 32 bytes
+2026/09/23 13:09:06.218749 [Debug] [1073178626] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:06.218752 [Info] [1073178626] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:06.218755 [Debug] [1073178626] proxy/socks: send packet to udp:x.x.x.x:53 with 32 bytes
+2026/09/23 13:09:06.218758 [Debug] [1073178626] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:06.219011 [Info] [2127522735] app/dispatcher: default route for tcp:x.x.x.x:443
+2026/09/23 13:09:06.219021 [Info] [1073178626] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:06.219041 [Debug] [2127522735] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 709, UnreusableAt = 2026-09-23 13:46:12.674399307 +0000 UTC m=+2693.276522115
+2026/09/23 13:09:06.219047 [Debug] [2127522735] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 718, UnreusableAt = 2026-09-23 13:42:44.675566651 +0000 UTC m=+2485.277689458
+2026/09/23 13:09:06.219051 [Debug] [2127522735] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 683, UnreusableAt = 2026-09-23 13:44:34.683021807 +0000 UTC m=+2595.285144719
+2026/09/23 13:09:06.219054 [Debug] [2127522735] transport/internet/splithttp: XMUX: creating xmuxClient because xmuxClients is empty
+2026/09/23 13:09:06.219057 [Info] [2127522735] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:06.220153 [Debug] [2127522735] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:06.220168 [Debug] [1073178626] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:06.220172 [Info] [1073178626] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:06.220175 [Debug] [1073178626] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:06.395748 [Info] [2127522735] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:06.395783 [Info] [2127522735] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:06.396278 [Info] [1073178626] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:06.396288 [Info] [1073178626] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:06.396361 [Info] [1073178626] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:06.546486 [Info] [2100971954] proxy/socks: client UDP connection from udp:127.0.0.1:43116
+2026/09/23 13:09:06.546523 [Debug] [2100971954] proxy/socks: send packet to udp:x.x.x.x:443 with 62 bytes
+2026/09/23 13:09:06.546529 [Debug] [2100971954] transport/internet/udp: dispatch request to: udp:x.x.x.x:443
+2026/09/23 13:09:06.546535 [Info] [2100971954] transport/internet/udp: establishing new connection for udp:x.x.x.x:443
+2026/09/23 13:09:06.546543 [Debug] [2100971954] proxy/socks: send packet to udp:x.x.x.x:443 with 258 bytes
+2026/09/23 13:09:06.546547 [Debug] [2100971954] transport/internet/udp: dispatch request to: udp:x.x.x.x:443
+2026/09/23 13:09:06.546566 [Debug] [2100971954] proxy/socks: send packet to udp:x.x.x.x:443 with 62 bytes
+2026/09/23 13:09:06.546569 [Debug] [2100971954] transport/internet/udp: dispatch request to: udp:x.x.x.x:443
+2026/09/23 13:09:06.546573 [Debug] [2100971954] proxy/socks: send packet to udp:x.x.x.x:443 with 258 bytes
+2026/09/23 13:09:06.546577 [Debug] [2100971954] transport/internet/udp: dispatch request to: udp:x.x.x.x:443
+2026/09/23 13:09:06.546581 [Debug] [2100971954] proxy/socks: send packet to udp:x.x.x.x:443 with 62 bytes
+2026/09/23 13:09:06.546584 [Debug] [2100971954] transport/internet/udp: dispatch request to: udp:x.x.x.x:443
+2026/09/23 13:09:06.546588 [Info] [2100971954] app/dispatcher: default route for udp:x.x.x.x:443
+2026/09/23 13:09:06.546678 [Debug] [2100971954] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 828, UnreusableAt = 2026-09-23 13:55:11.218971598 +0000 UTC m=+3231.821094302
+2026/09/23 13:09:06.546685 [Debug] [2100971954] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 850, UnreusableAt = 2026-09-23 13:45:52.219094932 +0000 UTC m=+2672.821217583
+2026/09/23 13:09:06.546689 [Debug] [2100971954] transport/internet/splithttp: XMUX: creating xmuxClient because xmuxClients is empty
+2026/09/23 13:09:06.546693 [Info] [2100971954] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:06.546841 [Debug] [2100971954] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:06.625630 [Info] [3544411897] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:06.625829 [Info] [3544411897] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:06.625840 [Info] [3544411897] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:06.625846 [Debug] [3544411897] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:06.625955 [Info] [3544411897] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:06.626054 [Debug] [3544411897] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:06.714674 [Info] [3450650728] proxy/socks: client UDP connection from udp:127.0.0.1:54004
+2026/09/23 13:09:06.714693 [Debug] [3450650728] proxy/socks: send packet to udp:x.x.x.x:443 with 1250 bytes
+2026/09/23 13:09:06.714697 [Debug] [3450650728] transport/internet/udp: dispatch request to: udp:x.x.x.x:443
+2026/09/23 13:09:06.714701 [Info] [3450650728] transport/internet/udp: establishing new connection for udp:x.x.x.x:443
+2026/09/23 13:09:06.714719 [Debug] [3450650728] proxy/socks: send packet to udp:x.x.x.x:443 with 1250 bytes
+2026/09/23 13:09:06.714722 [Debug] [3450650728] transport/internet/udp: dispatch request to: udp:x.x.x.x:443
+2026/09/23 13:09:06.715599 [Info] [3450650728] app/dispatcher: default route for udp:x.x.x.x:443
+2026/09/23 13:09:06.715618 [Debug] [3450650728] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:06.715623 [Info] [3450650728] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:06.715627 [Debug] [3450650728] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:06.734064 [Info] [406367643] proxy/socks: client UDP connection from udp:127.0.0.1:58563
+2026/09/23 13:09:06.734081 [Debug] [406367643] proxy/socks: send packet to udp:x.x.x.x:53 with 46 bytes
+2026/09/23 13:09:06.734093 [Debug] [406367643] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:06.734097 [Info] [406367643] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:06.734100 [Debug] [406367643] proxy/socks: send packet to udp:x.x.x.x:53 with 46 bytes
+2026/09/23 13:09:06.734103 [Debug] [406367643] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:06.734235 [Info] [406367643] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:06.734244 [Info] [406367643] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:06.737993 [Info] [2100971954] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:06.738003 [Info] [2100971954] proxy/vless/outbound: tunneling request to udp:x.x.x.x:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:06.738113 [Info] [2100971954] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:06.745180 [Info] [4195328391] proxy/socks: TCP Connect request to tcp:x.x.x.x:80
+2026/09/23 13:09:06.745313 [Info] [4195328391] app/dispatcher: sniffed domain: dn***.we***.com
+2026/09/23 13:09:06.745317 [Info] [4195328391] app/dispatcher: default route for tcp:dn***.we***.com:80
+2026/09/23 13:09:06.745327 [Debug] [4195328391] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 723, UnreusableAt = 2026-09-23 13:41:22.546616181 +0000 UTC m=+2403.148738833
+2026/09/23 13:09:06.745331 [Debug] [4195328391] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:06.745333 [Info] [4195328391] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:06.745436 [Debug] [4195328391] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:06.765641 [Debug] [2100971954] proxy/socks: send packet to udp:x.x.x.x:443 with 258 bytes
+2026/09/23 13:09:06.765669 [Debug] [2100971954] transport/internet/udp: dispatch request to: udp:x.x.x.x:443
+2026/09/23 13:09:06.765674 [Info] [2100971954] transport/internet/udp: establishing new connection for udp:x.x.x.x:443
+2026/09/23 13:09:06.765782 [Info] [2100971954] app/dispatcher: default route for udp:x.x.x.x:443
+2026/09/23 13:09:06.765788 [Info] [2100971954] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:06.802068 [Info] [1580871989] proxy/socks: TCP Connect request to tcp:x.x.x.x:80
+2026/09/23 13:09:06.803316 [Info] [1580871989] app/dispatcher: sniffed domain: c.wh***.net
+2026/09/23 13:09:06.803804 [Info] [1580871989] app/dispatcher: default route for tcp:c.wh***.net:80
+2026/09/23 13:09:06.803818 [Info] [1580871989] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:06.843100 [Info] [3544411897] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:06.843279 [Info] [2100971954] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:06.843407 [Info] [3544411897] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:06.843441 [Info] [2100971954] proxy/vless/outbound: tunneling request to udp:x.x.x.x:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:06.843449 [Info] [2100971954] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:06.843466 [Info] [406367643] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:06.843473 [Info] [406367643] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:06.843477 [Info] [406367643] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:06.907612 [Info] [1580871989] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:06.907640 [Info] [4195328391] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:06.907648 [Info] [4195328391] proxy/vless/outbound: tunneling request to tcp:dn***.we***.com:80 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:06.907651 [Info] [1580871989] proxy/vless/outbound: tunneling request to tcp:c.wh***.net:80 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:06.911094 [Debug] [3450650728] proxy/socks: send packet to udp:x.x.x.x:443 with 1250 bytes
+2026/09/23 13:09:06.911113 [Debug] [3450650728] transport/internet/udp: dispatch request to: udp:x.x.x.x:443
+2026/09/23 13:09:06.977379 [Info] [3450650728] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:06.977426 [Info] [3450650728] proxy/vless/outbound: tunneling request to udp:x.x.x.x:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:06.977474 [Info] [3450650728] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:07.211056 [Debug] [2100971954] proxy/socks: send packet to udp:x.x.x.x:443 with 29 bytes
+2026/09/23 13:09:07.211092 [Debug] [2100971954] transport/internet/udp: dispatch request to: udp:x.x.x.x:443
+2026/09/23 13:09:07.211099 [Info] [2100971954] transport/internet/udp: establishing new connection for udp:x.x.x.x:443
+2026/09/23 13:09:07.211104 [Info] [2100971954] app/dispatcher: default route for udp:x.x.x.x:443
+2026/09/23 13:09:07.211257 [Debug] [2100971954] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 758, UnreusableAt = 2026-09-23 13:42:10.625843838 +0000 UTC m=+2451.227966489
+2026/09/23 13:09:07.211273 [Debug] [2100971954] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 606, UnreusableAt = 2026-09-23 13:55:53.715469723 +0000 UTC m=+3274.317592270
+2026/09/23 13:09:07.211298 [Debug] [2100971954] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 666, UnreusableAt = 2026-09-23 13:44:26.745289306 +0000 UTC m=+2587.347411802
+2026/09/23 13:09:07.211303 [Debug] [2100971954] transport/internet/splithttp: XMUX: creating xmuxClient because xmuxClients is empty
+2026/09/23 13:09:07.211308 [Info] [2100971954] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:07.211332 [Debug] [2100971954] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:07.250349 [Info] [1493937393] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:07.250522 [Info] [1493937393] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:07.250529 [Info] [1493937393] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:07.250654 [Debug] [1493937393] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:07.250661 [Info] [1493937393] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:07.250811 [Debug] [1493937393] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:07.313616 [Info] [2872868628] proxy/socks: TCP Connect request to tcp:x.x.x.x:5222
+2026/09/23 13:09:07.313807 [Info] [2872868628] app/dispatcher: default route for tcp:x.x.x.x:5222
+2026/09/23 13:09:07.313834 [Debug] [2872868628] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:07.313841 [Info] [2872868628] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:07.313996 [Debug] [2872868628] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:07.314312 [Info] [2732864831] proxy/socks: client UDP connection from udp:127.0.0.1:35137
+2026/09/23 13:09:07.314327 [Debug] [2732864831] proxy/socks: send packet to udp:x.x.x.x:53 with 35 bytes
+2026/09/23 13:09:07.314332 [Debug] [2732864831] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:07.314337 [Info] [2732864831] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:07.314341 [Debug] [2732864831] proxy/socks: send packet to udp:x.x.x.x:53 with 35 bytes
+2026/09/23 13:09:07.314345 [Debug] [2732864831] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:07.314421 [Info] [2732864831] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:07.314428 [Info] [2732864831] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:07.317769 [Info] [2411564100] proxy/socks: client UDP connection from udp:127.0.0.1:51486
+2026/09/23 13:09:07.317784 [Debug] [2411564100] proxy/socks: send packet to udp:x.x.x.x:53 with 36 bytes
+2026/09/23 13:09:07.317789 [Debug] [2411564100] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:07.317794 [Info] [2411564100] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:07.317798 [Debug] [2411564100] proxy/socks: send packet to udp:x.x.x.x:53 with 36 bytes
+2026/09/23 13:09:07.317802 [Debug] [2411564100] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:07.317909 [Info] [2411564100] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:07.317921 [Info] [2411564100] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:07.318131 [Info] [505270152] proxy/socks: client UDP connection from udp:127.0.0.1:56846
+2026/09/23 13:09:07.318141 [Debug] [505270152] proxy/socks: send packet to udp:x.x.x.x:53 with 41 bytes
+2026/09/23 13:09:07.318146 [Debug] [505270152] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:07.318150 [Info] [505270152] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:07.318154 [Debug] [505270152] proxy/socks: send packet to udp:x.x.x.x:53 with 41 bytes
+2026/09/23 13:09:07.318172 [Debug] [505270152] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:07.318283 [Info] [505270152] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:07.318288 [Info] [505270152] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:07.420587 [Info] [1493937393] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:07.420619 [Info] [1493937393] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:07.420625 [Info] [505270152] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:07.420632 [Info] [505270152] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:07.420637 [Info] [505270152] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:07.450850 [Info] [2279794574] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:07.451053 [Info] [2279794574] app/dispatcher: sniffed domain: ww***.go***.com
+2026/09/23 13:09:07.451059 [Info] [2279794574] app/dispatcher: default route for tcp:ww***.go***.com:443
+2026/09/23 13:09:07.451080 [Debug] [2279794574] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 886, UnreusableAt = 2026-09-23 13:50:34.250583525 +0000 UTC m=+2954.852706176
+2026/09/23 13:09:07.451086 [Debug] [2279794574] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:07.451188 [Info] [2279794574] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:07.451338 [Debug] [2279794574] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:07.501319 [Info] [2872868628] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:07.501342 [Info] [2732864831] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:07.501349 [Info] [2872868628] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:5222 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:07.501354 [Info] [2732864831] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:07.501358 [Info] [2732864831] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:07.613180 [Info] [2279794574] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:07.613239 [Info] [2279794574] proxy/vless/outbound: tunneling request to tcp:ww***.go***.com:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:07.829307 [Info] [4090556155] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:07.829493 [Info] [4090556155] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:07.829502 [Info] [4090556155] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:07.829528 [Debug] [4090556155] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 712, UnreusableAt = 2026-09-23 13:49:11.313756962 +0000 UTC m=+2871.915879614
+2026/09/23 13:09:07.829533 [Debug] [4090556155] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 790, UnreusableAt = 2026-09-23 13:56:37.451082431 +0000 UTC m=+3318.053205083
+2026/09/23 13:09:07.829537 [Debug] [4090556155] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:07.829543 [Info] [4090556155] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:07.829705 [Debug] [4090556155] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:07.868954 [Debug] [2100971954] proxy/socks: send packet to udp:x.x.x.x:443 with 62 bytes
+2026/09/23 13:09:07.868979 [Debug] [2100971954] transport/internet/udp: dispatch request to: udp:x.x.x.x:443
+2026/09/23 13:09:07.905304 [Info] [3251004316] proxy/socks: TCP Connect request to tcp:x.x.x.x:80
+2026/09/23 13:09:07.905671 [Info] [3251004316] app/dispatcher: sniffed domain: c.wh***.net
+2026/09/23 13:09:07.905684 [Info] [3251004316] app/dispatcher: default route for tcp:c.wh***.net:80
+2026/09/23 13:09:07.905692 [Debug] [3251004316] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:07.905700 [Info] [3251004316] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:07.905705 [Debug] [3251004316] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:07.954165 [Info] [4090556155] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:07.954197 [Info] [4090556155] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:08.021955 [Info] [801435467] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:08.022058 [Info] [801435467] app/dispatcher: sniffed domain: ww***.go***.com
+2026/09/23 13:09:08.022064 [Info] [801435467] app/dispatcher: default route for tcp:ww***.go***.com:443
+2026/09/23 13:09:08.022397 [Debug] [801435467] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 878, UnreusableAt = 2026-09-23 13:45:22.829522431 +0000 UTC m=+2643.431644926
+2026/09/23 13:09:08.022411 [Debug] [801435467] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:08.022421 [Info] [801435467] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:08.022895 [Debug] [801435467] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:08.072491 [Info] [3251004316] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:08.072520 [Info] [3251004316] proxy/vless/outbound: tunneling request to tcp:c.wh***.net:80 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:08.171608 [Info] [801435467] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:08.171674 [Info] [801435467] proxy/vless/outbound: tunneling request to tcp:ww***.go***.com:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:08.322213 [Info] [3469632046] proxy/socks: TCP Connect request to tcp:x.x.x.x:80
+2026/09/23 13:09:08.322520 [Info] [3469632046] app/dispatcher: sniffed domain: sg***.we***.com
+2026/09/23 13:09:08.322660 [Info] [3469632046] app/dispatcher: default route for tcp:sg***.we***.com:80
+2026/09/23 13:09:08.322964 [Debug] [3469632046] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 736, UnreusableAt = 2026-09-23 13:46:01.905601754 +0000 UTC m=+2682.507724405
+2026/09/23 13:09:08.322977 [Debug] [3469632046] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 660, UnreusableAt = 2026-09-23 13:53:36.022231493 +0000 UTC m=+3136.624354145
+2026/09/23 13:09:08.322993 [Debug] [3469632046] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:08.323319 [Info] [3469632046] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:08.323943 [Debug] [3469632046] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:08.333459 [Info] [3155558937] proxy/socks: TCP Connect request to tcp:x.x.x.x:8080
+2026/09/23 13:09:08.333635 [Info] [3155558937] app/dispatcher: default route for tcp:x.x.x.x:8080
+2026/09/23 13:09:08.333650 [Debug] [3155558937] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:08.333655 [Info] [3155558937] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:08.333771 [Debug] [3155558937] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:08.357428 [Info] [1768520544] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:08.357675 [Info] [1768520544] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:08.357682 [Info] [1768520544] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:08.357813 [Info] [1768520544] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:08.440083 [Info] [3469632046] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:08.440116 [Info] [3469632046] proxy/vless/outbound: tunneling request to tcp:sg***.we***.com:80 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:08.452447 [Info] [3155558937] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:08.452477 [Info] [3155558937] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:8080 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:08.452483 [Info] [1768520544] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:08.452489 [Info] [1768520544] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:08.481378 [Info] [184904960] proxy/socks: TCP Connect request to tcp:x.x.x.x:5222
+2026/09/23 13:09:08.481700 [Info] [184904960] app/dispatcher: default route for tcp:x.x.x.x:5222
+2026/09/23 13:09:08.481726 [Debug] [184904960] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 655, UnreusableAt = 2026-09-23 13:56:06.322947222 +0000 UTC m=+3286.925069874
+2026/09/23 13:09:08.481732 [Debug] [184904960] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 619, UnreusableAt = 2026-09-23 13:49:54.333584931 +0000 UTC m=+2914.935707582
+2026/09/23 13:09:08.481738 [Debug] [184904960] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:08.481743 [Info] [184904960] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:08.481747 [Debug] [184904960] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:08.581423 [Info] [3368514725] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:08.581708 [Info] [3368514725] app/dispatcher: sniffed domain: ww***.go***.com
+2026/09/23 13:09:08.581716 [Info] [3368514725] app/dispatcher: default route for tcp:ww***.go***.com:443
+2026/09/23 13:09:08.581828 [Debug] [3368514725] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:08.581835 [Info] [3368514725] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:08.581969 [Debug] [3368514725] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:08.625428 [Info] [184904960] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:08.625464 [Info] [184904960] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:5222 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:08.737519 [Info] [1193426500] proxy/socks: TCP Connect request to tcp:x.x.x.x:8080
+2026/09/23 13:09:08.737766 [Info] [1193426500] app/dispatcher: default route for tcp:x.x.x.x:8080
+2026/09/23 13:09:08.737804 [Debug] [1193426500] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 767, UnreusableAt = 2026-09-23 13:56:50.481598993 +0000 UTC m=+3331.083721645
+2026/09/23 13:09:08.737812 [Debug] [1193426500] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:08.737816 [Info] [1193426500] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:08.737898 [Debug] [1193426500] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:08.861565 [Info] [2364131084] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:08.861781 [Info] [2364131084] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:08.861805 [Info] [2364131084] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:08.861923 [Info] [2364131084] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:09.037601 [Info] [3053410869] proxy/socks: TCP Connect request to tcp:x.x.x.x:80
+2026/09/23 13:09:09.037941 [Info] [3053410869] app/dispatcher: sniffed domain: c.wh***.net
+2026/09/23 13:09:09.037948 [Info] [3053410869] app/dispatcher: default route for tcp:c.wh***.net:80
+2026/09/23 13:09:09.037971 [Info] [3053410869] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:09.039973 [Info] [3368514725] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:09.039991 [Info] [3368514725] proxy/vless/outbound: tunneling request to tcp:ww***.go***.com:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:09.040119 [Info] [3053410869] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:09.040135 [Info] [3053410869] proxy/vless/outbound: tunneling request to tcp:c.wh***.net:80 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:09.183257 [Debug] [2100971954] proxy/socks: send packet to udp:x.x.x.x:443 with 258 bytes
+2026/09/23 13:09:09.183283 [Debug] [2100971954] transport/internet/udp: dispatch request to: udp:x.x.x.x:443
+2026/09/23 13:09:09.235392 [Info] [1193426500] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:09.235428 [Info] [1193426500] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:8080 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:09.235602 [Info] [2364131084] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:09.235616 [Info] [2364131084] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:09.449607 [Info] [3873347900] proxy/socks: TCP Connect request to tcp:x.x.x.x:5222
+2026/09/23 13:09:09.449644 [Info] [1199113758] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:09.449863 [Info] [3873347900] app/dispatcher: default route for tcp:x.x.x.x:5222
+2026/09/23 13:09:09.449870 [Info] [1199113758] app/dispatcher: sniffed domain: ww***.go***.com
+2026/09/23 13:09:09.449892 [Debug] [3873347900] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 687, UnreusableAt = 2026-09-23 13:47:04.581752587 +0000 UTC m=+2745.183875238
+2026/09/23 13:09:09.449898 [Debug] [3873347900] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 825, UnreusableAt = 2026-09-23 13:45:01.737719774 +0000 UTC m=+2622.339842426
+2026/09/23 13:09:09.449904 [Debug] [3873347900] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:09.449909 [Info] [1199113758] app/dispatcher: default route for tcp:ww***.go***.com:443
+2026/09/23 13:09:09.449913 [Info] [3873347900] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:09.450009 [Debug] [3873347900] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:09.450014 [Debug] [1199113758] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:09.450018 [Info] [1199113758] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:09.450021 [Debug] [1199113758] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:09.601514 [Info] [3873347900] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:09.601613 [Info] [3873347900] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:5222 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:09.619528 [Info] [1199113758] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:09.619559 [Info] [1199113758] proxy/vless/outbound: tunneling request to tcp:ww***.go***.com:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:09.645601 [Info] [2592486820] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:09.645872 [Info] [2592486820] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:09.645879 [Info] [2592486820] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:09.646005 [Debug] [2592486820] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 623, UnreusableAt = 2026-09-23 13:53:30.44978493 +0000 UTC m=+3131.051907582
+2026/09/23 13:09:09.646012 [Debug] [2592486820] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 727, UnreusableAt = 2026-09-23 13:52:34.449931285 +0000 UTC m=+3075.052053936
+2026/09/23 13:09:09.646018 [Debug] [2592486820] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:09.646024 [Info] [2592486820] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:09.646028 [Debug] [2592486820] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:09.666325 [Info] [2040219909] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:09.666344 [Info] [1521178310] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:09.666603 [Info] [2040219909] app/dispatcher: default route for tcp:x.x.x.x:443
+2026/09/23 13:09:09.666612 [Debug] [2040219909] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:09.666617 [Info] [1521178310] app/dispatcher: default route for tcp:x.x.x.x:443
+2026/09/23 13:09:09.666621 [Info] [2040219909] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:09.666627 [Debug] [2040219909] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:09.666763 [Info] [1521178310] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:09.673369 [Info] [2914562149] proxy/socks: TCP Connect request to tcp:x.x.x.x:5222
+2026/09/23 13:09:09.673591 [Info] [2914562149] app/dispatcher: default route for tcp:x.x.x.x:5222
+2026/09/23 13:09:09.673599 [Info] [2914562149] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:09.775769 [Info] [1521178310] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:09.775805 [Info] [2592486820] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:09.775829 [Info] [2592486820] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:09.775840 [Info] [1521178310] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:09.798470 [Info] [2040219909] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:09.798497 [Info] [2040219909] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:09.798605 [Info] [2914562149] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:09.798619 [Info] [2914562149] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:5222 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:10.013532 [Info] [1319824634] proxy/socks: TCP Connect request to tcp:x.x.x.x:80
+2026/09/23 13:09:10.013827 [Info] [1319824634] app/dispatcher: sniffed domain: c.wh***.net
+2026/09/23 13:09:10.013840 [Info] [1319824634] app/dispatcher: default route for tcp:c.wh***.net:80
+2026/09/23 13:09:10.013864 [Debug] [1319824634] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 873, UnreusableAt = 2026-09-23 13:44:51.645920087 +0000 UTC m=+2612.248042738
+2026/09/23 13:09:10.013870 [Debug] [1319824634] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 849, UnreusableAt = 2026-09-23 13:41:43.666524253 +0000 UTC m=+2424.268646905
+2026/09/23 13:09:10.013876 [Debug] [1319824634] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:10.013886 [Info] [1319824634] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:10.014059 [Debug] [1319824634] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:10.025368 [Info] [3479265165] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:10.025607 [Info] [3479265165] app/dispatcher: sniffed domain: ww***.go***.com
+2026/09/23 13:09:10.025621 [Info] [3479265165] app/dispatcher: default route for tcp:ww***.go***.com:443
+2026/09/23 13:09:10.025629 [Debug] [3479265165] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:10.025634 [Info] [3479265165] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:10.025770 [Debug] [3479265165] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:10.124131 [Info] [1319824634] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:10.124165 [Info] [1319824634] proxy/vless/outbound: tunneling request to tcp:c.wh***.net:80 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:10.154225 [Info] [3216311062] proxy/socks: client UDP connection from udp:127.0.0.1:35440
+2026/09/23 13:09:10.154252 [Debug] [3216311062] proxy/socks: send packet to udp:x.x.x.x:53 with 32 bytes
+2026/09/23 13:09:10.154258 [Debug] [3216311062] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:10.154278 [Info] [3216311062] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:10.154283 [Debug] [3216311062] proxy/socks: send packet to udp:x.x.x.x:53 with 32 bytes
+2026/09/23 13:09:10.154287 [Debug] [3216311062] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:10.154291 [Info] [3216311062] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:10.154396 [Debug] [3216311062] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 730, UnreusableAt = 2026-09-23 13:59:04.013836493 +0000 UTC m=+3464.615959144
+2026/09/23 13:09:10.154408 [Debug] [3216311062] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:10.154413 [Info] [3216311062] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:10.154488 [Debug] [3216311062] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:10.162758 [Info] [3479265165] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:10.162799 [Info] [3479265165] proxy/vless/outbound: tunneling request to tcp:ww***.go***.com:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:10.181277 [Info] [3109824885] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:10.181503 [Info] [3109824885] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:10.181515 [Info] [3109824885] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:10.181531 [Debug] [3109824885] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 673, UnreusableAt = 2026-09-23 13:40:42.025604149 +0000 UTC m=+2362.627726800
+2026/09/23 13:09:10.181537 [Debug] [3109824885] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:10.181541 [Info] [3109824885] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:10.181698 [Debug] [3109824885] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:10.300346 [Info] [3109824885] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:10.300383 [Info] [3109824885] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:10.305303 [Info] [3216311062] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:10.305331 [Info] [3216311062] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:10.305354 [Info] [3216311062] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:10.569564 [Info] [2074693989] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:10.569799 [Info] [2074693989] app/dispatcher: sniffed domain: ww***.go***.com
+2026/09/23 13:09:10.569813 [Info] [2074693989] app/dispatcher: default route for tcp:ww***.go***.com:443
+2026/09/23 13:09:10.569833 [Debug] [2074693989] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 624, UnreusableAt = 2026-09-23 13:50:58.154341649 +0000 UTC m=+2978.756464300
+2026/09/23 13:09:10.569861 [Debug] [2074693989] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 835, UnreusableAt = 2026-09-23 13:40:47.181520086 +0000 UTC m=+2367.783642738
+2026/09/23 13:09:10.569868 [Debug] [2074693989] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:10.569872 [Info] [2074693989] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:10.570042 [Debug] [2074693989] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:10.674518 [Info] [3583317658] proxy/socks: client UDP connection from udp:127.0.0.1:59228
+2026/09/23 13:09:10.674553 [Debug] [3583317658] proxy/socks: send packet to udp:x.x.x.x:53 with 36 bytes
+2026/09/23 13:09:10.674559 [Debug] [3583317658] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:10.674569 [Info] [3583317658] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:10.674736 [Info] [3583317658] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:10.674752 [Debug] [3583317658] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:10.674758 [Info] [3583317658] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:10.674960 [Debug] [3583317658] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:10.678064 [Info] [935170753] proxy/socks: client UDP connection from udp:127.0.0.1:53546
+2026/09/23 13:09:10.678079 [Debug] [935170753] proxy/socks: send packet to udp:x.x.x.x:53 with 34 bytes
+2026/09/23 13:09:10.678085 [Debug] [935170753] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:10.678095 [Info] [935170753] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:10.678198 [Info] [935170753] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:10.678209 [Info] [935170753] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:10.690364 [Info] [1063417620] proxy/socks: client UDP connection from udp:127.0.0.1:33625
+2026/09/23 13:09:10.690386 [Debug] [1063417620] proxy/socks: send packet to udp:x.x.x.x:53 with 34 bytes
+2026/09/23 13:09:10.690392 [Debug] [1063417620] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:10.690396 [Info] [1063417620] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:10.690531 [Info] [1063417620] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:10.690538 [Info] [1063417620] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:10.709519 [Info] [3948772040] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:10.709899 [Info] [3948772040] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:10.709907 [Info] [3948772040] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:10.709913 [Info] [3948772040] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:10.723155 [Info] [2640027393] proxy/socks: client UDP connection from udp:127.0.0.1:60305
+2026/09/23 13:09:10.723223 [Debug] [2640027393] proxy/socks: send packet to udp:x.x.x.x:53 with 27 bytes
+2026/09/23 13:09:10.723267 [Debug] [2640027393] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:10.723272 [Info] [2640027393] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:10.723276 [Info] [2640027393] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:10.723371 [Info] [2640027393] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:10.749933 [Info] [2791731834] proxy/socks: client UDP connection from udp:127.0.0.1:40714
+2026/09/23 13:09:10.749950 [Debug] [2791731834] proxy/socks: send packet to udp:x.x.x.x:53 with 32 bytes
+2026/09/23 13:09:10.749954 [Debug] [2791731834] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:10.749957 [Info] [2791731834] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:10.750085 [Info] [2791731834] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:10.750095 [Info] [2791731834] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:10.837774 [Info] [3583317658] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:10.837800 [Info] [2791731834] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:10.837809 [Info] [2791731834] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:10.837814 [Info] [3583317658] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:10.837820 [Info] [3583317658] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:10.837824 [Info] [2791731834] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:11.004082 [Info] [2100971954] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:11.004116 [Info] [1063417620] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:11.004126 [Info] [1063417620] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.004131 [Info] [2100971954] proxy/vless/outbound: tunneling request to udp:x.x.x.x:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.004136 [Info] [1063417620] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:11.004140 [Info] [2100971954] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:11.004145 [Info] [2640027393] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:11.004151 [Info] [2640027393] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.004157 [Info] [935170753] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:11.004182 [Info] [935170753] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.004186 [Info] [2640027393] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:11.004191 [Info] [3948772040] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:11.004195 [Info] [935170753] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:11.004199 [Info] [3948772040] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.004208 [Info] [2411564100] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:11.004212 [Info] [2411564100] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.004216 [Info] [2411564100] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:11.222316 [Info] [987442723] proxy/socks: client UDP connection from udp:127.0.0.1:44472
+2026/09/23 13:09:11.222351 [Debug] [987442723] proxy/socks: send packet to udp:x.x.x.x:53 with 32 bytes
+2026/09/23 13:09:11.222358 [Debug] [987442723] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:11.222362 [Info] [987442723] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:11.222500 [Info] [987442723] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:11.222522 [Debug] [987442723] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 763, UnreusableAt = 2026-09-23 13:46:07.21116441 +0000 UTC m=+2687.813287062
+2026/09/23 13:09:11.222528 [Debug] [987442723] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 756, UnreusableAt = 2026-09-23 13:48:30.674730242 +0000 UTC m=+2831.276852894
+2026/09/23 13:09:11.222534 [Debug] [987442723] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:11.222539 [Info] [987442723] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:11.222704 [Debug] [987442723] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.372699 [Info] [987442723] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:11.372744 [Info] [987442723] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.372750 [Info] [987442723] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:11.409460 [Info] [1560921742] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:11.409695 [Info] [1560921742] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:11.409702 [Info] [1560921742] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:11.409831 [Debug] [1560921742] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 710, UnreusableAt = 2026-09-23 13:43:49.222488784 +0000 UTC m=+2549.824611435
+2026/09/23 13:09:11.409838 [Debug] [1560921742] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:11.409854 [Info] [1560921742] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:11.409858 [Debug] [1560921742] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.505172 [Info] [2074693989] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:11.505202 [Info] [2074693989] proxy/vless/outbound: tunneling request to tcp:ww***.go***.com:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.524738 [Info] [1560921742] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:11.524766 [Info] [1560921742] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.738243 [Info] [3162233097] proxy/socks: client UDP connection from udp:127.0.0.1:55258
+2026/09/23 13:09:11.738279 [Debug] [3162233097] proxy/socks: send packet to udp:x.x.x.x:53 with 46 bytes
+2026/09/23 13:09:11.738286 [Debug] [3162233097] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:11.738290 [Info] [3162233097] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:11.738299 [Info] [3162233097] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:11.738489 [Debug] [3162233097] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 712, UnreusableAt = 2026-09-23 13:49:21.569812222 +0000 UTC m=+2882.171934769
+2026/09/23 13:09:11.738511 [Debug] [3162233097] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 827, UnreusableAt = 2026-09-23 13:49:31.409761492 +0000 UTC m=+2892.011884144
+2026/09/23 13:09:11.738516 [Debug] [3162233097] transport/internet/splithttp: XMUX: creating xmuxClient because xmuxClients is empty
+2026/09/23 13:09:11.738522 [Info] [3162233097] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:11.738527 [Debug] [3162233097] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.765850 [Info] [2342668946] proxy/socks: TCP Connect request to tcp:x.x.x.x:80
+2026/09/23 13:09:11.766790 [Info] [2342668946] app/dispatcher: sniffed domain: sg***.we***.com
+2026/09/23 13:09:11.766812 [Info] [2342668946] app/dispatcher: default route for tcp:sg***.we***.com:80
+2026/09/23 13:09:11.766820 [Debug] [2342668946] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:11.766826 [Info] [2342668946] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:11.766835 [Debug] [2342668946] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.810221 [Debug] [2100971954] proxy/socks: send packet to udp:x.x.x.x:443 with 29 bytes
+2026/09/23 13:09:11.810245 [Debug] [2100971954] transport/internet/udp: dispatch request to: udp:x.x.x.x:443
+2026/09/23 13:09:11.810251 [Info] [2100971954] transport/internet/udp: establishing new connection for udp:x.x.x.x:443
+2026/09/23 13:09:11.810255 [Info] [2100971954] app/dispatcher: default route for udp:x.x.x.x:443
+2026/09/23 13:09:11.810405 [Debug] [2100971954] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:11.810427 [Info] [2100971954] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:11.810434 [Debug] [2100971954] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.891674 [Info] [3162233097] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:11.891704 [Info] [3162233097] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.891753 [Info] [3162233097] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:11.917398 [Info] [638439197] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:11.917608 [Info] [638439197] app/dispatcher: sniffed domain: ww***.go***.com
+2026/09/23 13:09:11.917613 [Info] [638439197] app/dispatcher: default route for tcp:ww***.go***.com:443
+2026/09/23 13:09:11.917630 [Debug] [638439197] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 761, UnreusableAt = 2026-09-23 13:50:37.738351179 +0000 UTC m=+2958.340473831
+2026/09/23 13:09:11.917635 [Debug] [638439197] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:11.917639 [Info] [638439197] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:11.917782 [Debug] [638439197] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.923749 [Info] [2342668946] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:11.923787 [Info] [2342668946] proxy/vless/outbound: tunneling request to tcp:sg***.we***.com:80 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.929599 [Info] [2709673528] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:11.929780 [Info] [2709673528] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:11.929791 [Info] [2709673528] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:11.929807 [Debug] [2709673528] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 743, UnreusableAt = 2026-09-23 13:57:43.766109773 +0000 UTC m=+3384.368232425
+2026/09/23 13:09:11.929813 [Debug] [2709673528] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:11.929818 [Info] [2709673528] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:11.929893 [Debug] [2709673528] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.963736 [Info] [2100971954] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:11.963817 [Info] [2100971954] proxy/vless/outbound: tunneling request to udp:x.x.x.x:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:11.963897 [Info] [2100971954] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:12.074035 [Info] [2709673528] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:12.074078 [Info] [2709673528] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:12.123236 [Info] [638439197] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:12.123354 [Info] [638439197] proxy/vless/outbound: tunneling request to tcp:ww***.go***.com:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:12.177618 [Info] [1365118021] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:12.177866 [Info] [1365118021] app/dispatcher: default route for tcp:x.x.x.x:443
+2026/09/23 13:09:12.177895 [Debug] [1365118021] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 747, UnreusableAt = 2026-09-23 13:42:07.810336023 +0000 UTC m=+2448.412458675
+2026/09/23 13:09:12.177902 [Debug] [1365118021] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 654, UnreusableAt = 2026-09-23 13:46:34.917589721 +0000 UTC m=+2715.519712268
+2026/09/23 13:09:12.177907 [Debug] [1365118021] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 667, UnreusableAt = 2026-09-23 13:44:01.929772065 +0000 UTC m=+2562.531894716
+2026/09/23 13:09:12.177911 [Debug] [1365118021] transport/internet/splithttp: XMUX: creating xmuxClient because xmuxClients is empty
+2026/09/23 13:09:12.177916 [Info] [1365118021] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:12.178062 [Debug] [1365118021] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:12.318283 [Info] [3031777677] proxy/socks: client UDP connection from udp:127.0.0.1:35766
+2026/09/23 13:09:12.318311 [Debug] [3031777677] proxy/socks: send packet to udp:x.x.x.x:53 with 41 bytes
+2026/09/23 13:09:12.318318 [Debug] [3031777677] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:12.318323 [Info] [3031777677] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:12.318550 [Info] [3031777677] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:12.318566 [Debug] [3031777677] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:12.318573 [Info] [3031777677] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:12.318577 [Debug] [3031777677] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:12.318640 [Info] [1735686385] proxy/socks: client UDP connection from udp:127.0.0.1:44412
+2026/09/23 13:09:12.318651 [Debug] [1735686385] proxy/socks: send packet to udp:x.x.x.x:53 with 36 bytes
+2026/09/23 13:09:12.318656 [Debug] [1735686385] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:12.318660 [Info] [1735686385] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:12.318776 [Info] [1735686385] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:12.318781 [Debug] [1735686385] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:12.318785 [Info] [1735686385] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:12.318802 [Debug] [1735686385] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:12.319285 [Info] [125249839] proxy/socks: client UDP connection from udp:127.0.0.1:33097
+2026/09/23 13:09:12.319298 [Debug] [125249839] proxy/socks: send packet to udp:x.x.x.x:53 with 35 bytes
+2026/09/23 13:09:12.319303 [Debug] [125249839] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:12.319307 [Info] [125249839] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:12.319386 [Info] [125249839] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:12.319395 [Info] [125249839] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:12.403388 [Info] [1365118021] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:12.403430 [Info] [1365118021] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:12.464033 [Info] [1735686385] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:12.464065 [Info] [125249839] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:12.464076 [Info] [125249839] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:12.464080 [Info] [1735686385] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:12.464086 [Info] [125249839] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:12.464089 [Info] [1735686385] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:12.481587 [Info] [2165046223] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:12.481758 [Info] [2165046223] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:12.481773 [Info] [2165046223] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:12.481911 [Debug] [2165046223] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 843, UnreusableAt = 2026-09-23 13:58:10.17784269 +0000 UTC m=+3410.779965341
+2026/09/23 13:09:12.481920 [Debug] [2165046223] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 859, UnreusableAt = 2026-09-23 13:58:18.318705242 +0000 UTC m=+3418.920827893
+2026/09/23 13:09:12.481926 [Debug] [2165046223] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:12.481931 [Info] [2165046223] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:12.481935 [Debug] [2165046223] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:12.533355 [Info] [2091310826] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:12.533709 [Info] [2091310826] app/dispatcher: sniffed domain: ww***.go***.com
+2026/09/23 13:09:12.533722 [Info] [2091310826] app/dispatcher: default route for tcp:ww***.go***.com:443
+2026/09/23 13:09:12.533729 [Debug] [2091310826] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:12.533753 [Info] [2091310826] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:12.533758 [Debug] [2091310826] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:12.551707 [Info] [3031777677] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:12.551728 [Info] [3031777677] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:12.551757 [Info] [3031777677] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:12.577468 [Debug] [2100971954] proxy/socks: send packet to udp:x.x.x.x:443 with 67 bytes
+2026/09/23 13:09:12.577497 [Debug] [2100971954] transport/internet/udp: dispatch request to: udp:x.x.x.x:443
+2026/09/23 13:09:12.577504 [Info] [2100971954] transport/internet/udp: establishing new connection for udp:x.x.x.x:443
+2026/09/23 13:09:12.577509 [Info] [2100971954] app/dispatcher: default route for udp:x.x.x.x:443
+2026/09/23 13:09:12.577692 [Debug] [2100971954] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 866, UnreusableAt = 2026-09-23 13:42:29.318452273 +0000 UTC m=+2469.920574925
+2026/09/23 13:09:12.577703 [Debug] [2100971954] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:12.577708 [Info] [2100971954] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:12.577712 [Debug] [2100971954] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:12.795653 [Info] [2100971954] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:12.795701 [Info] [2100971954] proxy/vless/outbound: tunneling request to udp:x.x.x.x:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:12.795709 [Info] [2100971954] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:12.809655 [Info] [4159697262] proxy/socks: TCP Connect request to tcp:x.x.x.x:80
+2026/09/23 13:09:12.810186 [Info] [4159697262] app/dispatcher: sniffed domain: c.wh***.net
+2026/09/23 13:09:12.810199 [Info] [4159697262] app/dispatcher: default route for tcp:c.wh***.net:80
+2026/09/23 13:09:12.810221 [Debug] [4159697262] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 878, UnreusableAt = 2026-09-23 13:48:06.577592377 +0000 UTC m=+2807.179715029
+2026/09/23 13:09:12.810229 [Debug] [4159697262] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:12.810238 [Info] [4159697262] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:12.810242 [Debug] [4159697262] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:12.818351 [Info] [2091310826] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:12.818377 [Info] [2091310826] proxy/vless/outbound: tunneling request to tcp:ww***.go***.com:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:12.973373 [Info] [4159697262] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:12.973412 [Info] [4159697262] proxy/vless/outbound: tunneling request to tcp:c.wh***.net:80 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:12.986404 [Info] [3798057194] proxy/socks: client UDP connection from udp:127.0.0.1:34998
+2026/09/23 13:09:12.986424 [Debug] [3798057194] proxy/socks: send packet to udp:x.x.x.x:53 with 41 bytes
+2026/09/23 13:09:12.986431 [Debug] [3798057194] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:12.986436 [Info] [3798057194] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:12.986440 [Debug] [3798057194] proxy/socks: send packet to udp:x.x.x.x:53 with 41 bytes
+2026/09/23 13:09:12.986444 [Debug] [3798057194] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:12.986449 [Info] [3798057194] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:12.986656 [Debug] [3798057194] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 852, UnreusableAt = 2026-09-23 13:56:58.533632429 +0000 UTC m=+3339.135755081
+2026/09/23 13:09:12.986664 [Debug] [3798057194] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 858, UnreusableAt = 2026-09-23 13:42:28.810101335 +0000 UTC m=+2469.412223935
+2026/09/23 13:09:12.986670 [Debug] [3798057194] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:12.986675 [Info] [3798057194] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:12.986678 [Debug] [3798057194] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:13.229788 [Info] [822752596] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:13.230078 [Info] [822752596] app/dispatcher: sniffed domain: ww***.go***.com
+2026/09/23 13:09:13.230092 [Info] [822752596] app/dispatcher: default route for tcp:ww***.go***.com:443
+2026/09/23 13:09:13.230099 [Debug] [822752596] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:13.230106 [Info] [822752596] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:13.230287 [Debug] [822752596] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:13.367237 [Info] [3798057194] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:13.367272 [Info] [3798057194] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:13.367351 [Info] [3798057194] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:13.381417 [Info] [1119532837] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:13.381776 [Info] [1119532837] app/dispatcher: default route for tcp:x.x.x.x:443
+2026/09/23 13:09:13.381804 [Debug] [1119532837] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 701, UnreusableAt = 2026-09-23 13:50:18.986537585 +0000 UTC m=+2939.588660237
+2026/09/23 13:09:13.381811 [Debug] [1119532837] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:13.381851 [Info] [1119532837] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:13.382146 [Debug] [1119532837] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:13.397464 [Info] [822752596] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:13.397484 [Info] [822752596] proxy/vless/outbound: tunneling request to tcp:ww***.go***.com:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:13.545238 [Info] [1119532837] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:13.545270 [Info] [1119532837] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:13.622840 [Info] [2165046223] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:13.622879 [Info] [2165046223] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:13.805338 [Info] [2036022701] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:13.805519 [Info] [2036022701] app/dispatcher: sniffed domain: ww***.go***.com
+2026/09/23 13:09:13.805536 [Info] [2036022701] app/dispatcher: default route for tcp:ww***.go***.com:443
+2026/09/23 13:09:13.805653 [Debug] [2036022701] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 604, UnreusableAt = 2026-09-23 13:52:53.481817429 +0000 UTC m=+3094.083940081
+2026/09/23 13:09:13.805669 [Debug] [2036022701] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 890, UnreusableAt = 2026-09-23 13:47:11.230058679 +0000 UTC m=+2751.832181330
+2026/09/23 13:09:13.805675 [Debug] [2036022701] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 616, UnreusableAt = 2026-09-23 13:58:04.381713679 +0000 UTC m=+3404.983836330
+2026/09/23 13:09:13.805680 [Debug] [2036022701] transport/internet/splithttp: XMUX: creating xmuxClient because xmuxClients is empty
+2026/09/23 13:09:13.805685 [Info] [2036022701] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:13.805785 [Debug] [2036022701] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:13.949751 [Info] [3688645400] proxy/socks: TCP Connect request to tcp:x.x.x.x:80
+2026/09/23 13:09:13.950198 [Info] [3688645400] app/dispatcher: sniffed domain: c.wh***.net
+2026/09/23 13:09:13.950214 [Info] [3688645400] app/dispatcher: default route for tcp:c.wh***.net:80
+2026/09/23 13:09:13.950223 [Debug] [3688645400] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:13.950229 [Info] [3688645400] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:13.950375 [Debug] [3688645400] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:14.037522 [Info] [3939572375] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:14.037888 [Info] [3939572375] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:14.037919 [Info] [3939572375] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:14.038000 [Debug] [3939572375] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:14.038007 [Info] [3939572375] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:14.038155 [Debug] [3939572375] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:14.050770 [Info] [2036022701] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:14.050797 [Info] [2036022701] proxy/vless/outbound: tunneling request to tcp:ww***.go***.com:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:14.169399 [Info] [3688645400] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:14.169440 [Info] [3688645400] proxy/vless/outbound: tunneling request to tcp:c.wh***.net:80 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:14.185544 [Info] [3209461137] proxy/socks: TCP Connect request to tcp:x.x.x.x:5222
+2026/09/23 13:09:14.185789 [Info] [3209461137] app/dispatcher: default route for tcp:x.x.x.x:5222
+2026/09/23 13:09:14.185818 [Debug] [3209461137] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 740, UnreusableAt = 2026-09-23 13:58:30.805580658 +0000 UTC m=+3431.407703309
+2026/09/23 13:09:14.185825 [Debug] [3209461137] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 797, UnreusableAt = 2026-09-23 13:56:13.950131022 +0000 UTC m=+3294.552253674
+2026/09/23 13:09:14.185831 [Debug] [3209461137] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:14.185836 [Info] [3209461137] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:14.185839 [Debug] [3209461137] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:14.206421 [Info] [3338912305] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:14.206443 [Info] [2923874966] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:14.206822 [Info] [3338912305] app/dispatcher: default route for tcp:x.x.x.x:443
+2026/09/23 13:09:14.206833 [Info] [2923874966] app/dispatcher: default route for tcp:x.x.x.x:443
+2026/09/23 13:09:14.206839 [Debug] [3338912305] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:14.206845 [Info] [3338912305] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:14.206849 [Debug] [3338912305] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:14.206901 [Info] [2923874966] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:14.276443 [Info] [3939572375] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:14.276481 [Info] [2923874966] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:14.276508 [Info] [3939572375] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:14.276516 [Info] [2923874966] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:14.369734 [Info] [3209461137] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:14.369770 [Info] [3209461137] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:5222 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:14.442277 [Info] [3338912305] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:14.442308 [Info] [3338912305] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:14.461342 [Info] [1431497516] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:14.461708 [Info] [1431497516] app/dispatcher: sniffed domain: ww***.go***.com
+2026/09/23 13:09:14.461720 [Info] [1431497516] app/dispatcher: default route for tcp:ww***.go***.com:443
+2026/09/23 13:09:14.461739 [Debug] [1431497516] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 640, UnreusableAt = 2026-09-23 13:42:27.037936595 +0000 UTC m=+2467.640059247
+2026/09/23 13:09:14.461745 [Debug] [1431497516] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 853, UnreusableAt = 2026-09-23 13:54:14.185717585 +0000 UTC m=+3174.787840236
+2026/09/23 13:09:14.461750 [Debug] [1431497516] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 839, UnreusableAt = 2026-09-23 13:57:18.206751647 +0000 UTC m=+3358.808874299
+2026/09/23 13:09:14.461758 [Debug] [1431497516] transport/internet/splithttp: XMUX: creating xmuxClient because xmuxClients is empty
+2026/09/23 13:09:14.461764 [Info] [1431497516] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:14.461768 [Debug] [1431497516] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:14.577409 [Info] [3405677048] proxy/socks: TCP Connect request to tcp:x.x.x.x:5222
+2026/09/23 13:09:14.577748 [Info] [3405677048] app/dispatcher: default route for tcp:x.x.x.x:5222
+2026/09/23 13:09:14.577763 [Debug] [3405677048] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:14.577769 [Info] [3405677048] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:14.577774 [Debug] [3405677048] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:14.681824 [Info] [2362655748] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:14.682215 [Info] [2362655748] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:14.682229 [Info] [2362655748] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:14.682237 [Debug] [2362655748] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:14.682266 [Info] [2362655748] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:14.682404 [Debug] [2362655748] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:14.797296 [Info] [3405677048] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:14.797324 [Info] [3405677048] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:5222 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:14.844838 [Info] [2362655748] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:14.844880 [Info] [2362655748] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:15.162797 [Info] [4079490902] proxy/socks: client UDP connection from udp:127.0.0.1:54472
+2026/09/23 13:09:15.162849 [Debug] [4079490902] proxy/socks: send packet to udp:x.x.x.x:53 with 32 bytes
+2026/09/23 13:09:15.162856 [Debug] [4079490902] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:15.162861 [Info] [4079490902] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:15.162866 [Debug] [4079490902] proxy/socks: send packet to udp:x.x.x.x:53 with 32 bytes
+2026/09/23 13:09:15.162869 [Debug] [4079490902] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:15.162874 [Info] [4079490902] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:15.163128 [Debug] [4079490902] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 843, UnreusableAt = 2026-09-23 13:49:39.57765222 +0000 UTC m=+2900.179774767
+2026/09/23 13:09:15.163150 [Debug] [4079490902] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 620, UnreusableAt = 2026-09-23 13:51:21.682188001 +0000 UTC m=+3002.284310653
+2026/09/23 13:09:15.163158 [Debug] [4079490902] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:15.163163 [Info] [4079490902] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:15.163167 [Debug] [4079490902] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:15.201497 [Info] [1980118559] proxy/socks: TCP Connect request to tcp:x.x.x.x:80
+2026/09/23 13:09:15.201814 [Info] [1980118559] app/dispatcher: sniffed domain: c.wh***.net
+2026/09/23 13:09:15.201828 [Info] [1980118559] app/dispatcher: default route for tcp:c.wh***.net:80
+2026/09/23 13:09:15.201835 [Debug] [1980118559] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:15.201841 [Info] [1980118559] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:15.201846 [Debug] [1980118559] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:15.249276 [Info] [661794929] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:15.249478 [Info] [661794929] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:15.249490 [Info] [661794929] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:15.249496 [Info] [661794929] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:15.270528 [Debug] [1213612977] proxy/socks: send packet to udp:x.x.x.x:53 with 36 bytes
+2026/09/23 13:09:15.270548 [Debug] [1213612977] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:15.270552 [Info] [1213612977] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:15.270726 [Info] [1213612977] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:15.270740 [Info] [1213612977] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:15.274159 [Debug] [3412225009] proxy/socks: send packet to udp:x.x.x.x:53 with 34 bytes
+2026/09/23 13:09:15.274176 [Debug] [3412225009] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:15.274181 [Info] [3412225009] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:15.274318 [Info] [3412225009] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:15.274328 [Info] [3412225009] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:15.290353 [Debug] [2109869895] proxy/socks: send packet to udp:x.x.x.x:53 with 34 bytes
+2026/09/23 13:09:15.290373 [Debug] [2109869895] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:15.290378 [Info] [2109869895] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:15.290526 [Info] [2109869895] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:15.290540 [Info] [2109869895] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:15.320394 [Debug] [2651662545] proxy/socks: send packet to udp:x.x.x.x:53 with 27 bytes
+2026/09/23 13:09:15.320416 [Debug] [2651662545] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:15.320421 [Info] [2651662545] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:15.320541 [Info] [2651662545] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:15.320557 [Info] [2651662545] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:15.349983 [Debug] [2909604792] proxy/socks: send packet to udp:x.x.x.x:53 with 32 bytes
+2026/09/23 13:09:15.349999 [Debug] [2909604792] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:15.350003 [Info] [2909604792] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:15.350434 [Info] [2909604792] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:15.350479 [Info] [2909604792] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:15.361679 [Info] [1980118559] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:15.361698 [Info] [2109869895] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:15.361705 [Info] [1980118559] proxy/vless/outbound: tunneling request to tcp:c.wh***.net:80 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:15.361711 [Info] [2109869895] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:15.361733 [Info] [2109869895] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:15.361759 [Info] [661794929] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:15.361771 [Info] [661794929] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:15.441432 [Debug] [1213612977] proxy/socks: send packet to udp:x.x.x.x:53 with 36 bytes
+2026/09/23 13:09:15.441475 [Debug] [1213612977] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:15.445117 [Debug] [3412225009] proxy/socks: send packet to udp:x.x.x.x:53 with 34 bytes
+2026/09/23 13:09:15.445130 [Debug] [3412225009] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:15.461212 [Debug] [2109869895] proxy/socks: send packet to udp:x.x.x.x:53 with 34 bytes
+2026/09/23 13:09:15.461228 [Debug] [2109869895] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:15.461233 [Info] [2109869895] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:15.461365 [Info] [2109869895] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:15.461389 [Debug] [2109869895] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 700, UnreusableAt = 2026-09-23 13:41:43.201735709 +0000 UTC m=+2423.803858361
+2026/09/23 13:09:15.461396 [Debug] [2109869895] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:15.461402 [Info] [2109869895] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:15.461621 [Debug] [2109869895] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:15.489248 [Debug] [2651662545] proxy/socks: send packet to udp:x.x.x.x:53 with 27 bytes
+2026/09/23 13:09:15.489270 [Debug] [2651662545] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:15.521308 [Debug] [2909604792] proxy/socks: send packet to udp:x.x.x.x:53 with 32 bytes
+2026/09/23 13:09:15.521329 [Debug] [2909604792] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:15.672299 [Info] [2651662545] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:15.672329 [Info] [1431497516] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:15.672336 [Info] [1431497516] proxy/vless/outbound: tunneling request to tcp:ww***.go***.com:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:15.672343 [Info] [2651662545] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:15.672349 [Info] [2651662545] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:15.688608 [Info] [2109869895] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:15.688769 [Info] [2109869895] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:15.688809 [Info] [2109869895] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:15.765788 [Info] [1676679313] proxy/socks: TCP Connect request to tcp:x.x.x.x:5222
+2026/09/23 13:09:15.765810 [Info] [1001243953] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:15.766118 [Info] [1676679313] app/dispatcher: default route for tcp:x.x.x.x:5222
+2026/09/23 13:09:15.766140 [Debug] [1676679313] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 792, UnreusableAt = 2026-09-23 13:49:24.46166446 +0000 UTC m=+2885.063787111
+2026/09/23 13:09:15.766145 [Info] [1001243953] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:15.766151 [Debug] [1676679313] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 773, UnreusableAt = 2026-09-23 13:59:03.461376178 +0000 UTC m=+3464.063498830
+2026/09/23 13:09:15.766157 [Debug] [1676679313] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:15.766161 [Info] [1676679313] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:15.766165 [Info] [1001243953] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:15.766169 [Debug] [1001243953] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:15.766172 [Info] [1001243953] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:15.766176 [Debug] [1676679313] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:15.766180 [Debug] [1001243953] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:15.821514 [Debug] [1073178626] proxy/socks: send packet to udp:x.x.x.x:53 with 32 bytes
+2026/09/23 13:09:15.821540 [Debug] [1073178626] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:15.821545 [Info] [1073178626] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:15.821635 [Info] [1073178626] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:15.821650 [Info] [1073178626] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:15.926320 [Info] [1676679313] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:15.926357 [Info] [1073178626] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:15.926369 [Info] [1676679313] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:5222 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:15.926374 [Info] [1073178626] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:15.926381 [Info] [1073178626] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:15.997639 [Debug] [1073178626] proxy/socks: send packet to udp:x.x.x.x:53 with 32 bytes
+2026/09/23 13:09:15.997672 [Debug] [1073178626] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:15.997677 [Info] [1073178626] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:15.997812 [Info] [1073178626] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:15.997843 [Debug] [1073178626] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 779, UnreusableAt = 2026-09-23 13:56:41.765933313 +0000 UTC m=+3322.368055861
+2026/09/23 13:09:15.997875 [Debug] [1073178626] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:15.997879 [Info] [1073178626] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:15.998061 [Debug] [1073178626] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:16.020381 [Info] [1001243953] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:16.020406 [Info] [1001243953] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:16.180393 [Info] [1073178626] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:16.180457 [Info] [1073178626] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:16.180486 [Info] [1073178626] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:16.333452 [Info] [2231296986] proxy/socks: TCP Connect request to tcp:x.x.x.x:80
+2026/09/23 13:09:16.333815 [Info] [2231296986] app/dispatcher: sniffed domain: c.wh***.net
+2026/09/23 13:09:16.333830 [Info] [2231296986] app/dispatcher: default route for tcp:c.wh***.net:80
+2026/09/23 13:09:16.333851 [Debug] [2231296986] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 671, UnreusableAt = 2026-09-23 13:52:53.765996022 +0000 UTC m=+3094.368118673
+2026/09/23 13:09:16.333858 [Debug] [2231296986] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 686, UnreusableAt = 2026-09-23 13:41:39.997810084 +0000 UTC m=+2420.599932736
+2026/09/23 13:09:16.333864 [Debug] [2231296986] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:16.333869 [Info] [2231296986] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:16.334014 [Debug] [2231296986] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:16.334605 [Debug] [406367643] proxy/socks: send packet to udp:x.x.x.x:53 with 46 bytes
+2026/09/23 13:09:16.334619 [Debug] [406367643] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:16.334624 [Info] [406367643] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:16.334632 [Info] [406367643] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:16.334758 [Debug] [406367643] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:16.334771 [Info] [406367643] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:16.334775 [Debug] [406367643] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:16.409039 [Info] [3412225009] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:16.409118 [Info] [4079490902] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:16.409129 [Info] [3412225009] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:16.409133 [Info] [4079490902] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:16.409139 [Info] [3412225009] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:16.409142 [Info] [4079490902] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:16.409147 [Info] [2909604792] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:16.409152 [Info] [1213612977] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:16.409156 [Info] [2909604792] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:16.409160 [Info] [1213612977] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:16.409163 [Info] [1213612977] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:16.409167 [Info] [2909604792] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:16.425666 [Info] [2911512251] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:16.425969 [Info] [2911512251] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:16.425978 [Info] [2911512251] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:16.426138 [Debug] [2911512251] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 860, UnreusableAt = 2026-09-23 13:55:31.162967376 +0000 UTC m=+3251.765090028
+2026/09/23 13:09:16.426147 [Debug] [2911512251] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:16.426152 [Info] [2911512251] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:16.426290 [Debug] [2911512251] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:16.505377 [Debug] [406367643] proxy/socks: send packet to udp:x.x.x.x:53 with 46 bytes
+2026/09/23 13:09:16.505397 [Debug] [406367643] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:16.533228 [Info] [406367643] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:16.533282 [Info] [406367643] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:16.533537 [Info] [406367643] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:16.538870 [Info] [2231296986] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:16.538886 [Info] [2231296986] proxy/vless/outbound: tunneling request to tcp:c.wh***.net:80 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:16.630005 [Info] [2911512251] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:16.630027 [Info] [2911512251] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:16.917124 [Debug] [505270152] proxy/socks: send packet to udp:x.x.x.x:53 with 41 bytes
+2026/09/23 13:09:16.917178 [Debug] [2411564100] proxy/socks: send packet to udp:x.x.x.x:53 with 36 bytes
+2026/09/23 13:09:16.917185 [Debug] [2411564100] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:16.917190 [Info] [2411564100] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:16.917194 [Debug] [505270152] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:16.917198 [Info] [505270152] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:16.917202 [Debug] [2732864831] proxy/socks: send packet to udp:x.x.x.x:53 with 35 bytes
+2026/09/23 13:09:16.917205 [Debug] [2732864831] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:16.917209 [Info] [2732864831] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:16.917214 [Info] [2411564100] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:16.917236 [Debug] [2411564100] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 777, UnreusableAt = 2026-09-23 13:41:27.333810084 +0000 UTC m=+2407.935932735
+2026/09/23 13:09:16.917242 [Debug] [2411564100] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 647, UnreusableAt = 2026-09-23 13:52:29.334677271 +0000 UTC m=+3069.936799923
+2026/09/23 13:09:16.917261 [Debug] [2411564100] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 832, UnreusableAt = 2026-09-23 13:48:04.426034303 +0000 UTC m=+2805.028156954
+2026/09/23 13:09:16.917265 [Debug] [2411564100] transport/internet/splithttp: XMUX: creating xmuxClient because xmuxClients is empty
+2026/09/23 13:09:16.917271 [Info] [2411564100] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:16.917500 [Info] [505270152] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:16.917507 [Debug] [505270152] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:16.917511 [Debug] [2411564100] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:16.917514 [Info] [505270152] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:16.917518 [Debug] [505270152] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:16.917521 [Info] [2732864831] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:16.917525 [Debug] [2732864831] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:16.917528 [Info] [2732864831] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:16.917531 [Debug] [2732864831] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:17.034040 [Info] [1850270543] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:17.034237 [Info] [1850270543] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:17.034275 [Info] [1850270543] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:17.034458 [Info] [1850270543] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:17.071859 [Info] [2411564100] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:17.071877 [Info] [2732864831] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:17.071889 [Info] [2732864831] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:17.071893 [Info] [2411564100] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:17.071899 [Info] [2732864831] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:17.071902 [Info] [2411564100] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:17.076250 [Info] [505270152] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:17.076264 [Info] [505270152] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:17.076273 [Info] [1850270543] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:17.076278 [Info] [1850270543] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:17.076282 [Info] [505270152] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:17.089644 [Debug] [2411564100] proxy/socks: send packet to udp:x.x.x.x:53 with 36 bytes
+2026/09/23 13:09:17.089665 [Debug] [2732864831] proxy/socks: send packet to udp:x.x.x.x:53 with 35 bytes
+2026/09/23 13:09:17.089672 [Debug] [2411564100] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:17.089676 [Info] [2411564100] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:17.089680 [Debug] [2732864831] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:17.089684 [Info] [2732864831] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:17.089688 [Debug] [505270152] proxy/socks: send packet to udp:x.x.x.x:53 with 41 bytes
+2026/09/23 13:09:17.089692 [Debug] [505270152] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:17.089695 [Info] [505270152] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:17.089700 [Info] [2732864831] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:17.089742 [Info] [2411564100] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:17.089765 [Debug] [2732864831] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 791, UnreusableAt = 2026-09-23 13:53:30.917198573 +0000 UTC m=+3131.519321225
+2026/09/23 13:09:17.089771 [Debug] [2732864831] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 655, UnreusableAt = 2026-09-23 13:58:46.917325084 +0000 UTC m=+3447.519447631
+2026/09/23 13:09:17.089794 [Debug] [2732864831] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 874, UnreusableAt = 2026-09-23 13:45:23.917450292 +0000 UTC m=+2644.519572892
+2026/09/23 13:09:17.089799 [Debug] [2732864831] transport/internet/splithttp: XMUX: creating xmuxClient because xmuxClients is empty
+2026/09/23 13:09:17.089804 [Info] [2732864831] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:17.089928 [Info] [505270152] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:17.089935 [Debug] [505270152] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:17.089938 [Info] [505270152] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:17.089942 [Debug] [2732864831] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:17.089946 [Debug] [505270152] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:17.090015 [Debug] [2411564100] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:17.090019 [Info] [2411564100] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:17.090023 [Debug] [2411564100] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:17.281871 [Info] [2732864831] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:17.281933 [Info] [2732864831] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:17.281973 [Info] [2732864831] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:17.321442 [Info] [505270152] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:17.321470 [Info] [505270152] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:17.321476 [Info] [505270152] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:17.321824 [Info] [2411564100] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:17.321839 [Info] [2411564100] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:17.321844 [Info] [2411564100] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:17.481740 [Info] [154637519] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:17.481962 [Info] [154637519] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:17.481970 [Info] [154637519] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:17.481990 [Debug] [154637519] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 854, UnreusableAt = 2026-09-23 13:44:08.089762427 +0000 UTC m=+2568.691885079
+2026/09/23 13:09:17.481996 [Debug] [154637519] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 801, UnreusableAt = 2026-09-23 13:53:56.089845761 +0000 UTC m=+3156.691968412
+2026/09/23 13:09:17.482025 [Debug] [154637519] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 879, UnreusableAt = 2026-09-23 13:57:38.089961542 +0000 UTC m=+3378.692084194
+2026/09/23 13:09:17.482030 [Debug] [154637519] transport/internet/splithttp: XMUX: creating xmuxClient because xmuxClients is empty
+2026/09/23 13:09:17.482036 [Info] [154637519] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:17.482233 [Debug] [154637519] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:17.587418 [Debug] [3798057194] proxy/socks: send packet to udp:x.x.x.x:53 with 41 bytes
+2026/09/23 13:09:17.587480 [Debug] [3798057194] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:17.587486 [Info] [3798057194] transport/internet/udp: establishing new connection for udp:x.x.x.x:53
+2026/09/23 13:09:17.587490 [Info] [3798057194] app/dispatcher: default route for udp:x.x.x.x:53
+2026/09/23 13:09:17.587667 [Debug] [3798057194] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:17.587681 [Info] [3798057194] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:17.587836 [Debug] [3798057194] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:17.642160 [Info] [154637519] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:17.642488 [Info] [154637519] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:17.758143 [Debug] [3798057194] proxy/socks: send packet to udp:x.x.x.x:53 with 41 bytes
+2026/09/23 13:09:17.758163 [Debug] [3798057194] transport/internet/udp: dispatch request to: udp:x.x.x.x:53
+2026/09/23 13:09:17.760358 [Info] [3798057194] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:17.761247 [Info] [3798057194] proxy/vless/outbound: tunneling request to udp:x.x.x.x:53 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:17.761259 [Info] [3798057194] transport/internet/udp: failed to handle UDP input > io: read/write on closed pipe
+2026/09/23 13:09:18.049808 [Info] [2592394950] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:18.050021 [Info] [2592394950] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:18.050034 [Info] [2592394950] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:18.050170 [Debug] [2592394950] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 753, UnreusableAt = 2026-09-23 13:47:00.481999354 +0000 UTC m=+2741.084122006
+2026/09/23 13:09:18.050190 [Debug] [2592394950] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 855, UnreusableAt = 2026-09-23 13:39:48.587589823 +0000 UTC m=+2309.189712475
+2026/09/23 13:09:18.050195 [Debug] [2592394950] transport/internet/splithttp: XMUX: creating xmuxClient because xmuxClients is empty
+2026/09/23 13:09:18.050200 [Info] [2592394950] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:18.050333 [Debug] [2592394950] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:18.287941 [Info] [2592394950] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:18.287973 [Info] [2592394950] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:18.681384 [Info] [1673287823] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:18.681589 [Info] [1673287823] app/dispatcher: default route for tcp:x.x.x.x:443
+2026/09/23 13:09:18.681617 [Debug] [1673287823] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 760, UnreusableAt = 2026-09-23 13:42:03.050106021 +0000 UTC m=+2443.652228672
+2026/09/23 13:09:18.681622 [Debug] [1673287823] transport/internet/splithttp: XMUX: creating xmuxClient because xmuxClients is empty
+2026/09/23 13:09:18.681627 [Info] [1673287823] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:18.681782 [Debug] [1673287823] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:18.693657 [Info] [1429742523] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:18.693768 [Info] [1429742523] app/dispatcher: sniffed domain: in***.te***.mo***.org
+2026/09/23 13:09:18.694096 [Info] [1429742523] app/dispatcher: default route for tcp:in***.te***.mo***.org:443
+2026/09/23 13:09:18.694268 [Debug] [1429742523] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:18.694286 [Info] [1429742523] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:18.695021 [Debug] [1429742523] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:18.777795 [Info] [2175927645] proxy/socks: TCP Connect request to tcp:x.x.x.x:5222
+2026/09/23 13:09:18.778111 [Info] [2175927645] app/dispatcher: default route for tcp:x.x.x.x:5222
+2026/09/23 13:09:18.778125 [Debug] [2175927645] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 2
+2026/09/23 13:09:18.778132 [Info] [2175927645] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:18.778323 [Debug] [2175927645] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:18.817558 [Info] [1673287823] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:18.817591 [Info] [1673287823] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:18.830201 [Info] [1429742523] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:18.830218 [Info] [1429742523] proxy/vless/outbound: tunneling request to tcp:in***.te***.mo***.org:443 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:18.865488 [Info] [681416264] proxy/socks: TCP Connect request to tcp:x.x.x.x:443
+2026/09/23 13:09:18.865670 [Info] [681416264] app/dispatcher: default route for tcp:x.x.x.x:443
+2026/09/23 13:09:18.865709 [Debug] [681416264] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 694, UnreusableAt = 2026-09-23 13:41:52.681570604 +0000 UTC m=+2433.283693255
+2026/09/23 13:09:18.865717 [Debug] [681416264] transport/internet/splithttp: XMUX: removing xmuxClient, IsClosed() = true, Running = 0, leftUsage = -1, LeftRequests = 717, UnreusableAt = 2026-09-23 13:55:01.694217739 +0000 UTC m=+3222.296340287
+2026/09/23 13:09:18.865722 [Debug] [681416264] transport/internet/splithttp: XMUX: creating xmuxClient because maxConnections was not hit, xmuxClients = 1
+2026/09/23 13:09:18.865727 [Info] [681416264] transport/internet/splithttp: XHTTP is dialing to tcp:tr***.fn***.32.da***.cloud:443, mode stream-one, HTTP version 2, host tr***.fn***.32.me***.cloud
+2026/09/23 13:09:18.865845 [Debug] [681416264] transport/internet: dialing to tcp:tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:18.921225 [Info] [2175927645] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:18.921265 [Info] [2175927645] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:5222 via tr***.fn***.32.da***.cloud:443
+2026/09/23 13:09:19.054535 [Info] [681416264] transport/internet/splithttp: failed to POST https://tr***.fn***.32.me***.cloud/api/v1/events/stream/ > Post "https://tr***.fn***.32.me***.cloud/api/v1/events/stream/": remote error: tls: internal error
+2026/09/23 13:09:19.054581 [Info] [681416264] proxy/vless/outbound: tunneling request to tcp:x.x.x.x:443 via tr***.fn***.32.da***.cloud:443
+2026-09-23 16:09:19.096 [INFO/TUNNEL] Отключение VPN (через broadcast)...
+2026-09-23 16:09:19.096 [INFO/TUNNEL] Остановка VPN...
+2026/09/23 13:09:19.098699 [Debug] app/log: Logger closing
+2026-09-23 16:09:19.243 [INFO/TUNNEL] VPN отключен
+
+
+=== incy_1.log · 2026-09-23 16:09:05 ===
+2026-09-23 16:09:05.199 [DEBUG/TUNNEL] Подготовка конфига...
+2026-09-23 16:09:05.205 [DEBUG/TUNNEL] Настройки загружены (+7мс)
+2026-09-23 16:09:05.206 [DEBUG/TUNNEL] Профиль маршрутизации загружен (+8мс)
+2026-09-23 16:09:05.207 [DEBUG/TUNNEL] Профиль готов (+8мс)
+2026-09-23 16:09:05.207 [DEBUG/TUNNEL] Конфиг сгенерирован (+9мс)
+2026-09-23 16:09:05.207 [DEBUG/TUNNEL] Запуск VPN сервиса (+9мс)
+2026-09-23 16:09:05.211 [INFO/TUNNEL] VPN Service создан
+2026-09-23 16:09:05.215 [DEBUG/TUNNEL] incycore инициализирован
+2026-09-23 16:09:05.217 [INFO/TUNNEL] Подключение (engine=xray, killSwitch=false, mode=TUN_PROXY, ip=ipv4, fragment=false)
+2026-09-23 16:09:05.222 [INFO/TUNNEL] Статус: CONNECTING (mode: TUN_PROXY)
+
+

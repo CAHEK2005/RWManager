@@ -647,7 +647,7 @@ if "/etc/caddy/certs" not in compose:
     marker = "      - caddy_config:/config"
     if marker not in compose:
         raise SystemExit("не найден caddy_config mount в docker-compose.yml")
-    compose = compose.replace(marker, marker + "\n" + mount, 1)
+    compose = compose.replace(marker, marker + "\\n" + mount, 1)
     compose_file.write_text(compose)
 
 caddy = caddy_file.read_text()
@@ -656,7 +656,7 @@ if "/etc/caddy/certs/" not in caddy:
     match = re.search(r"^https://\\{\\$SELF_STEAL_DOMAIN\\} \\{\\s*$", caddy, re.MULTILINE)
     if not match:
         raise SystemExit("не найден HTTPS self-steal site в Caddyfile")
-    caddy = caddy[:match.end()] + "\n" + tls + caddy[match.end():]
+    caddy = caddy[:match.end()] + "\\n" + tls + caddy[match.end():]
     caddy_file.write_text(caddy)
 PY
 

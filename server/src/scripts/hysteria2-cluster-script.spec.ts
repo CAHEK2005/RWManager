@@ -115,6 +115,8 @@ describe('Hysteria2 cluster shell builders', () => {
     expect(script).toContain('./certs:/etc/caddy/certs:ro');
     expect(script).toContain('tls = f');
     expect(script).toContain('/etc/caddy/certs/{domain}.crt');
+    expect(script).toContain('compose = compose.replace(marker, marker + "\\n" + mount, 1)');
+    expect(script).toContain('caddy = caddy[:match.end()] + "\\n" + tls + caddy[match.end():]');
     expect(script).toContain('docker compose -f "$caddy_compose" up -d --force-recreate caddy');
   });
 
