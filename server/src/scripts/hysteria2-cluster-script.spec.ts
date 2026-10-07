@@ -111,12 +111,14 @@ describe('Hysteria2 cluster shell builders', () => {
     expect(script).toContain('.RW == false');
     expect(script).toContain('restore_previous_state');
     expect(script).toContain('rm -f -- "$CRON_FILE"');
-    expect(script).toContain('configure_follower_caddy');
+    expect(script).toContain('configure_cluster_caddy');
     expect(script).toContain('./certs:/etc/caddy/certs:ro');
     expect(script).toContain('tls = f');
     expect(script).toContain('/etc/caddy/certs/{domain}.crt');
     expect(script).toContain('compose = compose.replace(marker, marker + "\\n" + mount, 1)');
     expect(script).toContain('caddy = caddy[:match.end()] + "\\n" + tls + caddy[match.end():]');
+    expect(script).toContain('BEGIN RWM HYSTERIA CLUSTER TLS SITE');
+    expect(script).toContain('self_steal_domain != domain');
     expect(script).toContain('docker compose -f "$caddy_compose" up -d --force-recreate caddy');
   });
 

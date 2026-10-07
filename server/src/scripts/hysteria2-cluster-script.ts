@@ -571,7 +571,7 @@ cleanup() {
   local status=$?
   trap - EXIT
   if [ "$status" -ne 0 ] && [ "$TRANSACTION_ACTIVE" -eq 1 ] && [ "$COMMITTED" -eq 0 ]; then
-    echo "[ROLLBACK] Восстанавливаем предыдущий сертификат follower-ноды" >&2
+    echo "[ROLLBACK] Восстанавливаем предыдущий сертификат ноды" >&2
     restore_previous_state \\
       || echo "[ROLLBACK ERROR] Локальный откат follower-ноды не завершён" >&2
   fi
@@ -618,28 +618,34 @@ verify_live_mount() {
   openssl x509 -in "$CURRENT_LINK/fullchain.pem" -checkhost "$DOMAIN" -noout >/dev/null 2>&1
 }
 
-configure_follower_caddy() {
+configure_cluster_caddy() {
   local caddy_dir="/opt/caddy"
   local caddy_file="$caddy_dir/Caddyfile"
   local caddy_compose="$caddy_dir/docker-compose.yml"
+  local caddy_env="$caddy_dir/.env"
   local caddy_cert_dir="$caddy_dir/certs"
   local caddy_cert="$caddy_cert_dir/$DOMAIN.crt"
   local caddy_key="$caddy_cert_dir/$DOMAIN.key"
+  local self_steal_domain=""
 
   # Caddy is optional on a Hysteria node. When self-steal is installed, make
-  # the follower use the coordinator's certificate instead of starting its
-  # own ACME order against a round-robin DNS name.
-  [ -f "$caddy_file" ] && [ -f "$caddy_compose" ] || return 0
+  # every cluster node serve the shared certificate to Reality's local target.
+  # This covers coordinators whose self-steal domain differs from DOMAIN.
+  [ -f "$caddy_file" ] && [ -f "$caddy_compose" ] && [ -f "$caddy_env" ] || return 0
   command -v python3 >/dev/null 2>&1 || fail "python3 нужен для настройки сертификата Caddy"
   install -d -o root -g root -m 700 "$caddy_cert_dir"
   install -o root -g root -m 644 "$CURRENT_LINK/fullchain.pem" "$caddy_cert"
   install -o root -g root -m 600 "$CURRENT_LINK/privkey.pem" "$caddy_key"
+  self_steal_domain=$(sed -n 's/^SELF_STEAL_DOMAIN=//p' "$caddy_env" | tail -n 1)
+  [ -n "$self_steal_domain" ] || fail "SELF_STEAL_DOMAIN не найден в $caddy_env"
 
-  python3 - "$caddy_file" "$caddy_compose" "$DOMAIN" <<'PY'
+  python3 - "$caddy_file" "$caddy_compose" "$DOMAIN" "$self_steal_domain" <<'PY'
 import pathlib, re, sys
 
-caddy_file, compose_file, domain = map(pathlib.Path, sys.argv[1:])
-domain = str(domain)
+caddy_file = pathlib.Path(sys.argv[1])
+compose_file = pathlib.Path(sys.argv[2])
+domain = sys.argv[3]
+self_steal_domain = sys.argv[4]
 
 compose = compose_file.read_text()
 mount = "      - ./certs:/etc/caddy/certs:ro"
@@ -652,11 +658,42 @@ if "/etc/caddy/certs" not in compose:
 
 caddy = caddy_file.read_text()
 tls = f"\ttls /etc/caddy/certs/{domain}.crt /etc/caddy/certs/{domain}.key"
-if "/etc/caddy/certs/" not in caddy:
+if self_steal_domain == domain and "/etc/caddy/certs/" not in caddy:
     match = re.search(r"^https://\\{\\$SELF_STEAL_DOMAIN\\} \\{\\s*$", caddy, re.MULTILINE)
     if not match:
         raise SystemExit("не найден HTTPS self-steal site в Caddyfile")
     caddy = caddy[:match.end()] + "\\n" + tls + caddy[match.end():]
+    caddy_file.write_text(caddy)
+elif self_steal_domain != domain:
+    begin = f"# BEGIN RWM HYSTERIA CLUSTER TLS SITE: {domain}"
+    end = f"# END RWM HYSTERIA CLUSTER TLS SITE: {domain}"
+    block = f'''{begin}
+https://{domain} {{
+{tls}
+\tencode zstd gzip
+\troot * /var/www/html
+\ttry_files {{path}} /index.html
+\tfile_server
+\tlog {{
+\t\toutput file /var/log/caddy/access.log {{
+\t\t\troll_size 10MB
+\t\t\troll_keep 5
+\t\t\troll_keep_for 720h
+\t\t}}
+\t\tlevel ERROR
+\t}}
+}}
+{end}'''
+    pattern = re.compile(
+        rf"(?ms)^{re.escape(begin)}$.*?^{re.escape(end)}$"
+    )
+    if pattern.search(caddy):
+        caddy = pattern.sub(block, caddy, count=1)
+    else:
+        marker = ":{$SELF_STEAL_PORT} {"
+        if marker not in caddy:
+            raise SystemExit("не найден fallback-блок порта self-steal")
+        caddy = caddy.replace(marker, block + "\\n\\n" + marker, 1)
     caddy_file.write_text(caddy)
 PY
 
@@ -665,7 +702,7 @@ PY
   (cd "$caddy_dir" && docker compose -f "$caddy_compose" up -d --force-recreate caddy) \
     || fail "Не удалось перезапустить Caddy с единым сертификатом"
   CADDY_CHANGED=1
-  echo "Caddy follower переведён на централизованный сертификат: $DOMAIN"
+  echo "Caddy переведён на централизованный сертификат: $DOMAIN"
 }
 
 [ "$(id -u)" -eq 0 ] || fail "Скрипт нужно запускать от root или через sudo"
@@ -797,7 +834,7 @@ else
 fi
 [ "$LIVE_MOUNT_OK" -eq 1 ] || fail "remnanode не использует опубликованный read-only сертификат"
 
-configure_follower_caddy
+configure_cluster_caddy
 
 # Cluster renewal is coordinated by RWManager. A per-node Certbot cron would
 # create independent orders and eventually hit duplicate-certificate limits.
@@ -806,6 +843,6 @@ rm -f -- "$RESTART_MARKER"
 COMMITTED=1
 TRANSACTION_ACTIVE=0
 
-echo "Cluster-сертификат опубликован на follower-ноде: $DOMAIN"
+echo "Cluster-сертификат опубликован на ноде: $DOMAIN"
 echo "certificate_fingerprint=$CERT_FINGERPRINT"`;
 }

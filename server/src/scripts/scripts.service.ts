@@ -1854,7 +1854,6 @@ export class ScriptsService implements OnModuleInit {
     coordinatorResult.logs.push(
       `[CLUSTER] Сертификат проверен, fingerprint ${bundle.fingerprint.slice(0, 16)}…`,
     );
-    coordinatorResult.status = 'success';
 
     const fullchainBase64 = bundle.fullchain.toString('base64');
     const privateKeyBase64 = bundle.privateKey.toString('base64');
@@ -1868,6 +1867,17 @@ export class ScriptsService implements OnModuleInit {
       fullchainBase64,
       privateKeyBase64,
     });
+    coordinatorResult.logs.push(
+      '[CLUSTER] Настройка общего сертификата в Caddy coordinator...',
+    );
+    await this.runScriptOnNode(
+      coordinator,
+      deployScript,
+      coordinatorResult,
+      certificateMasks,
+    );
+    coordinatorResult.status = 'success';
+
     const deployOutcomes = await this.runWithConcurrency(
       followers,
       HYSTERIA2_CLUSTER_CONCURRENCY,

@@ -266,6 +266,12 @@ describe('ScriptsService Hysteria2 cluster orchestration', () => {
     expect(monolithicIndexes[0]).toBeGreaterThan(probeIndex);
     expect(events[monolithicIndexes[0]]).toBe('monolithic:node-a');
     expect(
+      events
+        .filter((event) => event.startsWith('deploy:'))
+        .map((event) => event.split(':')[1])
+        .sort(),
+    ).toEqual(['node-a', 'node-b']);
+    expect(
       runner.mock.calls.filter(([, content]) =>
         content.includes('HYSTERIA_CLUSTER_MANAGED=1'),
       ),
